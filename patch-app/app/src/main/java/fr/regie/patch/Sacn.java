@@ -1,16 +1,18 @@
 package fr.regie.patch;
 
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * sACN / E1.31 : écoute d'un univers en multicast et recensement des sources
- * par l'univers de découverte (64214). Port UDP 5568.
+ * sACN / E1.31 : écoute d'un univers en multicast, recensement des sources par
+ * l'univers de découverte (64214), et émission de trames de données. Port UDP 5568.
  *
  * Un univers n'est reçu que si l'on a rejoint son groupe multicast : le
  * recensement passe donc par la découverte, que les sources émettent toutes
@@ -37,11 +39,17 @@ public class Sacn {
     public volatile int ecoutePrio = 0, ecouteHz = 0;
 
     private MulticastSocket sock;
+    private DatagramSocket secours;          // émission seule, si l'écoute n'a pas pu s'ouvrir
     private NetworkInterface nif;
     private Thread boucle;
     private volatile boolean actif;
     private int rejoint = -1;
     private int trames; private long fenetre;
+
+    /* Émission : un CID par exécution, une numérotation de séquence par univers. */
+    private static final byte[] CID = cid();
+    private final Map<Integer, Integer> sequences = new ConcurrentHashMap<Integer, Integer>();
+    public volatile String nomSource = "Patch - telecommande";
 
     public synchronized void demarrer(String ipLocale) {
         if (actif) return;
@@ -60,6 +68,8 @@ public class Sacn {
             sock.bind(new InetSocketAddress(PORT));
             sock.setSoTimeout(1000);
             if (nif != null) sock.setNetworkInterface(nif);
+            // Sans cela nos propres trames reviennent et se recensent comme une source.
+            try { sock.setLoopbackMode(true); } catch (Exception ignore) { }
             rejoindre(groupe(UNIVERS_DECOUVERTE));
         } catch (Exception e) { actif = false; return; }
 
@@ -145,6 +155,97 @@ public class Sacn {
         }
     }
 
+    /* ------------------------------ émission ---------------------------- */
+
+    /**
+     * Émet une trame de données sur un univers. Sans cible, le paquet part sur
+     * le groupe multicast de l'univers, comme le veut la norme ; avec une cible,
+     * il part en unicast vers ce nœud.
+     *
+     * @param fin marque la fin de flux (bit stream_terminated), pour que les
+     *            récepteurs relâchent l'univers au lieu de garder les niveaux.
+     */
+    public boolean emettre(int universBase1, byte[] data, int prio, String cible, boolean fin) {
+        try {
+            if (universBase1 < 1 || universBase1 > 63999) return false;
+            byte[] p = trame(universBase1, data, prio, fin);
+            String dest = (cible == null || cible.isEmpty()) ? groupe(universBase1) : cible;
+            prise().send(new DatagramPacket(p, p.length, InetAddress.getByName(dest), PORT));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** La prise d'écoute si elle est ouverte, sinon une prise d'émission à part. */
+    private synchronized DatagramSocket prise() throws Exception {
+        if (sock != null && !sock.isClosed()) return sock;
+        if (secours == null || secours.isClosed()) secours = new DatagramSocket();
+        return secours;
+    }
+
+    /** Trame E1.31 complète : couche racine, couche de trame, couche DMP. */
+    private byte[] trame(int u, byte[] data, int prio, boolean fin) {
+        byte[] p = new byte[638];
+
+        p[0] = 0x00; p[1] = 0x10;                       // taille du préambule
+        p[2] = 0x00; p[3] = 0x00;                       // postambule
+        System.arraycopy(ACN, 0, p, 4, 12);
+        ecrire16(p, 16, 0x7000 | (638 - 16));           // drapeaux + longueur
+        ecrire32(p, 18, 0x00000004);                    // VECTOR_ROOT_E131_DATA
+        System.arraycopy(CID, 0, p, 22, 16);
+
+        ecrire16(p, 38, 0x7000 | (638 - 38));
+        ecrire32(p, 40, 0x00000002);                    // VECTOR_E131_DATA_PACKET
+        byte[] nom = octets(nomSource);
+        System.arraycopy(nom, 0, p, 44, Math.min(63, nom.length));
+        p[108] = (byte) Math.max(0, Math.min(200, prio));
+        p[109] = 0; p[110] = 0;                         // adresse de synchronisation
+        p[111] = (byte) suivant(u);
+        p[112] = (byte) (fin ? 0x40 : 0x00);            // stream_terminated
+        ecrire16(p, 113, u);
+
+        ecrire16(p, 115, 0x7000 | (638 - 115));
+        p[117] = 0x02;                                  // VECTOR_DMP_SET_PROPERTY
+        p[118] = (byte) 0xa1;                           // type d'adresse et de donnée
+        ecrire16(p, 119, 0);                            // première adresse
+        ecrire16(p, 121, 1);                            // incrément
+        ecrire16(p, 123, 513);                          // 1 code de départ + 512 canaux
+        p[125] = 0x00;                                  // code de départ nul
+        if (data != null) System.arraycopy(data, 0, p, 126, Math.min(512, data.length));
+        return p;
+    }
+
+    private int suivant(int u) {
+        Integer n = sequences.get(u);
+        int v = ((n == null ? 0 : n) + 1) & 255;
+        sequences.put(u, v);
+        return v;
+    }
+
+    private static byte[] octets(String s) {
+        try { return s.getBytes("UTF-8"); } catch (Exception e) { return new byte[0]; }
+    }
+
+    private static void ecrire16(byte[] b, int p, int v) {
+        b[p] = (byte) ((v >> 8) & 255); b[p + 1] = (byte) (v & 255);
+    }
+
+    private static void ecrire32(byte[] b, int p, int v) {
+        b[p] = (byte) ((v >> 24) & 255); b[p + 1] = (byte) ((v >> 16) & 255);
+        b[p + 2] = (byte) ((v >> 8) & 255); b[p + 3] = (byte) (v & 255);
+    }
+
+    /** Identifiant de source, tiré au sort au lancement et stable tant qu'on tourne. */
+    private static byte[] cid() {
+        UUID id = UUID.randomUUID();
+        byte[] c = new byte[16];
+        long h = id.getMostSignificantBits(), l = id.getLeastSignificantBits();
+        for (int i = 0; i < 8; i++) {
+            c[i] = (byte) ((h >> (56 - 8 * i)) & 255);
+            c[8 + i] = (byte) ((l >> (56 - 8 * i)) & 255);
+        }
+        return c;
+    }
+
     private void purger() {
         long t = System.currentTimeMillis();
         for (Map.Entry<Integer, Uni> e : univers.entrySet())
@@ -166,7 +267,9 @@ public class Sacn {
     public void arreter() {
         actif = false;
         try { if (sock != null) sock.close(); } catch (Exception ignore) { }
+        try { if (secours != null) secours.close(); } catch (Exception ignore) { }
         univers.clear();
+        sequences.clear();
         rejoint = -1;
     }
 }

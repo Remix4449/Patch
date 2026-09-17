@@ -20,6 +20,7 @@ public class Regie {
     private final ArtNet art = new ArtNet();
     private final Sacn sacn = new Sacn();
     private final Scanner scan = new Scanner();
+    private final Emetteur emetteur = new Emetteur(art, sacn);
     private final Ndi ndi;
 
     private volatile String proto = "Art-Net";
@@ -232,6 +233,53 @@ public class Regie {
         } catch (Exception e) { return false; }
     }
 
+    /* ------------------------- émission continue ------------------------ */
+
+    /** Protocole, priorité et destination du flux de la télécommande. */
+    @JavascriptInterface
+    public void emitStart(String protocole, int priorite, String cible) {
+        emetteur.regler(protocole, priorite, cible);
+        emetteur.demarrer();
+    }
+
+    /**
+     * Remplace les univers émis. Le JSON porte, par univers en base 1, les
+     * 512 niveaux en base 64 : {"1":"AAA…"}. Un objet vide relâche tout.
+     */
+    @JavascriptInterface
+    public boolean emitSet(String json) {
+        try {
+            JSONObject o = new JSONObject(json == null || json.isEmpty() ? "{}" : json);
+            java.util.Map<Integer, byte[]> t = new java.util.HashMap<Integer, byte[]>();
+            java.util.Iterator<String> it = o.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                byte[] d = Base64.decode(o.getString(k), Base64.DEFAULT);
+                byte[] n = new byte[512];
+                System.arraycopy(d, 0, n, 0, Math.min(512, d.length));
+                t.put(Integer.parseInt(k), n);
+            }
+            emetteur.poser(t);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    @JavascriptInterface
+    public void emitStop() { emetteur.arreter(); }
+
+    @JavascriptInterface
+    public String emitState() {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("actif", emetteur.actif);
+            o.put("proto", emetteur.proto);
+            o.put("prio", emetteur.prio);
+            o.put("cible", emetteur.cible);
+            o.put("envois", emetteur.envois);
+            return o.toString();
+        } catch (Exception e) { return "{}"; }
+    }
+
     /* ------------------------- impression et GDTF ----------------------- */
 
     /** Ouvre la boîte d'impression du système : « Enregistrer au format PDF ». */
@@ -251,6 +299,7 @@ public class Regie {
 
     @JavascriptInterface
     public void stopAll() {
+        emetteur.arreter();
         scan.arreter();
         ndi.arreter();
         art.arreter();

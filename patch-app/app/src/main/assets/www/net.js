@@ -70,6 +70,30 @@ const NET = {
     return sonder(() => JSON.parse(PONT.ndiState()), cb, 700);
   },
 
+  /* Émission continue — télécommande gradateurs. trames : { univers: niveaux[512] }.
+     Le natif répète les trames à 30 Hz tant qu'elles sont posées ; un objet vide
+     relâche les univers, sinon les gradateurs resteraient au dernier niveau reçu. */
+  emission(trames, proto, prio, cible){
+    if(!PONT){ DEMO_EMISSION.trames = trames; DEMO_EMISSION.proto = proto; return false; }
+    try {
+      PONT.emitStart(proto || "sACN", prio || 100, cible || "");
+      const o = {};
+      Object.keys(trames).forEach(u => o[u] = enBase64(trames[u]));
+      return PONT.emitSet(JSON.stringify(o));
+    } catch(e){ return false; }
+  },
+
+  emissionArret(){
+    if(!PONT){ DEMO_EMISSION.trames = {}; return false; }
+    try { PONT.emitStop(); return true; } catch(e){ return false; }
+  },
+
+  emissionEtat(){
+    if(!PONT) return { actif:Object.keys(DEMO_EMISSION.trames).length > 0,
+                       proto:DEMO_EMISSION.proto, demo:true };
+    try { return JSON.parse(PONT.emitState()); } catch(e){ return { actif:false }; }
+  },
+
   /* Émission d'une trame Art-Net — testeur d'adresse de poche. */
   emettre(univers, niveaux, cible){
     if(!PONT) return false;
@@ -98,6 +122,10 @@ const NET = {
 
   arreterTout(){ if(PONT){ try { PONT.stopAll(); } catch(e){} } }
 };
+
+/* Hors application, l'émission n'a nulle part où aller : on garde l'état pour
+   que l'interface se comporte pareil, sans qu'un paquet parte. */
+const DEMO_EMISSION = { trames:{}, proto:"sACN" };
 
 /* --------------------------- utilitaires ------------------------------- */
 

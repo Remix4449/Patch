@@ -18,6 +18,7 @@
     --ink:#0F1116; --ink2:#5A6070; --ink3:#8990A0;
     --proj:#2F4BFF; --mach:#00998D; --haut:#E0218A; --mdg:#7A3FF2;
     --dmx:#E2761C; --gel:#C2185B; --ndi:#0E7BC4; --net:#128A45; --art:#5B3FD6;
+    --tel:#0F7C8C;
     --ok:#128A45; --ko:#D22B2B;
     --disp:"Bricolage Grotesque",system-ui,sans-serif;
     --body:"Chivo",system-ui,sans-serif;
@@ -30,6 +31,7 @@
       --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
       --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
+      --tel:#3FC7DC;
       --ok:#45C47B; --ko:#FF6B63;
     }
   }
@@ -38,6 +40,7 @@
     --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
     --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
+    --tel:#3FC7DC;
     --ok:#45C47B; --ko:#FF6B63;
   }
   *{box-sizing:border-box}
@@ -161,6 +164,47 @@
   .big b{display:block;font:600 40px/1 var(--mono);color:var(--dmx);font-variant-numeric:tabular-nums}
   .big span{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--ink2)}
 
+  /* ----------------------------- télécommande -------------------------- */
+  .tel-ec{background:var(--bg);border:1.5px solid var(--line);border-radius:14px;
+          padding:14px 16px;margin-bottom:12px;display:grid;
+          grid-template-columns:1fr auto;align-items:center;gap:4px 12px}
+  .tel-ec b{font:600 42px/1 var(--mono);color:var(--tel);font-variant-numeric:tabular-nums;
+            letter-spacing:-.02em}
+  .tel-ec i{font-style:normal;font:600 26px/1 var(--mono);text-align:right;
+            font-variant-numeric:tabular-nums}
+  .tel-ec span{grid-column:1/-1;font-size:12.5px;color:var(--ink2)}
+  .kp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+  .kp button{border:0;border-radius:14px;padding:15px 0;background:var(--sur2);
+             font:600 21px/1 var(--mono);cursor:pointer}
+  .kp button:active{transform:scale(.97)}
+  .kp button.acc{background:var(--tel);color:#fff}
+  .kbig{padding:13px 0;font:600 15px/1 var(--body)}
+  .kbig.on{background:var(--tel);border-color:var(--tel);color:#fff}
+  .gr{display:grid;grid-template-columns:40px 54px minmax(0,1fr) minmax(0,1fr);gap:7px;
+      align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+  .gr:last-of-type{border-bottom:0}
+  .gr .gn{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 0;
+          font:600 13px/1 var(--mono);cursor:pointer;color:var(--ink2)}
+  .gr.on .gn{background:var(--tel);border-color:var(--tel);color:#fff}
+  .gr .ga{font:500 11px/1.15 var(--mono);color:var(--ink3);white-space:nowrap}
+  .gr .ga b{display:block;font-size:13.5px;color:var(--ink)}
+  .gr .cc{width:100%;min-width:0;background:var(--bg);border:1.5px solid var(--line);
+          border-radius:9px;padding:8px 6px;font:500 12.5px/1 var(--mono);text-align:center;outline:none}
+  .gr .cc:focus{border-color:var(--tel)}
+  .gr .cc.note{font:400 12px/1 var(--body)}
+  details.card>summary{font:700 11px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3);cursor:pointer;list-style:none;display:flex;justify-content:space-between}
+  details.card>summary::-webkit-details-marker{display:none}
+  details.card>summary:after{content:"+";font:600 13px/1 var(--mono)}
+  details.card[open]>summary{margin-bottom:12px}
+  details.card[open]>summary:after{content:"−"}
+  #g-solo{accent-color:var(--tel)}
+  .hero .chipdemo{color:#fff;border-color:rgba(255,255,255,.55)}
+  .circ{display:flex;flex-wrap:wrap;gap:7px}
+  .circ button{border:1.5px solid var(--line);background:var(--bg);border-radius:11px;
+               padding:8px 11px;cursor:pointer;text-align:left;font:500 12px/1.3 var(--mono);color:var(--ink2)}
+  .circ button b{display:block;font:700 14px/1.2 var(--body);color:var(--ink)}
+
   .swg{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}
   .sw{border:0;padding:0;border-radius:14px;overflow:hidden;cursor:pointer;background:var(--sur);text-align:left}
   .sw .c{height:52px}
@@ -242,6 +286,7 @@
   <symbol id="i-ndi" viewBox="0 0 24 24"><rect x="2" y="6.5" width="13.5" height="11" rx="2.2"/><circle cx="8.7" cy="12" r="3"/><path d="M16 10.3l5.5-2.8v9l-5.5-2.8z"/></symbol>
   <symbol id="i-reseau" viewBox="0 0 24 24"><circle cx="12" cy="4.6" r="2.4"/><circle cx="4.8" cy="19.4" r="2.4"/><circle cx="19.2" cy="19.4" r="2.4"/><path d="M12 7v3.6M4.8 17v-2.8h14.4V17M12 10.6v3.6"/></symbol>
   <symbol id="i-artnet" viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="19" height="17" rx="2.4"/><path d="M6.5 17v-4.5M10.2 17V8M13.8 17v-2.5M17.5 17v-6.5" stroke-width="2"/></symbol>
+  <symbol id="i-remote" viewBox="0 0 24 24"><rect x="5.5" y="2" width="13" height="20" rx="3"/><path d="M8.5 6h7"/><circle cx="9.5" cy="11" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r="1.05" fill="currentColor" stroke="none"/><circle cx="9.5" cy="14.8" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.5" cy="14.8" r="1.05" fill="currentColor" stroke="none"/><circle cx="9.5" cy="18.6" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.5" cy="18.6" r="1.05" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.2L12 4l9 7.2"/><path d="M5.8 10v9.5h12.4V10"/></symbol>
   <symbol id="i-parc" viewBox="0 0 24 24"><rect x="2.5" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="13" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="7.8" y="3.5" width="8.5" height="8" rx="1.4"/></symbol>
   <symbol id="i-outils" viewBox="0 0 24 24"><path d="M6 3v18M12 3v18M18 3v18"/><rect x="3.8" y="7" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="9.8" y="13" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="15.8" y="5.5" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/></symbol>
@@ -288,6 +333,7 @@ const CATS = [
 ];
 const TOOLS = [
   { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx" },
+  { k:"tel", t:"Télécommande", s:"Gradateurs sACN", c:"var(--tel)", i:"remote" },
   { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)", i:"gel" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
@@ -322,7 +368,7 @@ function home(){
   d.insertAdjacentHTML("beforeend", `<h2 class="sec">Outils</h2>`);
   const g2 = el("div", "tiles");
   TOOLS.forEach((c, i) => {
-    const b = el("button", "tile sm" + (i === 4 ? " wide" : ""));
+    const b = el("button", "tile sm" + (i === TOOLS.length - 1 && TOOLS.length % 2 ? " wide" : ""));
     b.style.setProperty("--c", c.c);
     b.innerHTML = `${ic(c.i)}<span class="tx"><b>${c.t}</b><span>${c.s}</span></span>`;
     b.onclick = () => go({ v:c.k });
@@ -601,6 +647,13 @@ function vDmx(){
   titre.innerHTML = `<div class="f" style="margin:0"><label for="p-nom">Nom du patch</label>
     <input id="p-nom" data-focus="p-nom" value="${esc(PATCH.nom)}" placeholder="Création, série 2026…"></div>`;
   d.append(titre);
+
+  const tel = el("button", "row");
+  tel.style.setProperty("--c", "var(--tel)");
+  tel.innerHTML = `<span class="av">${ic("remote")}</span>
+    <span class="g"><b>Télécommande gradateurs</b><span>clavier sACN et feuille de circuits</span></span>`;
+  tel.onclick = () => go({ v:"tel" });
+  d.append(tel);
 
   const zoneLignes = el("div");
   d.append(zoneLignes);
@@ -1092,9 +1145,363 @@ function testeur(){
   return c;
 }
 
+/* --------------------- télécommande des gradateurs ---------------------- */
+/* Le geste du plateau : on appelle un gradateur au clavier, il s'allume, on lit
+   sur scène quel circuit s'est allumé, et on l'écrit dans la feuille. L'appli
+   tient le flux sACN tant que l'écran est ouvert — un niveau envoyé une seule
+   fois retombe au bout de quelques secondes. */
+
+const CLE_GRADA = "gradateurs.v1";
+let GRADA = lireLocal(CLE_GRADA, { proto:"sACN", u:1, adr:1, premier:1, nb:96,
+                                   prio:100, cible:"", pas:5, solo:true, fiches:{} });
+const sauverGrada = () => ecrireLocal(CLE_GRADA, GRADA);
+
+let REG_OUVERT = false;   // le volet des réglages survit aux rendus de la vue
+let NIV = {};        // n° de gradateur → niveau en %, le temps de la session
+let SEL = 0;         // gradateur tenu par le clavier
+let SAISIE = "";     // chiffres en cours de frappe
+
+const ficheGrada = n => GRADA.fiches[n] || (GRADA.fiches[n] = { circuit:"", note:"" });
+const circuitDe = n => String((GRADA.fiches[n] || {}).circuit || "").trim();
+const noteDe = n => String((GRADA.fiches[n] || {}).note || "");
+
+/* Adresse DMX d'un gradateur : celle du premier, décalée d'un rang par
+   gradateur, et l'univers suivant dès qu'on dépasse 512. */
+function adrGrada(n){
+  const i = (GRADA.adr - 1) + (n - GRADA.premier);
+  if(i < 0) return null;
+  return { u:GRADA.u + Math.floor(i / 512), canal:(i % 512) + 1 };
+}
+
+const allumes = () => Object.keys(NIV).filter(k => NIV[k] > 0).map(Number).sort((a, b) => a - b);
+
+/* Range les gradateurs allumés par univers et pose le tout sur le flux. */
+function envoyerGradas(){
+  const t = {};
+  Object.keys(NIV).forEach(k => {
+    const pct = NIV[k] | 0;
+    if(pct <= 0) return;
+    const a = adrGrada(+k);
+    if(!a) return;
+    (t[a.u] = t[a.u] || new Array(512).fill(0))[a.canal - 1] = Math.round(pct * 255 / 100);
+  });
+  /* L'univers du gradateur appelé part même à zéro : il faut bien qu'il retombe. */
+  const a = SEL ? adrGrada(SEL) : null;
+  if(a && !t[a.u]) t[a.u] = new Array(512).fill(0);
+  NET.emission(t, GRADA.proto, GRADA.prio, GRADA.cible);
+}
+
+/* Regroupe la feuille par circuit — un circuit porte souvent plusieurs gradateurs. */
+function parCircuit(){
+  const m = new Map();
+  Object.keys(GRADA.fiches).forEach(k => {
+    const c = circuitDe(k);
+    if(!c) return;
+    if(!m.has(c)) m.set(c, []);
+    m.get(c).push(+k);
+  });
+  return [...m.entries()]
+    .map(([c, g]) => [c, g.sort((x, y) => x - y)])
+    .sort((a, b) => (parseInt(a[0], 10) || 0) - (parseInt(b[0], 10) || 0) || a[0].localeCompare(b[0]));
+}
+
+function vTel(){
+  const d = el("div");
+  d.append(bar("Télécommande", null, () => go({ v:"dmx" })));
+
+  const h = el("div", "hero");
+  h.style.setProperty("--c", "var(--tel)");
+  d.append(h);
+
+  /* ------------------------------- clavier ----------------------------- */
+  const cle = el("div", "card");
+  cle.innerHTML = `<h4>Gradateur</h4>
+    <div class="tel-ec"><b id="g-n">—</b><i id="g-v">0 %</i><span id="g-c"></span></div>
+    <div class="kp" id="g-kp"></div>
+    <div class="ff" style="margin-bottom:9px">
+      <button class="pill kbig" id="g-moins">− ${GRADA.pas} %</button>
+      <button class="pill kbig" id="g-plus">+ ${GRADA.pas} %</button>
+    </div>
+    <div class="ff" style="margin-bottom:9px">
+      <button class="pill kbig" id="g-noir">Noir</button>
+      <button class="pill kbig" id="g-full">Full</button>
+    </div>
+    <div class="ff">
+      <button class="pill kbig" id="g-prec">◀ précédent</button>
+      <button class="pill kbig" id="g-suiv">suivant ▶</button>
+    </div>
+    <div class="kv" style="border:0;padding-bottom:0">
+      <span>Un seul gradateur à la fois</span>
+      <input id="g-solo" type="checkbox"${GRADA.solo ? " checked" : ""} aria-label="Un seul gradateur à la fois">
+    </div>`;
+  d.append(cle);
+
+  /* ------------------------------- feuille ----------------------------- */
+  const feuille = el("div", "card");
+  feuille.innerHTML = `<h4>Feuille de patch</h4>
+    <p class="muted" style="margin:-6px 0 12px">Un numéro de gradateur, le circuit
+      qu'il alimente, et de quoi noter ce qui y est branché. Plusieurs gradateurs
+      peuvent porter le même circuit.</p>`;
+  const lignes = [];
+  for(let n = GRADA.premier; n < GRADA.premier + GRADA.nb; n++){
+    const a = adrGrada(n) || { u:"—", canal:"—" };
+    const r = el("div", "gr");
+    r.innerHTML = `<button class="gn" aria-label="Appeler le gradateur ${n}">${n}</button>
+      <span class="ga">U${a.u}<b>${a.canal}</b></span>
+      <input class="cc" inputmode="numeric" placeholder="circuit" value="${esc(circuitDe(n))}"
+             data-focus="gc${n}" aria-label="Circuit du gradateur ${n}">
+      <input class="cc note" placeholder="repère" value="${esc(noteDe(n))}"
+             data-focus="gr${n}" aria-label="Repère du gradateur ${n}">`;
+    const [ci, no] = r.querySelectorAll("input");
+    r.querySelector(".gn").onclick = () => choisir(n);
+    ci.oninput = () => { ficheGrada(n).circuit = ci.value; sauverGrada(); majCircuits(); };
+    no.oninput = () => { ficheGrada(n).note = no.value; sauverGrada(); };
+    lignes.push({ n, r });
+    feuille.append(r);
+  }
+  d.append(feuille);
+
+  /* --------------------------- vue par circuit ------------------------- */
+  const circuits = el("div", "card");
+  d.append(circuits);
+
+  /* ------------------------------- actions ----------------------------- */
+  const act = el("div", "ff");
+  act.style.margin = "4px 0 12px";
+  const pdf = el("button", "pill");
+  pdf.style.padding = "13px";
+  pdf.textContent = "Exporter en PDF";
+  pdf.onclick = () => exporterGradas();
+  const zero = el("button", "pill");
+  zero.style.padding = "13px";
+  zero.textContent = "Tout à zéro";
+  zero.onclick = () => { NIV = {}; SEL = 0; SAISIE = ""; envoyerGradas(); rafraichir(); };
+  act.append(pdf, zero);
+  d.append(act);
+
+  /* ------------------------------ réglages ----------------------------- */
+  const reg = el("details", "card");
+  reg.open = REG_OUVERT;
+  reg.ontoggle = () => { REG_OUVERT = reg.open; };
+  reg.innerHTML = `<summary>Réglages du flux</summary>
+    <div class="ff">
+      <div class="f"><label>Protocole</label>
+        <select class="r-proto">
+          <option value="sACN"${GRADA.proto === "sACN" ? " selected" : ""}>sACN</option>
+          <option value="Art-Net"${GRADA.proto === "Art-Net" ? " selected" : ""}>Art-Net</option>
+        </select></div>
+      <div class="f"><label>Univers</label>
+        <input class="r-u" data-focus="r-u" type="text" inputmode="numeric" value="${GRADA.u}"></div>
+    </div>
+    <div class="ff">
+      <div class="f"><label>Premier gradateur</label>
+        <input class="r-prem" data-focus="r-prem" type="text" inputmode="numeric" value="${GRADA.premier}"></div>
+      <div class="f"><label>Son adresse DMX</label>
+        <input class="r-adr" data-focus="r-adr" type="text" inputmode="numeric" value="${GRADA.adr}"></div>
+    </div>
+    <div class="ff">
+      <div class="f"><label>Nombre de gradateurs</label>
+        <input class="r-nb" data-focus="r-nb" type="text" inputmode="numeric" value="${GRADA.nb}"></div>
+      <div class="f"><label>Pas du + / −</label>
+        <input class="r-pas" data-focus="r-pas" type="text" inputmode="numeric" value="${GRADA.pas}"></div>
+    </div>
+    <div class="ff">
+      <div class="f"><label>Priorité sACN</label>
+        <input class="r-prio" data-focus="r-prio" type="text" inputmode="numeric" value="${GRADA.prio}"></div>
+      <div class="f"><label>Destination</label>
+        <input class="r-cible" data-focus="r-cible" type="text" inputmode="url"
+               value="${esc(GRADA.cible)}" placeholder="multicast"></div>
+    </div>
+    <p class="muted" style="margin:0">Sans destination, sACN part en multicast et Art-Net
+      en diffusion — le cas normal. Une adresse IP force l'envoi vers ce seul nœud.</p>`;
+  cle.after(reg);
+
+  const nombre = (v, mini, maxi, defaut) => {
+    const x = parseInt(String(v).replace(/\D/g, ""), 10);
+    return isNaN(x) ? defaut : Math.max(mini, Math.min(maxi, x));
+  };
+  const q = sel => reg.querySelector(sel);
+  /* L'événement d'ouverture d'un volet arrive en différé : on relève l'état
+     juste avant de reconstruire la vue, sinon le volet se referme sous les doigts. */
+  const refaire = () => { REG_OUVERT = reg.open; render(); };
+  q(".r-proto").onchange = e => { GRADA.proto = e.target.value; sauverGrada(); envoyerGradas(); rafraichir(); };
+  q(".r-u").oninput = e => { GRADA.u = nombre(e.target.value, 1, 63999, 1); sauverGrada(); refaire(); };
+  q(".r-prem").oninput = e => { GRADA.premier = nombre(e.target.value, 1, 9999, 1); sauverGrada(); refaire(); };
+  q(".r-adr").oninput = e => { GRADA.adr = nombre(e.target.value, 1, 512, 1); sauverGrada(); refaire(); };
+  q(".r-nb").oninput = e => { GRADA.nb = nombre(e.target.value, 1, 512, 96); sauverGrada(); refaire(); };
+  q(".r-pas").oninput = e => { GRADA.pas = nombre(e.target.value, 1, 100, 5); sauverGrada(); refaire(); };
+  q(".r-prio").oninput = e => { GRADA.prio = nombre(e.target.value, 1, 200, 100); sauverGrada(); envoyerGradas(); };
+  q(".r-cible").oninput = e => { GRADA.cible = e.target.value.trim(); sauverGrada(); envoyerGradas(); };
+
+  /* -------------------------- gestes du clavier ------------------------ */
+  function choisir(n){
+    if(!n || n < 1) return;
+    if(GRADA.solo) Object.keys(NIV).forEach(k => { if(+k !== n) NIV[k] = 0; });
+    SEL = n; SAISIE = "";
+    if(!NIV[n]) NIV[n] = 100;      // on appelle un gradateur pour le voir s'allumer
+    envoyerGradas(); rafraichir();
+  }
+  function mettre(pct){
+    if(!SEL) return;
+    NIV[SEL] = Math.max(0, Math.min(100, pct));
+    envoyerGradas(); rafraichir();
+  }
+  function valider(){
+    if(SAISIE) choisir(parseInt(SAISIE, 10));
+  }
+
+  const kp = $("#g-kp", cle);
+  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "✓"].forEach(t => {
+    const b = el("button", t === "✓" ? "acc" : null, t);
+    b.onclick = () => {
+      if(t === "C"){ SAISIE = ""; rafraichir(); return; }
+      if(t === "✓"){ valider(); return; }
+      if(SAISIE.length < 4) SAISIE += t;
+      rafraichir();
+    };
+    kp.append(b);
+  });
+  $("#g-moins", cle).onclick = () => { valider(); mettre((NIV[SEL] || 0) - GRADA.pas); };
+  $("#g-plus", cle).onclick = () => { valider(); mettre((NIV[SEL] || 0) + GRADA.pas); };
+  $("#g-noir", cle).onclick = () => { valider(); mettre(0); };
+  $("#g-full", cle).onclick = () => { valider(); mettre(100); };
+  $("#g-prec", cle).onclick = () => choisir(Math.max(1, (SEL || GRADA.premier + 1) - 1));
+  $("#g-suiv", cle).onclick = () => choisir((SEL || GRADA.premier - 1) + 1);
+  $("#g-solo", cle).onchange = e => {
+    GRADA.solo = e.target.checked; sauverGrada();
+    if(GRADA.solo && SEL) choisir(SEL);
+  };
+
+  /* ------------------------------ affichage ---------------------------- */
+  function majCircuits(){
+    const liste = parCircuit();
+    circuits.replaceChildren(el("h4", null, "Par circuit"));
+    if(!liste.length){
+      circuits.append(el("p", "muted", "Aucun circuit renseigné pour l'instant."));
+      return;
+    }
+    const z = el("div", "circ");
+    liste.forEach(([c, g]) => {
+      const b = el("button", null,
+        `<b>Circuit ${esc(c)}</b>${g.map(x => "grada " + x).join(" · ")}`);
+      b.onclick = () => {
+        Object.keys(NIV).forEach(k => NIV[k] = 0);
+        g.forEach(x => NIV[x] = 100);
+        SEL = g[0]; SAISIE = "";
+        envoyerGradas(); rafraichir();
+      };
+      z.append(b);
+    });
+    circuits.append(z);
+    circuits.append(el("p", "muted",
+      "Toucher un circuit allume tous ses gradateurs — de quoi vérifier un branchement double."));
+  }
+
+  function rafraichir(){
+    const on = allumes();
+    const etat = NET.emissionEtat();
+    h.innerHTML = `<div class="kick">${esc(GRADA.proto)} · univers ${GRADA.u}${
+        GRADA.proto === "sACN" ? " · priorité " + GRADA.prio : ""}</div>
+      <h3>${on.length} gradateur${on.length > 1 ? "s" : ""} ${on.length > 1 ? "allumés" : "allumé"}</h3>
+      <p>${etat.demo ? `<span class="chipdemo">Démo</span> rien ne part du navigateur`
+                     : `${GRADA.cible ? "vers " + esc(GRADA.cible) : "en direct sur le réseau"}`}</p>
+      <div class="stats">
+        <div><b>${SEL || "—"}</b><span>appelé</span></div>
+        <div><b>${SEL ? (NIV[SEL] || 0) + " %" : "—"}</b><span>niveau</span></div>
+        <div><b>${SEL && adrGrada(SEL) ? "U" + adrGrada(SEL).u + "." + adrGrada(SEL).canal : "—"}</b>
+          <span>adresse</span></div>
+      </div>`;
+
+    $("#g-n", cle).textContent = SAISIE ? SAISIE : (SEL || "—");
+    $("#g-v", cle).textContent = (SEL && !SAISIE ? (NIV[SEL] || 0) : 0) + " %";
+    const c = SEL && !SAISIE ? circuitDe(SEL) : "";
+    $("#g-c", cle).textContent = SAISIE ? "gradateur en cours de frappe — valider avec ✓"
+      : SEL ? (c ? "circuit " + c : "circuit à relever") : "aucun gradateur appelé";
+    $("#g-moins", cle).textContent = "− " + GRADA.pas + " %";
+    $("#g-plus", cle).textContent = "+ " + GRADA.pas + " %";
+    ["g-noir", "g-full"].forEach(id => $("#" + id, cle).classList.remove("on"));
+    if(SEL && (NIV[SEL] || 0) === 0) $("#g-noir", cle).classList.add("on");
+    if(SEL && (NIV[SEL] || 0) === 100) $("#g-full", cle).classList.add("on");
+
+    lignes.forEach(x => x.r.classList.toggle("on", (NIV[x.n] || 0) > 0));
+  }
+
+  majCircuits();
+  rafraichir();
+  envoyerGradas();
+  poser(() => NET.emissionArret());
+  return d;
+}
+
+/* ------------------- export PDF de la feuille gradateurs ---------------- */
+
+function exporterGradas(){
+  const date = new Date().toLocaleDateString("fr-FR", { day:"2-digit", month:"long", year:"numeric" });
+  const liste = [];
+  for(let n = GRADA.premier; n < GRADA.premier + GRADA.nb; n++) liste.push(n);
+  const circuits = parCircuit();
+
+  const lignes = liste.map(n => {
+    const a = adrGrada(n) || { u:"", canal:"" };
+    return `<tr><td class="n f">${n}</td><td class="n">${a.u}</td><td class="n">${a.canal}</td>
+      <td class="n c">${esc(circuitDe(n))}</td><td>${esc(noteDe(n))}</td></tr>`;
+  }).join("");
+
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<title>Gradateurs</title><style>
+  @page { size:A4; margin:14mm 12mm; }
+  *{box-sizing:border-box}
+  body{font:10.5pt/1.35 -apple-system,"Helvetica Neue",Arial,sans-serif;color:#111;margin:0}
+  header{display:flex;justify-content:space-between;align-items:flex-end;
+         border-bottom:2px solid #111;padding-bottom:6pt;margin-bottom:10pt}
+  h1{font-size:18pt;margin:0;letter-spacing:-.3pt}
+  .sous{font-size:9pt;color:#555;margin:2pt 0 0}
+  .meta{font-size:9pt;color:#555;text-align:right;line-height:1.5}
+  table{border-collapse:collapse;width:100%}
+  th{font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;color:#555;
+     text-align:left;border-bottom:1px solid #111;padding:4pt 5pt}
+  td{padding:3.6pt 5pt;border-bottom:.5pt solid #ccc;font-size:10pt}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+  td.f{font-weight:700}
+  td.c{background:#f2f2f2}
+  tr{break-inside:avoid}
+  thead{display:table-header-group}
+  h2{font-size:9pt;letter-spacing:.06em;text-transform:uppercase;color:#555;
+     margin:14pt 0 5pt;border-bottom:1px solid #111;padding-bottom:4pt}
+  .recap{display:flex;flex-wrap:wrap;gap:4pt 18pt;font-size:10pt}
+  .recap div{white-space:nowrap}
+</style></head><body>
+<header>
+  <div><h1>Gradateurs</h1>
+    <p class="sous">${liste.length} gradateurs · ${circuits.length} circuits ·
+      ${esc(GRADA.proto)} univers ${GRADA.u} · première adresse ${GRADA.adr}</p></div>
+  <div class="meta">${date}<br>Patch — inventaire régie</div>
+</header>
+<table><thead><tr>
+  <th>Gradateur</th><th>Univ.</th><th>Adresse</th><th>Circuit</th><th>Repère</th>
+</tr></thead><tbody>${lignes}</tbody></table>
+
+<h2>Par circuit</h2>
+<div class="recap">${circuits.length
+  ? circuits.map(([c, g]) => `<div>Circuit <b>${esc(c)}</b> — grada ${g.join(", ")}</div>`).join("")
+  : "<div>Aucun circuit renseigné.</div>"}</div>
+</body></html>`;
+
+  if(NET.imprimer(html, "gradateurs")) return;
+  const cadre = document.createElement("iframe");
+  cadre.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.append(cadre);
+  const doc = cadre.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  cadre.onload = () => {
+    try { cadre.contentWindow.focus(); cadre.contentWindow.print(); } catch(e){ }
+    setTimeout(() => cadre.remove(), 2000);
+  };
+}
+
 /* -------------------------------- moteur -------------------------------- */
-const VIEWS = { home, proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vDmx, gel:vGel,
-                ndi:vNdi, net:vNet, art:vArt };
+const VIEWS = { home, proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vDmx, tel:vTel,
+                gel:vGel, ndi:vNdi, net:vNet, art:vArt };
 function render(){
   if(STOP){ STOP(); STOP = null; }
   /* Un rendu détruit les champs : on note lequel avait le curseur pour le rendre. */

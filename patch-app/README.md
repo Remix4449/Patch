@@ -22,6 +22,7 @@ ne demande plus jamais internet.
 | --- | --- |
 | Projecteurs, machinerie, hauteurs, MDG | Données embarquées, hors ligne |
 | Patch | Lignes d'appareils, adressage enchaîné, circuits et numéros de patch, export PDF |
+| Télécommande | Clavier de gradateurs en sACN ou Art-Net, feuille de circuits, export PDF |
 | Gélatines | Lee → RGBWA, teintes approchées à recaler |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
@@ -47,6 +48,44 @@ avec le nom du patch et les totaux, tableau N° / circuit / patch / appareil /
 mode / canaux / univers / adresse / fin, récapitulatif par type et
 correspondances réseau par univers. La puissance totale est calculée depuis
 l'inventaire, avec un astérisque si un appareil n'a pas de puissance renseignée.
+
+## La télécommande de gradateurs
+
+Le geste du plateau, sans monter en régie : on appelle un gradateur au clavier,
+il s'allume, on regarde quel circuit vient de s'éclairer, et on l'écrit dans la
+feuille — le tout depuis la scène, téléphone en main.
+
+L'écran tient en trois morceaux :
+
+- **le clavier** : chiffres, `C` pour effacer la frappe, `✓` pour appeler le
+  gradateur, `−` et `+` pour le niveau par pas réglable, *Noir* et *Full*, et
+  précédent / suivant pour balayer le gradateur voisin. En mode « un seul
+  gradateur à la fois », appeler le suivant éteint le précédent ;
+- **la feuille de patch** : une ligne par gradateur — son numéro, son adresse
+  DMX calculée, le circuit qu'il alimente et un repère libre. Toucher le numéro
+  appelle le gradateur. Plusieurs gradateurs peuvent porter le même circuit :
+  c'est le cas courant d'un circuit doublé ;
+- **la vue par circuit** : chaque circuit avec la liste de ses gradateurs.
+  Toucher un circuit allume tous ses gradateurs d'un coup, ce qui vérifie un
+  doublage en une touche.
+
+La feuille s'exporte en PDF par la boîte d'impression d'Android : tableau
+gradateur / univers / adresse / circuit / repère, puis le récapitulatif par
+circuit. Elle est enregistrée sur le téléphone et survit au redémarrage.
+
+Les réglages tiennent dans le volet *Réglages du flux* : protocole (sACN ou
+Art-Net), univers de départ, numéro du premier gradateur et son adresse DMX,
+nombre de gradateurs, pas du `+` / `−`, priorité sACN et destination. Un
+gradateur au-delà du canal 512 passe tout seul à l'univers suivant. Sans
+destination, sACN part en multicast et Art-Net en diffusion ; une adresse IP
+force l'envoi vers ce seul nœud.
+
+**L'émission est tenue, pas envoyée une fois.** Un récepteur sACN relâche un
+univers après quelques secondes sans trame, et un nœud Art-Net fait de même :
+`Emetteur.java` répète donc les univers posés à 30 Hz tant que l'écran est
+ouvert. Quitter l'écran relâche proprement — trois trames à zéro, marquées fin
+de flux en sACN — plutôt que de laisser le plateau allumé sur la dernière
+valeur reçue.
 
 ### Modes DMX
 
@@ -75,7 +114,12 @@ pupitres.
 **sACN / E1.31** (UDP 5568). Écoute multicast sur `239.255.<hi>.<lo>`. Un univers
 n'est reçu que si son groupe a été rejoint : le recensement passe donc par
 l'univers de découverte 64214, que les sources annoncent toutes les dix secondes.
-Priorité et nom de source sont lus dans la couche de trame.
+Priorité et nom de source sont lus dans la couche de trame. À l'émission,
+l'application compose la trame de données complète — 638 octets, couche racine,
+couche de trame et couche DMP — avec un CID tiré au sort au lancement, une
+numérotation de séquence par univers, et le bit de fin de flux quand elle
+relâche un univers. Le retour de boucle multicast est coupé : nos propres
+trames ne viennent pas se recenser comme une source de plus.
 
 **NDI**. La découverte mDNS suffit à lister les sources et n'a besoin d'aucune
 bibliothèque. La vignette en direct demanderait le NDI Advanced SDK et un
@@ -110,6 +154,8 @@ interface tourne donc en web pour la mise au point et en natif sur le terrain.
 
 ## Non testé sur matériel
 
-Les analyseurs Art-Net et sACN sont écrits d'après les spécifications et n'ont
-pas encore vu de vrai nœud. Le premier essai au plateau dira si les décalages
-d'octets sont justes.
+Les analyseurs Art-Net et sACN, et l'émission de la télécommande, sont écrits
+d'après les spécifications et n'ont pas encore vu de vrai gradateur. La trame
+sACN émise a été vérifiée octet par octet contre la norme et relue par
+l'analyseur de l'application, ce qui ne remplace pas un essai au plateau : le
+premier branchement dira si les gradateurs répondent.
