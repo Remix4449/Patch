@@ -44,7 +44,8 @@
   .shell{max-width:560px;margin:0 auto;padding:0 16px
          calc(86px + env(safe-area-inset-bottom,0px));min-height:100%}
 
-  .head{padding:18px 0 10px;display:flex;align-items:center;gap:10px}
+  .head{padding:18px 0 10px;display:flex;align-items:center;gap:11px}
+  .head>div{flex:1;min-width:0}
   .head h1{font:800 27px/1 var(--disp);letter-spacing:-.025em;margin:0}
   .head .badge{margin-left:auto;font:700 10px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;
        background:var(--sur2);color:var(--ink2);padding:5px 8px;border-radius:99px;white-space:nowrap}
@@ -61,7 +62,7 @@
         background:var(--c);position:relative;overflow:hidden}
   .tile:active{transform:scale(.985)}
   .tile b{font:800 19px/1.1 var(--disp);letter-spacing:-.02em}
-  .tile span{font:500 12.5px/1.2 var(--body);opacity:.82}
+  .tile span{font:500 12.5px/1.25 var(--body);opacity:.9}
   .tile .n{position:absolute;right:12px;top:10px;font:600 13px/1 var(--mono);opacity:.55}
   .tile.wide{grid-column:1/-1;min-height:78px;flex-direction:row;align-items:center;gap:12px}
   .tile.wide b{font-size:17px}
@@ -164,16 +165,61 @@
   .tb{flex:1;border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;
       gap:4px;padding:6px 0;color:var(--ink3);font:600 10.5px/1 var(--body);letter-spacing:.04em}
   .tb[aria-current="true"]{color:var(--ink)}
-  .tb .ic{width:22px;height:22px;border-radius:7px;background:currentColor;opacity:.22}
+  .tb .ic{width:23px;height:23px;opacity:.55}
   .tb[aria-current="true"] .ic{opacity:1}
+
+  /* ------------------------------ pictogrammes ------------------------- */
+  .sprite{position:absolute;width:0;height:0;overflow:hidden}
+  .ic{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+      flex:none;display:block}
+  .mark{width:36px;height:36px;border-radius:12px;flex:none;display:grid;place-items:center;color:#fff;
+        background:linear-gradient(140deg,var(--proj),var(--haut))}
+  .mark .ic{width:21px;height:21px;stroke-width:1.6}
+  .tile .ic{width:27px;height:27px;opacity:.92;stroke-width:1.6}
+  .tile.sm .ic{width:23px;height:23px}
+  .tile .tx{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .tile.wide .tx{flex:1}
+  .row .av .ic{width:20px;height:20px;stroke-width:1.8}
+  .bk .ic{width:17px;height:17px}
+  .sbar .ic{width:18px;height:18px;color:var(--ink3);stroke-width:1.9}
+  .st .ic,.kv .ic{width:17px;height:17px;color:var(--ink3)}
 </style>
 </head>
 <body>
+<svg class="sprite" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-lyre" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="10" rx="1.6"/><path d="M6 15V9M18 15V9M6 15h12M12 15v4M8.5 21h7"/></symbol>
+  <symbol id="i-decoupe" viewBox="0 0 24 24"><rect x="2.5" y="8" width="5.5" height="8" rx="1.2"/><rect x="8" y="9.5" width="9.5" height="5" rx="1.2"/><path d="M17.5 8.5v7M20.5 6.5v11M11 9.5V7.5M14 14.5v2"/></symbol>
+  <symbol id="i-pc" viewBox="0 0 24 24"><rect x="2.5" y="7" width="7" height="10" rx="1.4"/><circle cx="15" cy="12" r="5"/><circle cx="15" cy="12" r="2.1"/><path d="M12 5.5v-2"/></symbol>
+  <symbol id="i-wash" viewBox="0 0 24 24"><rect x="3.5" y="6.5" width="8" height="11" rx="1.6"/><path d="M14.5 8l5.5-2.5M14.5 12h6M14.5 16l5.5 2.5"/></symbol>
+  <symbol id="i-barre" viewBox="0 0 24 24"><rect x="2" y="9" width="20" height="6" rx="2"/><circle cx="6" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-tube" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="20" rx="3"/><circle cx="12" cy="7" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r=".9" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-fumee" viewBox="0 0 24 24"><rect x="2.5" y="12.5" width="11" height="7.5" rx="1.6"/><path d="M13.5 16h2"/><path d="M16 15.5c2-1.8 3.5.4 5.2-1.6M15.5 11.2c2-1.8 3.5.4 5.2-1.6M16.5 6.8c2-1.8 3.5.4 5.2-1.6"/><circle cx="5.5" cy="16.3" r="1.1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-poursuite" viewBox="0 0 24 24"><rect x="2.5" y="8.5" width="7" height="6" rx="1.4"/><path d="M6 14.5v4.5M3.5 21h5"/><path d="M9.5 9.5l11-4v13l-11-4z"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M13.2 8l-3.4 4.6h3.6L11 16.6"/></symbol>
+  <symbol id="i-moteur" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="6.5" rx="1.5"/><path d="M12 9v2.5M12 12.5v2.5"/><path d="M9.8 17.8a2.4 2.4 0 1 0 4.4-1.3V15"/></symbol>
+  <symbol id="i-structure" viewBox="0 0 24 24"><path d="M2 6.5h20M2 17.5h20"/><path d="M5 17.5L8.5 6.5 12 17.5l3.5-11L19 17.5"/></symbol>
+  <symbol id="i-collier" viewBox="0 0 24 24"><path d="M15.5 6.5a6 6 0 1 0 0 11"/><path d="M15.5 6.5h3.2M15.5 17.5h3.2M18.7 9.5v5"/><circle cx="11.5" cy="12" r="2.6"/></symbol>
+  <symbol id="i-textile" viewBox="0 0 24 24"><path d="M2.5 4h19"/><path d="M5.5 4v14M10 4v14M14 4v14M18.5 4v14"/><path d="M3.5 18.5q2.5 2.4 5 0t5 0 5 0 2 0"/></symbol>
+  <symbol id="i-tapis" viewBox="0 0 24 24"><path d="M8 5h10.5a4 4 0 0 1 0 8H8"/><circle cx="8" cy="9" r="4"/><circle cx="8" cy="9" r="1.3"/><path d="M2.5 19.5h19"/></symbol>
+  <symbol id="i-passerelle" viewBox="0 0 24 24"><path d="M4.5 21V3M19.5 21V3"/><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h15"/></symbol>
+  <symbol id="i-nacelle" viewBox="0 0 24 24"><rect x="3.5" y="2.5" width="17" height="3" rx="1"/><path d="M7 6.5l10 7.5M17 6.5L7 14"/><rect x="4.5" y="14.5" width="15" height="4" rx="1.2"/><circle cx="8" cy="20.3" r="1.4"/><circle cx="16" cy="20.3" r="1.4"/></symbol>
+  <symbol id="i-mdg" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="9" height="15" rx="3.2"/><rect x="9.5" y="2.5" width="3" height="4" rx="1"/><circle cx="18.5" cy="5.5" r="2.6"/><path d="M18.5 5.5l1.4-1.2"/></symbol>
+  <symbol id="i-dmx" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none"/><circle cx="8.2" cy="10.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.8" cy="10.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="9.7" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.3" cy="15" r="1.1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-gel" viewBox="0 0 24 24"><rect x="2.5" y="2.5" width="13" height="13" rx="2"/><rect x="8.5" y="8.5" width="13" height="13" rx="2"/></symbol>
+  <symbol id="i-ndi" viewBox="0 0 24 24"><rect x="2" y="6.5" width="13.5" height="11" rx="2.2"/><circle cx="8.7" cy="12" r="3"/><path d="M16 10.3l5.5-2.8v9l-5.5-2.8z"/></symbol>
+  <symbol id="i-reseau" viewBox="0 0 24 24"><circle cx="12" cy="4.6" r="2.4"/><circle cx="4.8" cy="19.4" r="2.4"/><circle cx="19.2" cy="19.4" r="2.4"/><path d="M12 7v3.6M4.8 17v-2.8h14.4V17M12 10.6v3.6"/></symbol>
+  <symbol id="i-artnet" viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="19" height="17" rx="2.4"/><path d="M6.5 17v-4.5M10.2 17V8M13.8 17v-2.5M17.5 17v-6.5" stroke-width="2"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.2L12 4l9 7.2"/><path d="M5.8 10v9.5h12.4V10"/></symbol>
+  <symbol id="i-parc" viewBox="0 0 24 24"><rect x="2.5" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="13" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="7.8" y="3.5" width="8.5" height="8" rx="1.4"/></symbol>
+  <symbol id="i-outils" viewBox="0 0 24 24"><path d="M6 3v18M12 3v18M18 3v18"/><rect x="3.8" y="7" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="9.8" y="13" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="15.8" y="5.5" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4L21 21"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12l7.5 7.5"/></symbol>
+</defs></svg>
 <div class="shell" id="app"></div>
 <nav class="tabbar"><div class="in">
-  <button class="tb" data-t="home"><span class="ic"></span>Accueil</button>
-  <button class="tb" data-t="parc"><span class="ic"></span>Parc</button>
-  <button class="tb" data-t="tools"><span class="ic"></span>Outils</button>
+  <button class="tb" data-t="home"><svg class="ic"><use href="#i-home"/></svg>Accueil</button>
+  <button class="tb" data-t="parc"><svg class="ic"><use href="#i-parc"/></svg>Parc</button>
+  <button class="tb" data-t="tools"><svg class="ic"><use href="#i-outils"/></svg>Outils</button>
 </div></nav>
 
 <script src="common.js"></script>
@@ -184,28 +230,44 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const vg = n => String(n).replace(".", ",");
 const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, gel:LEE.find(g => g.ref === "L128") || LEE[0] };
 
+const ic = (n, cls="ic") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const ICO_FAM = {
+  "Lyre découpe":"lyre", "Lyre wash":"lyre", "Lyre beam":"lyre", "Lyre hybride":"lyre",
+  "Découpe":"decoupe", "Découpe LED":"decoupe", "Poursuite":"poursuite",
+  "PC":"pc", "Fresnel LED":"pc",
+  "Wash LED":"wash", "Wash LED IP":"wash", "Cyclo LED":"wash",
+  "Barre LED":"barre", "Tube LED":"tube",
+  "Machine à brume":"fumee", "Machine à fumée lourde":"fumee", "Accessoire":"power"
+};
+const ICO_MACH = {
+  Structure:"structure", Accroche:"collier", Moteurs:"moteur", "Mono tube":"barre",
+  "Tapis de danse":"tapis", Frises:"textile", Pendrillon:"textile", Fond:"textile",
+  "Demi fond":"textile", Cyclorama:"textile", Inter:"textile"
+};
+const ICO_HAUT = { Passerelle:"passerelle", "Plateforme élévatrice":"nacelle" };
+
 const CATS = [
-  { k:"proj", t:"Projecteurs", s:"Parc lumière", c:"var(--proj)", n:PROJECTEURS.length },
-  { k:"mach", t:"Machinerie", s:"Structure & textile", c:"var(--mach)", n:MACHINERIE.length },
-  { k:"haut", t:"Hauteurs", s:"Passerelles & PEMP", c:"var(--haut)", n:HAUTEURS.length },
-  { k:"mdg", t:"MDG", s:"Procédure brume", c:"var(--mdg)", n:null }
+  { k:"proj", t:"Projecteurs", s:"Parc lumière", c:"var(--proj)", n:PROJECTEURS.length, i:"lyre" },
+  { k:"mach", t:"Machinerie", s:"Structure & textile", c:"var(--mach)", n:MACHINERIE.length, i:"structure" },
+  { k:"haut", t:"Hauteurs", s:"Passerelles & PEMP", c:"var(--haut)", n:HAUTEURS.length, i:"passerelle" },
+  { k:"mdg", t:"MDG", s:"Procédure brume", c:"var(--mdg)", n:null, i:"mdg" }
 ];
 const TOOLS = [
-  { k:"dmx", t:"Calcul DMX", s:"Patch & univers", c:"var(--dmx)" },
-  { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)" },
-  { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)" },
-  { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)" },
-  { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)" }
+  { k:"dmx", t:"Calcul DMX", s:"Patch & univers", c:"var(--dmx)", i:"dmx" },
+  { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)", i:"gel" },
+  { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
+  { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
+  { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" }
 ];
 const go = r => { S.route = r; window.scrollTo(0, 0); render(); };
 
 /* -------------------------------- écrans -------------------------------- */
 function home(){
   const d = el("div");
-  d.innerHTML = `<div class="head"><div><h1>Patch</h1>
-      <p>Tout le matériel du plateau, en deux touches.</p></div>
+  d.innerHTML = `<div class="head"><span class="mark">${ic("dmx")}</span>
+      <div><h1>Patch</h1><p>Tout le matériel du plateau, en deux touches.</p></div>
       <span class="badge">Canevas C</span></div>
-    <label class="sbar"><svg width="17" height="17" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.7" opacity=".45"/><path d="M11 11l4.2 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".45"/></svg>
+    <label class="sbar">${ic("search")}
       <input id="q" value="${esc(S.q)}" placeholder="Ghibli, moteur, passerelle, L201…" autocomplete="off"></label>`;
   if(S.q.trim()) { d.append(resultats()); return d; }
   d.insertAdjacentHTML("beforeend", `<h2 class="sec">Inventaire</h2>`);
@@ -213,7 +275,8 @@ function home(){
   CATS.forEach(c => {
     const b = el("button", "tile");
     b.style.setProperty("--c", c.c);
-    b.innerHTML = `${c.n ? `<span class="n">${c.n}</span>` : ""}<b>${c.t}</b><span>${c.s}</span>`;
+    b.innerHTML = `${c.n ? `<span class="n">${c.n}</span>` : ""}${ic(c.i)}
+      <span class="tx"><b>${c.t}</b><span>${c.s}</span></span>`;
     b.onclick = () => go({ v:c.k });
     g.append(b);
   });
@@ -223,7 +286,7 @@ function home(){
   TOOLS.forEach((c, i) => {
     const b = el("button", "tile sm" + (i === 4 ? " wide" : ""));
     b.style.setProperty("--c", c.c);
-    b.innerHTML = `<b>${c.t}</b><span>${c.s}</span>`;
+    b.innerHTML = `${ic(c.i)}<span class="tx"><b>${c.t}</b><span>${c.s}</span></span>`;
     b.onclick = () => go({ v:c.k });
     g2.append(b);
   });
@@ -246,9 +309,12 @@ function resultats(){
     d.append(l);
   };
   bloc("Projecteurs", proj, p => rowProj(p));
-  bloc("Machinerie", mach, m => rowSimple(m.nom, m.type, m.nb ? "×" + m.nb : "", m.charge || m.l || "", "var(--mach)"));
-  bloc("Hauteurs", haut, h => rowSimple(h.nom, h.type, vg(h.h.toFixed(2)) + " m", h.charge ? h.charge + " kg" : "", "var(--haut)"));
-  bloc("Gélatines", gel, g => { const r = rowSimple(g.ref, g.nom, "", "", g.hex); r.onclick = () => { S.gel = g; go({ v:"gel" }); }; return r; });
+  bloc("Machinerie", mach, m => rowSimple(m.nom, m.type, m.nb ? "×" + m.nb : "", m.charge || m.l || "",
+    "var(--mach)", ICO_MACH[m.type] || "structure"));
+  bloc("Hauteurs", haut, h => rowSimple(h.nom, h.type, vg(h.h.toFixed(2)) + " m", h.charge ? h.charge + " kg" : "",
+    "var(--haut)", ICO_HAUT[h.type] || "passerelle"));
+  bloc("Gélatines", gel, g => { const r = rowSimple(g.ref, g.nom, "", "", g.hex, "gel");
+    r.onclick = () => { S.gel = g; go({ v:"gel" }); }; return r; });
   if(!proj.length && !mach.length && !haut.length && !gel.length)
     d.insertAdjacentHTML("beforeend", `<p class="muted" style="margin-top:20px">Rien pour « ${esc(S.q)} ».</p>`);
   return d;
@@ -257,23 +323,23 @@ function resultats(){
 function rowProj(p){
   const b = el("button", "row");
   b.style.setProperty("--c", "var(--proj)");
-  b.innerHTML = `<span class="av">${esc(p.marque.slice(0, 2).toUpperCase())}</span>
+  b.innerHTML = `<span class="av">${ic(ICO_FAM[p.fam] || "lyre")}</span>
     <span class="g"><b>${esc(p.nom)}</b><span>${esc(p.marque)} · ${esc(p.fam)}</span></span>
     <span class="r">${esc(p.w)}<i>${p.nb ? "×" + p.nb : esc(p.kg)}</i></span>`;
   b.onclick = () => go({ v:"fiche", p });
   return b;
 }
-function rowSimple(t, s, r, r2, c){
+function rowSimple(t, s, r, r2, c, icone){
   const b = el("button", "row");
   b.style.setProperty("--c", c);
-  b.innerHTML = `<span class="av">${esc(String(t).slice(0, 2).toUpperCase())}</span>
+  b.innerHTML = `<span class="av">${icone ? ic(icone) : esc(String(t).slice(0, 2).toUpperCase())}</span>
     <span class="g"><b>${esc(t)}</b><span>${esc(s)}</span></span>
     <span class="r">${esc(r)}<i>${esc(r2)}</i></span>`;
   return b;
 }
 function bar(titre, cnt, back){
   const d = el("div", "bar");
-  const b = el("button", "bk", "←");
+  const b = el("button", "bk", ic("back"));
   b.setAttribute("aria-label", "Retour");
   b.onclick = back || (() => go({ v:"home" }));
   d.append(b, el("h2", null, esc(titre)));
@@ -330,7 +396,7 @@ function vMach(){
     const l = el("div", "rowlist");
     MACHINERIE.filter(m => m.type === t).forEach(m =>
       l.append(rowSimple(m.nom, [m.l && "L " + m.l, m.h && "H " + m.h, m.vit, m.trust].filter(Boolean).join(" · ") || "—",
-        m.nb ? "×" + m.nb : "", m.charge || "", "var(--mach)")));
+        m.nb ? "×" + m.nb : "", m.charge || "", "var(--mach)", ICO_MACH[m.type] || "structure")));
     d.append(l);
   });
   return d;
@@ -350,7 +416,7 @@ function vHaut(){
   const c = el("div", "card");
   c.innerHTML = `<h4>Élévation</h4><div class="scale">
     ${[...HAUTEURS].sort((a, b) => a.h - b.h).map(x => `<div class="st ${x.type === "Plateforme élévatrice" ? "pemp" : ""}">
-      <span class="m">${vg(x.h.toFixed(2))}</span><b>${esc(x.nom)}</b>
+      <span class="m">${vg(x.h.toFixed(2))}</span>${ic(ICO_HAUT[x.type] || "passerelle")}<b>${esc(x.nom)}</b>
       ${x.charge ? `<em>${x.charge} kg</em>` : ""}${x.note ? `<em>${esc(x.note)}</em>` : ""}</div>`).join("")}
   </div>`;
   d.append(c);
@@ -454,7 +520,7 @@ function vNdi(){
   DEMO_NDI.forEach(n => {
     const b = el("button", "row");
     b.style.setProperty("--c", n.ok ? "var(--ndi)" : "var(--ink3)");
-    b.innerHTML = `<span class="av">${n.ok ? "●" : "○"}</span>
+    b.innerHTML = `<span class="av">${ic("ndi")}</span>
       <span class="g"><b>${esc(n.nom)}</b><span>${esc(n.machine)} · ${esc(n.fmt)}</span></span>
       <span class="r">${n.ok ? n.mbps + " Mb/s" : "hors ligne"}<i>${n.tally ?? ""}</i></span>`;
     l.append(b);
@@ -480,7 +546,7 @@ function vNet(){
   DEMO_RESEAU.forEach(r => {
     const b = el("button", "row");
     b.style.setProperty("--c", r.ok ? "var(--net)" : "var(--ko)");
-    b.innerHTML = `<span class="av">${r.ok ? "↑" : "✕"}</span>
+    b.innerHTML = `<span class="av">${ic("reseau")}</span>
       <span class="g"><b>${esc(r.nom)}</b><span>${r.ip} · ${esc(r.role)}</span></span>
       <span class="r">${r.ok ? vg(r.ms.toFixed(1)) + " ms" : "timeout"}</span>`;
     l.append(b);
