@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier Plateau</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root{
+    --paper:#F1F3F0; --card:#FFFFFF; --sunk:#E9EDE8; --rule:#D5DCD5;
+    --ink:#16201B; --ink2:#566257; --ink3:#87938A;
+    --acc:#0B6E4F; --acc-w:#E3F0EA; --sig:#C8551B; --info:#1F5F8B; --alert:#A3231C;
+    --disp:"Archivo",system-ui,sans-serif;
+    --serif:"Source Serif 4",Georgia,serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#12150F; --card:#191D17; --sunk:#1F241D; --rule:#2C332A;
+      --ink:#E6EBE2; --ink2:#A3AE9E; --ink3:#78836F;
+      --acc:#57C89B; --acc-w:#14261E; --sig:#E8894F; --info:#6FB3DF; --alert:#E8736B;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#12150F; --card:#191D17; --sunk:#1F241D; --rule:#2C332A;
+    --ink:#E6EBE2; --ink2:#A3AE9E; --ink3:#78836F;
+    --acc:#57C89B; --acc-w:#14261E; --sig:#E8894F; --info:#6FB3DF; --alert:#E8736B;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:15px/1.6 var(--serif);-webkit-font-smoothing:antialiased}
+  button,input,select{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+  header{background:var(--card);border-bottom:1px solid var(--rule);
+         position:sticky;top:env(safe-area-inset-top,0px);z-index:9}
+  .hbar{max-width:1120px;margin:0 auto;padding:14px 20px 0;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .logo{font:700 19px/1 var(--disp);letter-spacing:-.01em;margin:0}
+  .logo em{font-style:normal;color:var(--acc)}
+  .stamp{font:600 10px/1 var(--disp);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);
+         border:1px solid var(--rule);padding:4px 7px;border-radius:2px}
+  .hsearch{margin-left:auto;display:flex;align-items:center;gap:7px;background:var(--sunk);
+           border:1px solid var(--rule);border-radius:3px;padding:6px 10px;min-width:210px}
+  .hsearch input{background:none;border:0;outline:none;width:100%;font:14px/1 var(--disp)}
+  .tabs{max-width:1120px;margin:0 auto;padding:10px 20px 0;display:flex;gap:2px;overflow-x:auto}
+  .tab{border:0;background:none;padding:9px 14px 11px;cursor:pointer;white-space:nowrap;
+       font:600 13px/1 var(--disp);color:var(--ink2);border-bottom:3px solid transparent}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-current="true"]{color:var(--ink);border-bottom-color:var(--acc)}
+
+  main{max-width:1120px;margin:0 auto;padding:22px 20px 60px}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+  .segb{border:1px solid var(--rule);background:var(--card);border-radius:2px;padding:7px 13px;
+        cursor:pointer;font:600 12.5px/1 var(--disp);color:var(--ink2)}
+  .segb:hover{border-color:var(--ink3)}
+  .segb[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--card)}
+
+  .lede{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:end;
+        border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:22px}
+  h1{font:700 30px/1.05 var(--disp);letter-spacing:-.02em;margin:0 0 6px;text-wrap:balance}
+  .lede p{margin:0;color:var(--ink2);max-width:60ch;font-size:15px}
+  .count{font:600 13px/1 var(--mono);color:var(--ink3);white-space:nowrap}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+  .rec{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:14px;
+       text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:9px}
+  .rec:hover{border-color:var(--acc)}
+  .rec .mk{font:600 10px/1 var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--acc)}
+  .rec h3{font:600 17px/1.15 var(--disp);margin:0;letter-spacing:-.01em}
+  .rec .fam{color:var(--ink2);font-size:13.5px;margin:-4px 0 0}
+  .rec dl{display:flex;gap:14px;margin:auto 0 0;padding-top:9px;border-top:1px solid var(--rule);flex-wrap:wrap}
+  .rec dl div{display:flex;flex-direction:column;gap:2px}
+  .rec dt{font:600 9.5px/1 var(--disp);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+  .rec dd{margin:0;font:500 13.5px/1 var(--mono);font-variant-numeric:tabular-nums}
+  .rec .stock{margin-left:auto;align-self:flex-end;font:600 13px/1 var(--mono);color:var(--sig)}
+
+  .back{border:0;background:none;color:var(--acc);font:600 13px/1 var(--disp);cursor:pointer;
+        padding:0;margin-bottom:14px;display:inline-flex;gap:6px;align-items:center}
+  .sheet{background:var(--card);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .sheet-h{padding:20px 22px;border-bottom:1px solid var(--rule);
+           display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+  .sheet-h h2{font:700 27px/1.05 var(--disp);letter-spacing:-.02em;margin:0 0 4px}
+  .sheet-h .sub{color:var(--ink2);margin:0}
+  .sheet-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+  .sheet-cols>section{padding:18px 22px;border-right:1px solid var(--rule)}
+  .sheet-cols>section:last-child{border-right:0}
+  h4{font:600 10.5px/1 var(--disp);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);
+     margin:0 0 12px;padding-bottom:7px;border-bottom:1px solid var(--rule)}
+  .kv{margin:0;display:grid;grid-template-columns:auto 1fr;gap:9px 14px;align-items:baseline}
+  .kv dt{color:var(--ink2);font-size:13.5px}
+  .kv dd{margin:0;font:500 15px/1.3 var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+  .modelist{display:flex;flex-direction:column;gap:7px;margin:0;padding:0;list-style:none}
+  .modelist li{display:flex;justify-content:space-between;gap:12px;background:var(--sunk);
+               border-radius:2px;padding:9px 11px;font-family:var(--disp);font-size:13.5px;font-weight:600}
+  .modelist b{font:600 14px/1 var(--mono);color:var(--acc)}
+  .todo{color:var(--ink3);font-size:13.5px;font-style:italic}
+  .badge{display:inline-block;font:600 9.5px/1 var(--disp);letter-spacing:.14em;text-transform:uppercase;
+         padding:4px 7px;border-radius:2px;border:1px solid}
+  .b-demo{color:var(--sig);border-color:var(--sig);background:transparent}
+  .b-src{color:var(--info);border-color:var(--info)}
+  .b-ok{color:var(--acc);border-color:var(--acc)}
+
+  table{border-collapse:collapse;width:100%;min-width:520px;font-family:var(--disp);font-size:13.5px}
+  .tw{overflow-x:auto;background:var(--card);border:1px solid var(--rule);border-radius:3px}
+  th{text-align:left;font:600 10px/1 var(--disp);letter-spacing:.14em;text-transform:uppercase;
+     color:var(--ink3);padding:10px 14px;border-bottom:1px solid var(--rule)}
+  td{padding:10px 14px;border-bottom:1px solid var(--rule)}
+  tr:last-child td{border-bottom:0}
+  td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  caption{caption-side:top;text-align:left;padding:12px 14px 0;font:600 13px/1 var(--disp)}
+
+  .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start}
+  .box{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:18px}
+  .box h3{font:700 17px/1.1 var(--disp);margin:0 0 4px}
+  .box>p{margin:0 0 14px;color:var(--ink2);font-size:14px}
+  .f{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}
+  .f label{font:600 10px/1 var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+  .f input,.f select{background:var(--sunk);border:1px solid var(--rule);border-radius:2px;padding:9px 11px;
+     font:500 15px/1 var(--mono);outline:none;width:100%}
+  .f input:focus{border-color:var(--acc);background:var(--card)}
+  .ff{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .res{background:var(--acc-w);border:1px solid var(--rule);border-radius:3px;padding:16px 18px}
+  .res .hero{font:600 34px/1 var(--mono);color:var(--acc);font-variant-numeric:tabular-nums}
+  .res .hero small{font:600 13px/1 var(--disp);color:var(--ink2);display:block;margin-top:5px;
+                   letter-spacing:.1em;text-transform:uppercase}
+
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:7px}
+  .sw{border:1px solid var(--rule);border-radius:2px;overflow:hidden;cursor:pointer;background:var(--card);padding:0;text-align:left}
+  .sw:hover{border-color:var(--ink3)}
+  .sw[aria-pressed="true"]{outline:2px solid var(--acc);outline-offset:-2px}
+  .sw .c{height:52px}
+  .sw .t{padding:5px 7px;font:600 11px/1.3 var(--mono)}
+  .sw .t span{display:block;font:400 10px/1.3 var(--disp);color:var(--ink3);
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mix{display:flex;flex-direction:column;gap:9px}
+  .mline{display:grid;grid-template-columns:76px 1fr 52px;align-items:center;gap:10px;font-size:13px}
+  .mline .track{height:16px;background:var(--sunk);border-radius:2px;overflow:hidden}
+  .mline .track>div{height:100%}
+  .mline b{text-align:right;font:500 13.5px/1 var(--mono);font-variant-numeric:tabular-nums}
+
+  .rows{display:flex;flex-direction:column;gap:9px}
+  .r{display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid var(--rule);
+     border-radius:3px;padding:12px 14px}
+  .r .txt{flex:1;min-width:0}
+  .r .txt b{display:block;font:600 14.5px/1.2 var(--disp)}
+  .r .txt span{font:12.5px/1.4 var(--mono);color:var(--ink3)}
+  .pill{width:9px;height:9px;border-radius:50%;background:var(--acc);flex:none}
+  .pill.ko{background:var(--alert)}
+  .val{font:500 13.5px/1 var(--mono);color:var(--ink2);font-variant-numeric:tabular-nums}
+
+  .steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}
+  .steps li::marker{color:var(--acc);font-weight:600}
+  .warn{border-left:3px solid var(--alert);background:var(--sunk);padding:12px 14px;
+        border-radius:0 3px 3px 0;color:var(--ink);font-size:14px}
+  .scale{display:flex;flex-direction:column-reverse;gap:0;border-left:2px solid var(--rule);
+         margin:8px 0 0 66px;padding-left:0}
+  .step{position:relative;display:flex;align-items:center;gap:10px;padding:7px 0 7px 14px}
+  .step:before{content:"";position:absolute;left:0;top:50%;width:10px;height:1px;background:var(--rule)}
+  .step .m{position:absolute;left:-66px;width:56px;text-align:right;font:500 13px/1 var(--mono);
+           color:var(--ink2);font-variant-numeric:tabular-nums}
+  .step .nm{font:600 14px/1.2 var(--disp)}
+  .step.pemp .nm{color:var(--info)}
+  .step .tag{font:400 12px/1 var(--disp);color:var(--ink3)}
+  .uni512{display:grid;grid-template-columns:repeat(32,1fr);gap:2px;margin-top:12px}
+  .c512{aspect-ratio:1;background:var(--sunk);border-radius:1px}
+  @media (max-width:640px){ .uni512{grid-template-columns:repeat(16,1fr)} .lede{grid-template-columns:1fr} }
+  @media print{ header,.seg,.back{display:none} body{background:#fff} }
+</style>
+</head>
+<body>
+<header>
+  <div class="hbar">
+    <p class="logo">Atelier <em>Plateau</em></p>
+    <span class="stamp">Canevas B</span>
+    <label class="hsearch"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".5"/><path d="M11 11l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".5"/></svg>
+      <input id="q" placeholder="Rechercher…" autocomplete="off"></label>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab" data-s="inv">Inventaire</button>
+    <button class="tab" data-s="lieu">Le lieu</button>
+    <button class="tab" data-s="out">Boîte à outils</button>
+  </nav>
+</header>
+<main id="main"></main>
+
+<script src="common.js"></script>
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const el = (t, c, h) => { const n = document.createElement(t); if(c) n.className = c; if(h!=null) n.innerHTML = h; return n; };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const vg = n => String(n).replace(".", ",");
+const S = { sec:"inv", sub:"proj", out:"dmx", q:"", sel:null, gel:LEE.find(g => g.ref === "L106") };
+
+const lede = (t, p, c) => `<div class="lede"><div><h1>${t}</h1><p>${p}</p></div>
+  ${c ? `<span class="count">${c}</span>` : ""}</div>`;
+const seg = (items, cur, fn) => {
+  const d = el("div", "seg");
+  items.forEach(([k, lab]) => {
+    const b = el("button", "segb", lab);
+    b.setAttribute("aria-pressed", cur === k ? "true" : "false");
+    b.onclick = () => fn(k);
+    d.append(b);
+  });
+  return d;
+};
+
+/* ------------------------------ inventaire ------------------------------ */
+function vInventaire(){
+  const d = el("div");
+  d.append(seg([["proj","Projecteurs"],["mach","Machinerie"],["mdg","MDG"]], S.sub,
+    k => { S.sub = k; S.sel = null; render(); }));
+  if(S.sub === "proj") d.append(S.sel ? ficheProj(S.sel) : listeProj());
+  if(S.sub === "mach") d.append(listeMach());
+  if(S.sub === "mdg") d.append(vMdg());
+  return d;
+}
+
+function listeProj(){
+  const q = S.q.toLowerCase();
+  const rows = PROJECTEURS.filter(p => !q || (p.nom + " " + p.marque + " " + p.fam).toLowerCase().includes(q));
+  const d = el("div");
+  d.insertAdjacentHTML("beforeend", lede("Projecteurs",
+    "Le parc lumière, classé par marque. Chaque fiche donne la puissance, le poids, les modes DMX et le nombre d’unités disponibles.",
+    `${rows.length} / ${PROJECTEURS.length} références`));
+  const g = el("div", "cards");
+  rows.forEach(p => {
+    const b = el("button", "rec");
+    b.innerHTML = `<span class="mk">${esc(p.marque)}</span>
+      <h3>${esc(p.nom)}</h3><p class="fam">${esc(p.fam)}</p>
+      <dl><div><dt>Puissance</dt><dd>${esc(p.w)}</dd></div>
+        <div><dt>Poids</dt><dd>${esc(p.kg)}</dd></div>
+        ${p.nb ? `<span class="stock">×${p.nb}</span>` : ""}</dl>`;
+    b.onclick = () => { S.sel = p; render(); window.scrollTo(0, 0); };
+    g.append(b);
+  });
+  if(!rows.length) g.append(el("p", "todo", "Aucune référence ne correspond à cette recherche."));
+  d.append(g);
+  return d;
+}
+
+function ficheProj(p){
+  const d = el("div");
+  const back = el("button", "back", "← Retour au parc");
+  back.onclick = () => { S.sel = null; render(); };
+  d.append(back);
+  const s = el("article", "sheet");
+  s.innerHTML = `
+    <div class="sheet-h">
+      <div style="flex:1;min-width:200px">
+        <h2>${esc(p.nom)}</h2>
+        <p class="sub">${esc(p.marque)} — ${esc(p.fam)}</p>
+      </div>
+      <span class="badge b-src">Source : Notion · Projecteurs</span>
+    </div>
+    <div class="sheet-cols">
+      <section><h4>Caractéristiques</h4>
+        <dl class="kv">
+          <dt>Puissance</dt><dd>${esc(p.w)}</dd>
+          <dt>Poids</dt><dd>${esc(p.kg)}</dd>
+          <dt>Unités au parc</dt><dd>${p.nb ?? "—"}</dd>
+          <dt>Famille</dt><dd style="font-family:var(--disp)">${esc(p.fam)}</dd>
+        </dl></section>
+      <section><h4>Modes DMX ${p.modesDemo ? '<span class="badge b-demo" style="float:right;margin-top:-4px">démo</span>' : ""}</h4>
+        ${p.modes ? `<ul class="modelist">${p.modes.map(m =>
+            `<li>${esc(m.mode)}<b>${m.ch} ch</b></li>`).join("")}</ul>`
+          : `<p class="todo">Modes non renseignés. Le champ existe dans la base : à compléter depuis la fiche constructeur.</p>`}
+      </section>
+      <section><h4>Accroche &amp; implantation</h4>
+        <dl class="kv">
+          <dt>Collier conseillé</dt><dd style="font-family:var(--disp)">Double Doughty</dd>
+          <dt>Charge collier</dt><dd>750 kg</dd>
+          <dt>Perche la plus basse</dt><dd>7,75 m</dd>
+          <dt>Accès</dt><dd style="font-family:var(--disp)">Passerelle élec</dd>
+        </dl></section>
+    </div>`;
+  d.append(s);
+  return d;
+}
+
+function listeMach(){
+  const q = S.q.toLowerCase();
+  const rows = MACHINERIE.filter(m => !q || (m.nom + " " + m.type).toLowerCase().includes(q));
+  const types = [...new Set(rows.map(m => m.type))];
+  const d = el("div");
+  d.insertAdjacentHTML("beforeend", lede("Machinerie",
+    "Structures, accroches, moteurs et textiles. Les dimensions sont celles relevées au plateau, les charges sont les valeurs constructeur.",
+    `${rows.length} références`));
+  types.forEach(t => {
+    const s = rows.filter(m => m.type === t);
+    const tw = el("div", "tw");
+    tw.style.marginBottom = "16px";
+    tw.innerHTML = `<table><caption>${esc(t)}</caption><thead><tr>
+        <th>Élément</th><th class="n">Nb</th><th class="n">Longueur</th><th class="n">Hauteur</th>
+        <th class="n">Charge max</th><th>Précision</th></tr></thead><tbody>
+      ${s.map(m => `<tr><td><b>${esc(m.nom)}</b></td><td class="n">${m.nb ?? "—"}</td>
+        <td class="n">${esc(m.l ?? "—")}</td><td class="n">${esc(m.h ?? "—")}</td>
+        <td class="n">${esc(m.charge ?? "—")}</td>
+        <td style="color:var(--ink2)">${esc(m.vit ?? m.trust ?? "—")}</td></tr>`).join("")}
+      </tbody></table>`;
+    d.append(tw);
+  });
+  return d;
+}
+
+function vMdg(){
+  const d = el("div");
+  d.insertAdjacentHTML("beforeend", lede("MDG — machine à brume",
+    "La procédure telle qu’elle est appliquée en exploitation. À suivre dans l’ordre, mise en service comme extinction."));
+  const g = el("div", "two");
+  g.innerHTML = `
+    <div class="box"><h3>Mise en service</h3>
+      <ol class="steps">${MDG.allumage.map(s => `<li>${esc(s)}</li>`).join("")}</ol></div>
+    <div class="box"><h3>Extinction</h3>
+      <ol class="steps">${MDG.extinction.map(s => `<li>${esc(s)}</li>`).join("")}</ol></div>`;
+  d.append(g);
+  const w = el("div", "box");
+  w.style.marginTop = "16px";
+  w.innerHTML = `<h3>À surveiller</h3>${MDG.alertes.map(a => `<div class="warn">${esc(a)}</div>`).join("")}`;
+  d.append(w);
+  return d;
+}
+
+/* -------------------------------- lieu ---------------------------------- */
+function vLieu(){
+  const d = el("div");
+  d.insertAdjacentHTML("beforeend", lede("Le lieu",
+    "Les cotes qu’on cherche toujours au dernier moment : hauteurs de passerelles, grill, et la nacelle disponible.",
+    `${HAUTEURS.length} niveaux`));
+  const b = el("div", "box");
+  const max = 18;
+  b.innerHTML = `<h3>Élévation du plateau</h3>
+    <p>Hauteurs relevées depuis le plancher de scène.</p>
+    <div class="scale">
+      ${[...HAUTEURS].sort((a, b2) => a.h - b2.h).map(x => `
+        <div class="step ${x.type === "Plateforme élévatrice" ? "pemp" : ""}">
+          <span class="m">${vg(x.h.toFixed(2))} m</span>
+          <span class="nm">${esc(x.nom)}</span>
+          ${x.charge ? `<span class="tag">charge ${x.charge} kg</span>` : ""}
+          ${x.note ? `<span class="tag">${esc(x.note)}</span>` : ""}
+        </div>`).join("")}
+    </div>`;
+  d.append(b);
+  const t = el("div", "tw");
+  t.style.marginTop = "16px";
+  t.innerHTML = `<table><caption>Détail</caption><thead><tr><th>Niveau</th><th>Type</th><th>Position</th>
+    <th class="n">Hauteur</th><th class="n">Charge admissible</th></tr></thead><tbody>
+    ${[...HAUTEURS].sort((a, b2) => b2.h - a.h).map(x => `<tr><td><b>${esc(x.nom)}</b></td>
+      <td>${esc(x.type)}</td><td style="color:var(--ink2)">${esc(x.pos)}</td>
+      <td class="n">${vg(x.h.toFixed(2))} m</td><td class="n">${x.charge ? x.charge + " kg" : "—"}</td></tr>`).join("")}
+    </tbody></table>`;
+  d.append(t);
+  return d;
+}
+
+/* ------------------------------- outils --------------------------------- */
+function vOutils(){
+  const d = el("div");
+  d.append(seg([["dmx","Calcul DMX"],["gel","Gélatines → RGBWA"],["ndi","NDI"],
+                ["net","Réseau"],["art","Art-Net / sACN"]], S.out, k => { S.out = k; render(); }));
+  d.append({ dmx:oDmx, gel:oGel, ndi:oNdi, net:oNet, art:oArt }[S.out]());
+  return d;
+}
+
+function oDmx(){
+  const d = el("div");
+  d.insertAdjacentHTML("beforeend", lede("Calcul DMX",
+    "Poser un patch, vérifier ce qui tient dans un univers, et retrouver l’adressage Art-Net ou l’adresse multicast sACN correspondante."));
+  const g = el("div", "two");
+  g.innerHTML = `
+    <div class="box"><h3>Paramètres</h3>
+      <div class="ff">
+        <div class="f"><label for="u">Univers de départ</label><input id="u" type="number" min="1" value="1"></div>
+        <div class="f"><label for="c">Canal de départ</label><input id="c" type="number" min="1" max="512" value="1"></div>
+      </div>
+      <div class="ff">
+        <div class="f"><label for="fp">Empreinte (canaux)</label><input id="fp" type="number" min="1" max="512" value="20"></div>
+        <div class="f"><label for="n">Appareils</label><input id="n" type="number" min="1" max="200" value="12"></div>
+      </div>
+    </div>
+    <div class="res" id="res"></div>`;
+  d.append(g);
+  const tw = el("div", "tw");
+  tw.style.marginTop = "16px";
+  tw.id = "tbl";
+  d.append(tw);
+  const calc = () => {
+    const u = Math.max(1, +$("#u").value || 1), c = Math.min(512, Math.max(1, +$("#c").value || 1));
+    const fp = Math.min(512, Math.max(1, +$("#fp").value || 1)), n = Math.max(1, +$("#n").value || 1);
+    const l = patch(u, c, n, fp), last = l[l.length - 1], a = artnet(u), s = sacn(u);
+    $("#res").innerHTML = `<div class="hero">${parUnivers(fp)}<small>appareils par univers</small></div>
+      <dl class="kv" style="margin-top:16px">
+        <dt>Dernière adresse</dt><dd>U${last.u} / ${last.ch}–${last.fin}</dd>
+        <dt>Univers occupés</dt><dd>${last.u - u + 1}</dd>
+        <dt>Canaux utilisés</dt><dd>${n * fp}</dd>
+        <dt>Art-Net (U${u})</dt><dd>${a.net}.${a.sub}.${a.uni}</dd>
+        <dt>sACN multicast</dt><dd>${s.ip}</dd>
+      </dl>`;
+    $("#tbl").innerHTML = `<table><caption>Table d’adresses</caption><thead><tr><th class="n">#</th>
+      <th class="n">Univers</th><th class="n">Adresse</th><th class="n">Dernier canal</th>
+      <th>Art-Net</th><th>sACN</th></tr></thead><tbody>
+      ${l.map(x => { const aa = artnet(x.u), ss = sacn(x.u); return `<tr>
+        <td class="n" style="color:var(--ink3)">${x.n}</td><td class="n">${x.u}</td>
+        <td class="n"><b style="color:var(--acc)">${x.ch}</b></td><td class="n">${x.fin}</td>
+        <td style="font-family:var(--mono)">${aa.net}.${aa.sub}.${aa.uni}</td>
+        <td style="font-family:var(--mono)">${ss.ip}</td></tr>`; }).join("")}</tbody></table>`;
+  };
+  g.addEventListener("input", calc);
+  setTimeout(calc);
+  return d;
+}
+
+function oGel(){
+  const d = el("div");
+  d.insertAdjacentHTML("beforeend", lede("Gélatines → RGBWA",
+    "Retrouver, pour une référence Lee, un point de départ de mélange sur un projecteur LED. Les teintes sont approchées : à recaler au colorimètre selon le moteur."));
+  const g = el("div", "two");
+  const left = el("div", "box");
+  left.innerHTML = `<h3>Nuancier Lee <span class="badge b-demo" style="float:right">teintes approchées</span></h3>
+    <p>${LEE.length} références courantes.</p>`;
+  const sw = el("div", "swatches");
+  const q = S.q.toLowerCase();
+  LEE.filter(x => !q || (x.ref + " " + x.nom).toLowerCase().includes(q)).forEach(x => {
+    const b = el("button", "sw");
+    b.setAttribute("aria-pressed", S.gel === x ? "true" : "false");
+    b.innerHTML = `<div class="c" style="background:${x.hex}"></div>
+      <div class="t">${x.ref}<span>${esc(x.nom)}</span></div>`;
+    b.onclick = () => { S.gel = x; render(); };
+    sw.append(b);
+  });
+  left.append(sw);
+
+  const x = S.gel, c = toRGBWA(x.hex);
+  const right = el("div", "box");
+  const line = (lab, col, v) => `<div class="mline"><span>${lab}</span>
+    <div class="track"><div style="width:${v}%;background:${col}"></div></div><b>${v} %</b></div>`;
+  right.innerHTML = `<h3>${x.ref} — ${esc(x.nom)}</h3>
+    <div style="height:70px;border-radius:3px;background:${x.hex};margin-bottom:16px;border:1px solid var(--rule)"></div>
+    <div class="mix">
+      ${line("Rouge", "#D9241F", c.pct.r)}${line("Vert", "#0B9B4F", c.pct.g)}
+      ${line("Bleu", "#1462A8", c.pct.b)}${line("Blanc", "#B9C2BA", c.pct.w)}
+      ${line("Ambre", "#E89923", c.pct.a)}</div>
+    <h4 style="margin-top:20px">Valeurs DMX 8 bits</h4>
+    <dl class="kv"><dt>R / V / B / W / A</dt>
+      <dd>${c.dmx.r} · ${c.dmx.g} · ${c.dmx.b} · ${c.dmx.w} · ${c.dmx.a}</dd>
+      <dt>Hex écran</dt><dd>${x.hex}</dd></dl>
+    <p style="color:var(--ink2);font-size:13.5px;margin-top:14px">
+      Le blanc reprend la composante commune aux trois primaires, l’ambre est extrait sur l’axe (255, 126, 0).</p>`;
+  g.append(left, right);
+  d.append(g);
+  return d;
+}
+
+function oNdi(){
+  const d = el("div");
+  d.insertAdjacentHTML("beforeend", lede("Flux NDI",
+    "Les sources vues sur le réseau de production, avec leur format, leur débit et leur tally.",
+    `${DEMO_NDI.filter(n => n.ok).length} sources actives`));
+  d.insertAdjacentHTML("beforeend",
+    `<p><span class="badge b-demo">Démonstration</span> <span style="color:var(--ink2);font-size:14px">
+     La découverte NDI passe par l’agent local — voir la note d’architecture.</span></p>`);
+  const r = el("div", "rows");
+  r.style.marginTop = "14px";
+  r.innerHTML = DEMO_NDI.map(n => `<div class="r"><span class="pill ${n.ok ? "" : "ko"}"></span>
+    <div class="txt"><b>${esc(n.nom)}</b><span>${esc(n.machine)} · ${esc(n.fmt)}</span></div>
+    ${n.tally ? `<span class="badge ${n.tally === "PGM" ? "b-demo" : "b-src"}">${n.tally}</span>` : ""}
+    <span class="val">${n.ok ? n.mbps + " Mb/s" : "hors ligne"}</span></div>`).join("");
+  d.append(r);
+  return d;
+}
+
+function oNet(){
+  const ok = DEMO_RESEAU.filter(r => r.ok);
+  const d = el("div");
+  d.insertAdjacentHTML("beforeend", lede("Réseau",
+    "Qui répond sur le réseau lumière et vidéo, et à quelle latence. Le nœud muet remonte en premier.",
+    `${ok.length} / ${DEMO_RESEAU.length} hôtes`));
+  d.insertAdjacentHTML("beforeend", `<p><span class="badge b-demo">Démonstration</span></p>`);
+  const t = el("div", "tw");
+  t.style.marginTop = "14px";
+  t.innerHTML = `<table><caption>192.168.0.0/24</caption><thead><tr><th>Adresse</th><th>Nom</th>
+    <th>Rôle</th><th class="n">Latence</th><th>État</th></tr></thead><tbody>
+    ${DEMO_RESEAU.map(r => `<tr><td style="font-family:var(--mono)">${r.ip}</td>
+      <td><b>${esc(r.nom)}</b></td><td style="color:var(--ink2)">${esc(r.role)}</td>
+      <td class="n">${r.ok ? vg(r.ms.toFixed(1)) + " ms" : "—"}</td>
+      <td>${r.ok ? '<span class="badge b-ok">en ligne</span>' : '<span class="badge b-demo" style="color:var(--alert);border-color:var(--alert)">sans réponse</span>'}</td>
+    </tr>`).join("")}</tbody></table>`;
+  d.append(t);
+  return d;
+}
+
+function oArt(){
+  const d = el("div");
+  d.insertAdjacentHTML("beforeend", lede("Art-Net / sACN",
+    "Les émetteurs présents sur le réseau et le contenu d’un univers, canal par canal."));
+  d.insertAdjacentHTML("beforeend", `<p><span class="badge b-demo">Démonstration</span></p>`);
+  const g = el("div", "two");
+  g.style.marginTop = "14px";
+  const l = el("div", "box");
+  l.innerHTML = `<h3>Émetteurs</h3><div class="rows">
+    ${DEMO_SOURCES_DMX.map(s => `<div class="r"><span class="pill"></span>
+      <div class="txt"><b>${esc(s.nom)}</b><span>${s.src} · ${s.proto}${s.prio ? " · prio " + s.prio : ""}</span></div>
+      <span class="val">U${s.univ.join(", ")} — ${s.hz} Hz</span></div>`).join("")}</div>`;
+  const r = el("div", "box");
+  r.innerHTML = `<h3>Univers 1</h3><p>512 canaux, relevés à 44 Hz.</p><div class="uni512" id="u512"></div>`;
+  g.append(l, r);
+  d.append(g);
+  setTimeout(() => {
+    const grid = $("#u512"); if(!grid) return;
+    const cells = Array.from({length:512}, () => { const c = el("div", "c512"); grid.append(c); return c; });
+    let t = 0;
+    const paint = () => {
+      const v = demoUniverse(t);
+      cells.forEach((c, i) => c.style.background = v[i]
+        ? `color-mix(in srgb, var(--acc) ${12 + v[i] / 255 * 88}%, var(--sunk))` : "var(--sunk)");
+      t += 2;
+    };
+    paint();
+    if(!matchMedia("(prefers-reduced-motion: reduce)").matches){
+      const id = setInterval(() => { document.body.contains(grid) ? paint() : clearInterval(id); }, 140);
+    }
+  });
+  return d;
+}
+
+/* -------------------------------- moteur -------------------------------- */
+function render(){
+  document.querySelectorAll(".tab").forEach(b =>
+    b.setAttribute("aria-current", b.dataset.s === S.sec ? "true" : "false"));
+  $("#main").replaceChildren({ inv:vInventaire, lieu:vLieu, out:vOutils }[S.sec]());
+}
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => { S.sec = b.dataset.s; S.sel = null; render(); });
+$("#q").addEventListener("input", e => { S.q = e.target.value; S.sel = null; render(); });
+render();
+</script>
+</body>
+</html>

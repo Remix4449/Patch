@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Régie Noire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#0C1015; --panel:#141A21; --panel2:#1A222B; --line:#232D38;
+    --ink:#D6DEE7; --ink2:#8B98A7; --ink3:#5E6B7A;
+    --acc:#FFB020; --ok:#3FD07F; --warn:#FFC857; --bad:#FF5A52; --net:#4DA3FF;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+    --sans:"IBM Plex Sans",system-ui,sans-serif;
+    --disp:"Barlow Condensed","IBM Plex Sans",system-ui,sans-serif;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);
+       -webkit-font-smoothing:antialiased}
+  button,input,select{font:inherit;color:inherit}
+  ::selection{background:var(--acc);color:#0C1015}
+  :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+  .app{display:grid;grid-template-columns:200px 1fr;height:100%}
+  /* ---------- rail ---------- */
+  .rail{background:#0A0E12;border-right:1px solid var(--line);display:flex;flex-direction:column;
+        padding-block:14px;gap:2px;overflow-y:auto}
+  .brand{font:600 22px/1 var(--disp);letter-spacing:.08em;text-transform:uppercase;
+         padding:0 16px 14px;color:var(--ink);display:flex;align-items:baseline;gap:8px}
+  .brand span{color:var(--acc);font-size:11px;letter-spacing:.18em}
+  .rail h6{font:600 10px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);
+           margin:16px 16px 6px}
+  .nav{display:flex;align-items:center;gap:10px;padding:8px 16px;border:0;background:none;
+       width:100%;text-align:left;cursor:pointer;color:var(--ink2);border-left:2px solid transparent}
+  .nav:hover{color:var(--ink);background:#10161D}
+  .nav[aria-current="true"]{color:var(--ink);background:#131A22;border-left-color:var(--acc)}
+  .nav .k{font:500 11px/1 var(--mono);color:var(--ink3);margin-left:auto}
+  .dot{width:7px;height:7px;border-radius:2px;background:var(--ink3);flex:none}
+  .nav[aria-current="true"] .dot{background:var(--acc)}
+
+  /* ---------- main ---------- */
+  .main{display:flex;flex-direction:column;min-width:0;height:100%}
+  .top{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);
+       background:var(--panel);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+  .search{flex:1;display:flex;align-items:center;gap:8px;background:#0C1015;border:1px solid var(--line);
+          border-radius:4px;padding:7px 10px;min-width:0}
+  .search input{background:none;border:0;width:100%;outline:none;font-family:var(--mono);font-size:13px}
+  .search input::placeholder{color:var(--ink3)}
+  .kbd{font:500 10px/1 var(--mono);border:1px solid var(--line);border-radius:3px;padding:3px 5px;color:var(--ink3)}
+  .tag{font:600 10px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#0C1015;
+       background:var(--acc);padding:4px 7px;border-radius:3px;white-space:nowrap}
+
+  .body{flex:1;overflow:auto;padding:16px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+  .wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+  h1{font:600 26px/1.1 var(--disp);letter-spacing:.04em;text-transform:uppercase;margin:0 0 2px}
+  .sub{color:var(--ink2);font-size:12.5px;margin:0 0 14px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+  .panel-h{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .panel-h h2{font:600 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;margin:0;color:var(--ink2)}
+  .panel-b{padding:12px}
+
+  /* ---------- filtres ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .chip{border:1px solid var(--line);background:#10161D;color:var(--ink2);border-radius:999px;
+        padding:5px 11px;font-size:12px;cursor:pointer;white-space:nowrap}
+  .chip:hover{color:var(--ink);border-color:#313E4C}
+  .chip[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#0C1015;font-weight:600}
+
+  /* ---------- tableau ---------- */
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;min-width:560px}
+  th{font:600 10px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
+     text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);background:#10161D;
+     position:sticky;top:0}
+  td{padding:9px 12px;border-bottom:1px solid #1B232C;font-size:13px;vertical-align:middle}
+  tbody tr{cursor:pointer}
+  tbody tr:hover td{background:#171F27}
+  tbody tr[aria-selected="true"] td{background:#1C2630;box-shadow:inset 2px 0 0 var(--acc)}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .nm{font-weight:500}
+  .mk{font:500 11px/1 var(--mono);color:var(--ink2)}
+  .qty{font:600 11px/1 var(--mono);background:#1E2833;border:1px solid var(--line);border-radius:3px;
+       padding:3px 6px;color:var(--acc)}
+
+  /* ---------- fiche ---------- */
+  .fiche{position:sticky;top:0}
+  .fiche .hd{padding:14px 14px 12px;border-bottom:1px solid var(--line)}
+  .fiche h3{font:600 22px/1.05 var(--disp);letter-spacing:.03em;text-transform:uppercase;margin:0 0 4px}
+  .spec{display:grid;grid-template-columns:auto 1fr;gap:1px;background:var(--line);
+        border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .spec dt{background:var(--panel);padding:8px 12px;font-size:11px;letter-spacing:.08em;
+           text-transform:uppercase;color:var(--ink3)}
+  .spec dd{background:var(--panel);padding:8px 12px;margin:0;font-family:var(--mono);font-size:13px;
+           font-variant-numeric:tabular-nums}
+  .modes{display:flex;flex-direction:column;gap:6px;padding:12px}
+  .mode{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#10161D;
+        border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+  .mode b{font:500 13px/1 var(--sans)}
+  .mode span{font:600 13px/1 var(--mono);color:var(--acc)}
+  .empty{padding:24px 14px;color:var(--ink3);font-size:12.5px;text-align:center}
+  .flag{display:inline-flex;align-items:center;gap:5px;font:600 9.5px/1 var(--sans);letter-spacing:.14em;
+        text-transform:uppercase;border:1px solid;border-radius:3px;padding:3px 6px}
+  .flag.demo{color:var(--warn);border-color:#4A3D1A;background:#1E1908}
+  .flag.src{color:var(--net);border-color:#1B3350;background:#0D1926}
+
+  /* ---------- élévations ---------- */
+  .elev{position:relative;padding:14px 12px 8px;min-height:340px}
+  .elev .line{position:relative;height:300px;border-left:2px solid var(--line);margin-left:52px}
+  .lvl{position:absolute;left:0;right:0;display:flex;align-items:center;gap:8px;transform:translateY(50%)}
+  .lvl:before{content:"";width:16px;height:2px;background:var(--line)}
+  .lvl .h{position:absolute;left:-52px;width:44px;text-align:right;font:500 11.5px/1 var(--mono);
+          color:var(--ink2);font-variant-numeric:tabular-nums}
+  .lvl .n{font-size:12.5px;color:var(--ink)}
+  .lvl.pemp .n{color:var(--net)}
+  .lvl.pemp:before{background:var(--net)}
+  .sol{position:absolute;bottom:0;left:52px;right:12px;border-top:2px solid var(--acc)}
+  .sol span{position:absolute;right:0;top:4px;font:600 10px/1 var(--sans);letter-spacing:.14em;
+            text-transform:uppercase;color:var(--acc)}
+
+  /* ---------- outils ---------- */
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+  .field label{font:600 10px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+  .field input,.field select{background:#0C1015;border:1px solid var(--line);border-radius:4px;
+       padding:8px 10px;font-family:var(--mono);font-size:14px;outline:none;width:100%}
+  .field input:focus,.field select:focus{border-color:var(--acc)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .out{display:grid;grid-template-columns:auto 1fr;gap:1px;background:var(--line);border-radius:4px;
+       overflow:hidden;border:1px solid var(--line)}
+  .out dt{background:#10161D;padding:8px 10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+  .out dd{background:var(--panel2);padding:8px 10px;margin:0;font:500 14px/1.3 var(--mono);
+          font-variant-numeric:tabular-nums}
+  .out dd b{color:var(--acc);font-weight:600}
+  .big{font:600 30px/1 var(--mono);color:var(--acc);font-variant-numeric:tabular-nums}
+
+  .gels{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+  .gel{border:1px solid var(--line);border-radius:5px;overflow:hidden;background:#10161D;cursor:pointer;
+       text-align:left;padding:0}
+  .gel:hover{border-color:#3A4757}
+  .gel[aria-pressed="true"]{border-color:var(--acc)}
+  .gel .sw{height:44px}
+  .gel .lb{padding:6px 8px}
+  .gel .lb b{display:block;font:600 11.5px/1.2 var(--mono);color:var(--ink)}
+  .gel .lb span{font-size:10.5px;color:var(--ink3)}
+  .bars{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .bar{display:grid;grid-template-columns:28px 1fr 46px;align-items:center;gap:8px}
+  .bar i{font:600 11px/1 var(--mono);font-style:normal;color:var(--ink2)}
+  .bar .t{height:12px;background:#0C1015;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .bar .t>div{height:100%}
+  .bar b{font:500 12px/1 var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:#10161D;
+        border:1px solid var(--line);border-radius:5px}
+  .item .g{flex:1;min-width:0}
+  .item .g b{display:block;font-size:13.5px;font-weight:500}
+  .item .g span{font:11.5px/1.4 var(--mono);color:var(--ink3)}
+  .led{width:8px;height:8px;border-radius:50%;flex:none;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .led.off{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+  .led.pgm{background:var(--bad)}
+  .ms{font:500 12px/1 var(--mono);color:var(--ink2);font-variant-numeric:tabular-nums}
+  .spark{display:flex;align-items:flex-end;gap:2px;height:20px}
+  .spark i{width:3px;background:var(--net);border-radius:1px;display:block}
+
+  .uni{display:grid;grid-template-columns:repeat(32,1fr);gap:1px;margin-top:10px}
+  .cell{aspect-ratio:1;background:#0E141A;border-radius:1px;position:relative}
+  .uleg{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font:11px/1 var(--mono);color:var(--ink3)}
+  .uleg b{color:var(--ink2);font-weight:500}
+  .steps{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px;font-size:13.5px}
+  .steps li::marker{color:var(--acc);font-family:var(--mono);font-size:12px}
+  .note{border-left:2px solid var(--bad);background:#1A0F0E;padding:10px 12px;border-radius:0 4px 4px 0;
+        font-size:13px;color:#FFC9C5}
+
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr}
+    .fiche{position:static}
+    .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+    .rail{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);
+          padding:8px;gap:4px;align-items:center}
+    .rail h6,.brand,.nav .k{display:none}
+    .nav{width:auto;white-space:nowrap;border-left:0;border-bottom:2px solid transparent;border-radius:4px;padding:7px 11px}
+    .nav[aria-current="true"]{border-bottom-color:var(--acc)}
+    .uni{grid-template-columns:repeat(16,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand">Régie <span>A</span></div>
+    <h6>Inventaire</h6>
+    <button class="nav" data-v="proj"><i class="dot"></i>Projecteurs<i class="k">41</i></button>
+    <button class="nav" data-v="mach"><i class="dot"></i>Machinerie<i class="k">28</i></button>
+    <button class="nav" data-v="haut"><i class="dot"></i>Hauteurs<i class="k">10</i></button>
+    <button class="nav" data-v="mdg"><i class="dot"></i>MDG<i class="k">—</i></button>
+    <h6>Outils</h6>
+    <button class="nav" data-v="dmx"><i class="dot"></i>Calcul DMX</button>
+    <button class="nav" data-v="gel"><i class="dot"></i>Gél. → RGBWA</button>
+    <button class="nav" data-v="ndi"><i class="dot"></i>Flux NDI</button>
+    <button class="nav" data-v="net"><i class="dot"></i>Réseau / Ping</button>
+    <button class="nav" data-v="art"><i class="dot"></i>Art-Net / sACN</button>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="#5E6B7A" stroke-width="1.6"/><path d="M11 11l4 4" stroke="#5E6B7A" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input id="q" placeholder="Chercher un appareil, une marque, une référence…" autocomplete="off">
+        <span class="kbd">/</span>
+      </div>
+      <span class="tag">Canevas A</span>
+    </div>
+    <div class="body" id="view"></div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const el = (t, c, h) => { const n = document.createElement(t); if(c) n.className = c; if(h!=null) n.innerHTML = h; return n; };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const state = { view:"proj", q:"", marque:null, sel:PROJECTEURS.find(p => p.nom === "LEDBeam 150"), gel:LEE.find(g => g.ref === "L201") };
+
+/* ------------------------------ vues ---------------------------------- */
+const V = {};
+
+V.proj = () => {
+  const q = state.q.toLowerCase();
+  const rows = PROJECTEURS.filter(p =>
+    (!state.marque || p.marque === state.marque) &&
+    (!q || (p.nom + " " + p.marque + " " + p.fam).toLowerCase().includes(q)));
+  const parc = PROJECTEURS.filter(p => p.nb).reduce((a, p) => a + (+p.nb), 0);
+
+  const h = el("div", "wrap");
+  const left = el("div");
+  left.append(el("div", null, `<h1>Projecteurs</h1>
+    <p class="sub">${PROJECTEURS.length} références · ${MARQUES.length} marques · ${parc} unités quantifiées</p>`));
+  const chips = el("div", "chips");
+  chips.append(mkChip("Toutes", !state.marque, () => { state.marque = null; render(); }));
+  MARQUES.forEach(m => chips.append(mkChip(m, state.marque === m, () => { state.marque = state.marque === m ? null : m; render(); })));
+  left.append(chips);
+
+  const tw = el("div", "tw");
+  tw.innerHTML = `<table><thead><tr>
+      <th>Appareil</th><th>Marque</th><th>Famille</th>
+      <th class="num">Puissance</th><th class="num">Poids</th><th class="num">Parc</th>
+    </tr></thead><tbody>${rows.map((p, i) => `<tr data-i="${i}" ${p === state.sel ? 'aria-selected="true"' : ""}>
+      <td class="nm">${esc(p.nom)}</td><td class="mk">${esc(p.marque)}</td>
+      <td style="color:var(--ink2)">${esc(p.fam)}</td>
+      <td class="num">${esc(p.w)}</td><td class="num">${esc(p.kg)}</td>
+      <td class="num">${p.nb ? `<span class="qty">${p.nb}</span>` : '<span style="color:var(--ink3)">—</span>'}</td>
+    </tr>`).join("") || '<tr><td colspan="6" class="empty">Aucun résultat</td></tr>'}</tbody></table>`;
+  tw.querySelectorAll("tbody tr[data-i]").forEach(tr =>
+    tr.onclick = () => { state.sel = rows[+tr.dataset.i]; render(); });
+  left.append(tw);
+  h.append(left, fiche());
+  return h;
+};
+
+function mkChip(label, on, fn){
+  const b = el("button", "chip", esc(label));
+  b.setAttribute("aria-pressed", on ? "true" : "false");
+  b.onclick = fn;
+  return b;
+}
+
+function fiche(){
+  const p = state.sel;
+  const d = el("aside", "panel fiche");
+  if(!p){ d.innerHTML = '<div class="empty">Sélectionner un appareil</div>'; return d; }
+  d.innerHTML = `
+    <div class="hd">
+      <h3>${esc(p.nom)}</h3>
+      <div style="color:var(--ink2);font-size:12.5px">${esc(p.marque)} · ${esc(p.fam)}</div>
+    </div>
+    <dl class="spec">
+      <dt>Puissance</dt><dd>${esc(p.w)}</dd>
+      <dt>Poids</dt><dd>${esc(p.kg)}</dd>
+      <dt>Parc</dt><dd>${p.nb ? p.nb + " unités" : "non quantifié"}</dd>
+      <dt>Charge collier</dt><dd>750 kg <span style="color:var(--ink3)">(double Doughty)</span></dd>
+    </dl>
+    <div class="panel-h" style="border-top:0"><h2>Modes DMX</h2>
+      ${p.modesDemo ? '<span class="flag demo">démo — à confirmer</span>' : ""}</div>
+    ${p.modes ? `<div class="modes">${p.modes.map(m =>
+        `<div class="mode"><b>${esc(m.mode)}</b><span>${m.ch} canaux</span></div>`).join("")}</div>`
+      : `<div class="empty">Modes non renseignés.<br>À reprendre de la fiche constructeur,<br>champ prévu dans la base Notion.</div>`}
+    <div class="panel-b" style="border-top:1px solid var(--line)">
+      <div class="flag src">source : Notion · Projecteurs</div>
+    </div>`;
+  return d;
+}
+
+V.mach = () => {
+  const q = state.q.toLowerCase();
+  const rows = MACHINERIE.filter(m => !q || (m.nom + " " + m.type).toLowerCase().includes(q));
+  const types = [...new Set(rows.map(m => m.type))];
+  const d = el("div");
+  d.append(el("div", null, `<h1>Machinerie</h1>
+    <p class="sub">Structure, accroche, moteurs, textiles — ${MACHINERIE.length} références</p>`));
+  types.forEach(t => {
+    const s = rows.filter(m => m.type === t);
+    const p = el("section", "panel");
+    p.style.marginBottom = "14px";
+    p.innerHTML = `<div class="panel-h"><h2>${esc(t)}</h2>
+        <span style="margin-left:auto;font:500 11px/1 var(--mono);color:var(--ink3)">${s.length} réf.</span></div>
+      <div class="tw" style="border:0;border-radius:0"><table><thead><tr>
+        <th>Élément</th><th class="num">Nb</th><th class="num">Long.</th><th class="num">Haut.</th>
+        <th class="num">Charge</th><th>Détail</th></tr></thead><tbody>
+        ${s.map(m => `<tr><td class="nm">${esc(m.nom)}</td>
+          <td class="num">${m.nb ?? "—"}</td><td class="num">${esc(m.l ?? "—")}</td>
+          <td class="num">${esc(m.h ?? "—")}</td><td class="num">${esc(m.charge ?? "—")}</td>
+          <td style="color:var(--ink2)">${esc(m.vit ?? m.trust ?? "")}</td></tr>`).join("")}
+      </tbody></table></div>`;
+    d.append(p);
+  });
+  return d;
+};
+
+V.haut = () => {
+  const d = el("div");
+  d.append(el("div", null, `<h1>Hauteurs</h1>
+    <p class="sub">Passerelles, grills et plateformes élévatrices — cotes du plateau</p>`));
+  const max = 18;
+  const p = el("section", "panel");
+  p.innerHTML = `<div class="panel-h"><h2>Élévation plateau</h2>
+      <span class="flag src" style="margin-left:auto">source : Notion</span></div>
+    <div class="elev"><div class="line">
+      ${HAUTEURS.map(x => `<div class="lvl ${x.type === "Plateforme élévatrice" ? "pemp" : ""}"
+          style="bottom:${(x.h / max * 100).toFixed(1)}%">
+          <span class="h">${x.h.toFixed(2).replace(".", ",")}</span>
+          <span class="n">${esc(x.nom)}${x.charge ? ` <span style="color:var(--ink3)">· ${x.charge} kg</span>` : ""}</span>
+        </div>`).join("")}
+      <div class="sol"><span>Plateau 0,00</span></div>
+    </div></div>`;
+  d.append(p);
+  const t = el("div", "tw");
+  t.style.marginTop = "14px";
+  t.innerHTML = `<table><thead><tr><th>Niveau</th><th>Type</th><th class="num">Hauteur</th>
+      <th class="num">Charge adm.</th><th>Remarque</th></tr></thead><tbody>
+    ${[...HAUTEURS].sort((a, b) => b.h - a.h).map(x => `<tr><td class="nm">${esc(x.nom)}</td>
+      <td style="color:var(--ink2)">${esc(x.type)}</td>
+      <td class="num">${x.h.toFixed(2).replace(".", ",")} m</td>
+      <td class="num">${x.charge ? x.charge + " kg" : "—"}</td>
+      <td style="color:var(--ink2)">${esc(x.note ?? "")}</td></tr>`).join("")}</tbody></table>`;
+  d.append(t);
+  return d;
+};
+
+V.mdg = () => {
+  const d = el("div");
+  d.append(el("div", null, `<h1>MDG</h1><p class="sub">Procédure machine à brume — mémo régie</p>`));
+  const g = el("div", "grid2");
+  g.innerHTML = `
+    <section class="panel"><div class="panel-h"><h2>Mise en service</h2></div>
+      <div class="panel-b"><ol class="steps">${MDG.allumage.map(s => `<li>${esc(s)}</li>`).join("")}</ol></div></section>
+    <section class="panel"><div class="panel-h"><h2>Extinction</h2></div>
+      <div class="panel-b"><ol class="steps">${MDG.extinction.map(s => `<li>${esc(s)}</li>`).join("")}</ol></div></section>
+    <section class="panel" style="grid-column:1/-1"><div class="panel-h"><h2>Alertes</h2></div>
+      <div class="panel-b">${MDG.alertes.map(a => `<div class="note">${esc(a)}</div>`).join("")}</div></section>`;
+  d.append(g);
+  return d;
+};
+
+V.dmx = () => {
+  const d = el("div");
+  d.append(el("div", null, `<h1>Calcul DMX</h1>
+    <p class="sub">Adressage, empreinte, univers Art-Net et sACN</p>`));
+  const g = el("div", "grid2");
+
+  const f = el("section", "panel");
+  f.innerHTML = `<div class="panel-h"><h2>Patch</h2></div><div class="panel-b">
+    <div class="row">
+      <div class="field"><label for="a-u">Univers</label><input id="a-u" type="number" min="1" value="1"></div>
+      <div class="field"><label for="a-c">Canal de départ</label><input id="a-c" type="number" min="1" max="512" value="1"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="a-f">Empreinte (canaux)</label><input id="a-f" type="number" min="1" max="512" value="20"></div>
+      <div class="field"><label for="a-n">Nombre d'appareils</label><input id="a-n" type="number" min="1" max="200" value="10"></div>
+    </div></div>`;
+
+  const r = el("section", "panel");
+  r.innerHTML = `<div class="panel-h"><h2>Résultat</h2></div><div class="panel-b" id="dmx-out"></div>`;
+  g.append(f, r);
+
+  const lst = el("section", "panel");
+  lst.style.marginTop = "16px";
+  lst.innerHTML = `<div class="panel-h"><h2>Table d'adresses</h2></div>
+    <div class="tw" style="border:0" id="dmx-tbl"></div>`;
+
+  const calc = () => {
+    const u = Math.max(1, +$("#a-u").value || 1), c = Math.min(512, Math.max(1, +$("#a-c").value || 1));
+    const fo = Math.min(512, Math.max(1, +$("#a-f").value || 1)), n = Math.max(1, +$("#a-n").value || 1);
+    const list = patch(u, c, n, fo);
+    const last = list[list.length - 1];
+    const an = artnet(u), sa = sacn(u);
+    $("#dmx-out").innerHTML = `
+      <div class="big">${parUnivers(fo)}<span style="font-size:13px;color:var(--ink2)"> app. / univers</span></div>
+      <dl class="out" style="margin-top:12px">
+        <dt>Plage occupée</dt><dd>U${u}/${c} → <b>U${last.u}/${last.fin}</b></dd>
+        <dt>Univers utilisés</dt><dd>${last.u - u + 1}</dd>
+        <dt>Canaux totaux</dt><dd>${n * fo}</dd>
+        <dt>Art-Net U${u}</dt><dd>Port ${an.port} — net ${an.net} / sub ${an.sub} / uni ${an.uni}</dd>
+        <dt>sACN U${u}</dt><dd>${sa.ip}</dd>
+      </dl>`;
+    $("#dmx-tbl").innerHTML = `<table><thead><tr><th class="num">#</th><th class="num">Univers</th>
+      <th class="num">Adresse</th><th class="num">Fin</th><th>Art-Net</th><th>sACN multicast</th></tr></thead><tbody>
+      ${list.map(x => { const a = artnet(x.u), s = sacn(x.u); return `<tr${x.saut ? ' style="box-shadow:inset 2px 0 0 var(--warn)"' : ""}>
+        <td class="num" style="color:var(--ink3)">${x.n}</td><td class="num">${x.u}</td>
+        <td class="num" style="color:var(--acc);font-weight:600">${x.ch}</td><td class="num">${x.fin}</td>
+        <td class="mk">${a.net}.${a.sub}.${a.uni}</td><td class="mk">${s.ip}</td></tr>`; }).join("")}
+      </tbody></table>`;
+  };
+  f.addEventListener("input", calc);
+  d.append(g, lst);
+  setTimeout(calc);
+  return d;
+};
+
+V.gel = () => {
+  const d = el("div");
+  d.append(el("div", null, `<h1>Gélatines → RGBWA</h1>
+    <p class="sub">Point de départ de calage pour projecteurs LED — ${LEE.length} références Lee</p>`));
+  const g = el("div", "wrap");
+  const left = el("section", "panel");
+  left.innerHTML = `<div class="panel-h"><h2>Nuancier Lee</h2>
+    <span class="flag demo" style="margin-left:auto">teintes approchées</span></div>`;
+  const box = el("div", "panel-b");
+  const gr = el("div", "gels");
+  const q = state.q.toLowerCase();
+  LEE.filter(x => !q || (x.ref + " " + x.nom).toLowerCase().includes(q)).forEach(x => {
+    const b = el("button", "gel");
+    b.setAttribute("aria-pressed", state.gel === x ? "true" : "false");
+    b.innerHTML = `<div class="sw" style="background:${x.hex}"></div>
+      <div class="lb"><b>${x.ref}</b><span>${esc(x.nom)}</span></div>`;
+    b.onclick = () => { state.gel = x; render(); };
+    gr.append(b);
+  });
+  box.append(gr); left.append(box);
+
+  const x = state.gel, c = toRGBWA(x.hex);
+  const right = el("aside", "panel fiche");
+  const bar = (k, lab, col, v) => `<div class="bar"><i>${lab}</i>
+      <div class="t"><div style="width:${v}%;background:${col}"></div></div><b>${v}%</b></div>`;
+  right.innerHTML = `<div class="hd"><h3>${x.ref}</h3>
+      <div style="color:var(--ink2);font-size:12.5px">${esc(x.nom)}</div></div>
+    <div style="height:64px;background:${x.hex}"></div>
+    <div class="panel-b">
+      ${bar("r", "R", "#FF4D4D", c.pct.r)}${bar("g", "G", "#3FD07F", c.pct.g)}
+      ${bar("b", "B", "#4DA3FF", c.pct.b)}${bar("w", "W", "#E8EEF5", c.pct.w)}
+      ${bar("a", "A", "#FFB020", c.pct.a)}
+    </div>
+    <dl class="out" style="margin:0 12px 12px">
+      <dt>Valeurs DMX</dt><dd>${c.dmx.r} / ${c.dmx.g} / ${c.dmx.b} / ${c.dmx.w} / ${c.dmx.a}</dd>
+      <dt>Hex écran</dt><dd>${x.hex}</dd>
+    </dl>
+    <div class="panel-b" style="border-top:1px solid var(--line);color:var(--ink3);font-size:12px">
+      Décomposition : blanc = composante commune RGB, ambre extrait sur l'axe (255,126,0).
+      À recaler au colorimètre selon le moteur LED.
+    </div>`;
+  g.append(left, right);
+  d.append(g);
+  return d;
+};
+
+V.ndi = () => {
+  const d = el("div");
+  d.append(el("div", null, `<h1>Flux NDI</h1>
+    <p class="sub">Sources découvertes sur le réseau de production
+      <span class="flag demo" style="margin-left:8px">démo — nécessite l'agent local</span></p>`));
+  const p = el("section", "panel");
+  p.innerHTML = `<div class="panel-h"><h2>Sources</h2>
+    <span style="margin-left:auto;font:500 11px/1 var(--mono);color:var(--ink3)">
+      ${DEMO_NDI.filter(n => n.ok).length} actives / ${DEMO_NDI.length}</span></div>
+    <div class="panel-b"><div class="list">
+    ${DEMO_NDI.map(n => `<div class="item">
+      <span class="led ${n.ok ? "" : "off"}"></span>
+      <div class="g"><b>${esc(n.nom)}</b><span>${esc(n.machine)} · ${esc(n.fmt)}</span></div>
+      ${n.tally ? `<span class="flag ${n.tally === "PGM" ? "demo" : "src"}"
+        style="${n.tally === "PGM" ? "color:var(--bad);border-color:#4A1F1C;background:#1E0C0A" : ""}">${n.tally}</span>` : ""}
+      <span class="ms">${n.ok ? n.mbps + " Mb/s" : "hors ligne"}</span>
+    </div>`).join("")}</div></div>`;
+  d.append(p);
+  return d;
+};
+
+V.net = () => {
+  const d = el("div");
+  d.append(el("div", null, `<h1>Réseau</h1>
+    <p class="sub">192.168.0.0/24 — ping et découverte
+      <span class="flag demo" style="margin-left:8px">démo — nécessite l'agent local</span></p>`));
+  const g = el("div", "grid2");
+  const ok = DEMO_RESEAU.filter(r => r.ok);
+  const moy = (ok.reduce((a, r) => a + r.ms, 0) / ok.length).toFixed(1).replace(".", ",");
+  g.innerHTML = `
+    <section class="panel"><div class="panel-h"><h2>État</h2></div><div class="panel-b">
+      <div class="big">${ok.length}/${DEMO_RESEAU.length}</div>
+      <p class="sub" style="margin:4px 0 12px">hôtes qui répondent</p>
+      <dl class="out"><dt>Latence moyenne</dt><dd>${moy} ms</dd>
+        <dt>Perte</dt><dd><b style="color:var(--bad)">1 hôte muet</b></dd>
+        <dt>Sous-réseau</dt><dd>192.168.0.0/24</dd></dl></div></section>
+    <section class="panel" style="grid-column:span 2"><div class="panel-h"><h2>Hôtes</h2></div>
+      <div class="tw" style="border:0"><table><thead><tr><th>Adresse</th><th>Nom</th><th>Rôle</th>
+        <th class="num">Latence</th><th>Historique</th></tr></thead><tbody>
+      ${DEMO_RESEAU.map((r, i) => `<tr><td class="mk" style="color:var(--net)">${r.ip}</td>
+        <td class="nm">${esc(r.nom)}</td><td style="color:var(--ink2)">${esc(r.role)}</td>
+        <td class="num" style="color:${r.ok ? "var(--ink)" : "var(--bad)"}">${r.ok ? r.ms.toFixed(1).replace(".", ",") + " ms" : "timeout"}</td>
+        <td><div class="spark">${Array.from({length:14}, (_, k) =>
+          `<i style="height:${r.ok ? 4 + ((k * 7 + i * 3) % 13) : 2}px;background:${r.ok ? "var(--net)" : "var(--bad)"}"></i>`).join("")}</div></td>
+      </tr>`).join("")}</tbody></table></div></section>`;
+  d.append(g);
+  return d;
+};
+
+V.art = () => {
+  const d = el("div");
+  d.append(el("div", null, `<h1>Art-Net / sACN</h1>
+    <p class="sub">Écoute des univers sur le réseau
+      <span class="flag demo" style="margin-left:8px">démo — nécessite l'agent local</span></p>`));
+  const g = el("div", "grid2");
+  g.innerHTML = `<section class="panel"><div class="panel-h"><h2>Sources émettrices</h2></div>
+    <div class="panel-b"><div class="list">
+    ${DEMO_SOURCES_DMX.map(s => `<div class="item"><span class="led"></span>
+      <div class="g"><b>${esc(s.nom)}</b><span>${s.src} · ${s.proto} · U${s.univ.join(", U")}</span></div>
+      <span class="ms">${s.hz} Hz</span></div>`).join("")}
+    </div></div></section>`;
+  const u = el("section", "panel");
+  u.innerHTML = `<div class="panel-h"><h2>Univers 1 — 512 canaux</h2>
+      <span style="margin-left:auto" class="flag src">sACN · prio 100</span></div>
+    <div class="panel-b"><div class="uni" id="uni"></div>
+      <div class="uleg"><span><b>Canaux actifs</b> 240</span><span><b>Rafraîchi</b> 44 Hz</span>
+        <span><b>Source</b> 192.168.0.10</span></div></div>`;
+  g.append(u);
+  d.append(g);
+  setTimeout(() => {
+    const grid = $("#uni");
+    if(!grid) return;
+    const cells = Array.from({length:512}, () => { const c = el("div", "cell"); grid.append(c); return c; });
+    let t = 0;
+    const paint = () => {
+      const v = demoUniverse(t);
+      cells.forEach((c, i) => {
+        const lvl = v[i];
+        c.style.background = lvl ? `rgba(255,176,32,${0.12 + lvl / 255 * 0.88})` : "#0E141A";
+      });
+      t += 2;
+    };
+    paint();
+    if(!matchMedia("(prefers-reduced-motion: reduce)").matches){
+      const id = setInterval(() => { if(document.body.contains(grid)) paint(); else clearInterval(id); }, 120);
+    }
+  });
+  return d;
+};
+
+/* ----------------------------- moteur --------------------------------- */
+function render(){
+  document.querySelectorAll(".nav").forEach(b =>
+    b.setAttribute("aria-current", b.dataset.v === state.view ? "true" : "false"));
+  const v = $("#view");
+  v.replaceChildren(V[state.view]());
+}
+document.querySelectorAll(".nav").forEach(b =>
+  b.onclick = () => { state.view = b.dataset.v; render(); });
+$("#q").addEventListener("input", e => { state.q = e.target.value; render(); });
+document.addEventListener("keydown", e => {
+  if(e.key === "/" && document.activeElement !== $("#q")){ e.preventDefault(); $("#q").focus(); }
+  if(e.key === "Escape"){ $("#q").value = ""; state.q = ""; render(); }
+});
+render();
+</script>
+</body>
+</html>

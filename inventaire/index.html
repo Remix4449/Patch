@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trois canevas régie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400&display=swap">
+<style>
+  :root{
+    --bg:#F1F3F0; --card:#fff; --line:#D5DCD5; --ink:#16201B; --ink2:#566257; --ink3:#87938A;
+    --a:#0B6E4F; --disp:"Archivo",system-ui,sans-serif; --serif:"Source Serif 4",Georgia,serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace; color-scheme:light dark;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --bg:#12150F; --card:#191D17; --line:#2C332A; --ink:#E6EBE2; --ink2:#A3AE9E; --ink3:#78836F; --a:#57C89B; } }
+  :root[data-theme="dark"]{ --bg:#12150F; --card:#191D17; --line:#2C332A;
+    --ink:#E6EBE2; --ink2:#A3AE9E; --ink3:#78836F; --a:#57C89B; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--serif)}
+  .wrap{max-width:940px;margin:0 auto;padding:40px 20px 60px}
+  h1{font:700 34px/1.05 var(--disp);letter-spacing:-.025em;margin:0 0 10px;text-wrap:balance}
+  .intro{color:var(--ink2);max-width:62ch;margin:0 0 8px}
+  .meta{font:500 12.5px/1 var(--mono);color:var(--ink3);margin:0 0 30px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .c{background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden;
+     display:flex;flex-direction:column}
+  .c .top{height:8px}
+  .c .in{padding:20px;display:flex;flex-direction:column;gap:10px;flex:1}
+  .c h2{font:700 21px/1.1 var(--disp);margin:0;letter-spacing:-.02em}
+  .c .kick{font:600 10px/1 var(--disp);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+  .c p{margin:0;font-size:14.5px;color:var(--ink2)}
+  .c ul{margin:0;padding-left:18px;font-size:14px;color:var(--ink2);display:flex;flex-direction:column;gap:5px}
+  .c a{margin-top:auto;display:inline-block;background:var(--a);color:var(--card);text-decoration:none;
+       font:600 13.5px/1 var(--disp);padding:11px 15px;border-radius:3px;text-align:center}
+  h3{font:700 18px/1.2 var(--disp);margin:36px 0 8px}
+  .note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--a);
+        border-radius:0 4px 4px 0;padding:16px 18px;font-size:14.5px}
+  .note b{font-family:var(--disp)}
+  code{font:500 13px/1 var(--mono);background:var(--bg);padding:2px 5px;border-radius:2px}
+  table{border-collapse:collapse;width:100%;font:14px/1.5 var(--disp);margin-top:10px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font:600 10px/1 var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+  .tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Trois canevas pour l’inventaire régie</h1>
+  <p class="intro">Même contenu, même fonctions : le parc lumière, la machinerie, les hauteurs de passerelle,
+     la procédure MDG, et les cinq outils (calcul DMX, gélatines Lee → RGBWA, flux NDI, réseau, Art-Net/sACN).
+     Ce qui change, c’est l’organisation de l’écran et le parti graphique.</p>
+  <p class="meta">Données réelles issues des bases Notion · 41 projecteurs · 28 réf. machinerie · 10 niveaux</p>
+
+  <div class="grid">
+    <article class="c"><div class="top" style="background:#0C1015"></div><div class="in">
+      <span class="kick">Canevas A</span>
+      <h2>Régie Noire</h2>
+      <p>Console sombre, pensée pour le noir de salle et l’écran de régie.</p>
+      <ul><li>Rail de navigation + liste dense + fiche à droite</li>
+        <li>Chiffres en chasse fixe, ambre comme unique accent</li>
+        <li>Recherche au clavier (touche <code>/</code>)</li>
+        <li>Thème sombre assumé, pas de mode clair</li></ul>
+      <a href="canevas-a-regie.html">Ouvrir le canevas A</a></div></article>
+
+    <article class="c"><div class="top" style="background:#0B6E4F"></div><div class="in">
+      <span class="kick">Canevas B</span>
+      <h2>Atelier Plateau</h2>
+      <p>Manuel d’exploitation : clair, lisible, imprimable.</p>
+      <ul><li>Onglets en haut, fiches en pleine page</li>
+        <li>Cartes larges plutôt que tableaux serrés</li>
+        <li>Textes en romain, données en chasse fixe</li>
+        <li>Clair et sombre, feuille de style d’impression</li></ul>
+      <a href="canevas-b-atelier.html">Ouvrir le canevas B</a></div></article>
+
+    <article class="c"><div class="top" style="background:linear-gradient(90deg,#2F4BFF,#E0218A)"></div><div class="in">
+      <span class="kick">Canevas C</span>
+      <h2>Patch Poche</h2>
+      <p>Téléphone d’abord : tout à deux touches, en tournée comme au plateau.</p>
+      <ul><li>Tuiles colorées, une couleur par domaine</li>
+        <li>Barre d’onglets en bas, recherche unique</li>
+        <li>Grandes cibles tactiles, gants compatibles</li>
+        <li>Clair et sombre</li></ul>
+      <a href="canevas-c-patch.html">Ouvrir le canevas C</a></div></article>
+  </div>
+
+  <h3>Ce qui tourne vraiment dans le navigateur</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Fonction</th><th>État</th><th>Ce qu’il faut pour la version réelle</th></tr></thead>
+    <tbody>
+      <tr><td>Inventaire, fiches, recherche</td><td>Opérationnel</td><td>Synchronisation depuis Notion</td></tr>
+      <tr><td>Calcul DMX (patch, Art-Net, sACN)</td><td>Opérationnel</td><td>Rien — calcul pur</td></tr>
+      <tr><td>Gélatines Lee → RGBWA</td><td>Opérationnel</td><td>Recalage colorimétrique par moteur LED</td></tr>
+      <tr><td>Flux NDI</td><td>Démonstration</td><td>Agent local (NDI SDK / mDNS)</td></tr>
+      <tr><td>Ping &amp; découverte réseau</td><td>Démonstration</td><td>Agent local (ICMP, ARP)</td></tr>
+      <tr><td>Art-Net &amp; sACN</td><td>Démonstration</td><td>Agent local (UDP 6454 / 5568 multicast)</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note" style="margin-top:20px">
+    <b>Pourquoi un agent local.</b> Une page web n’a accès ni à l’ICMP, ni aux sockets UDP bruts,
+    ni au multicast : le ping, l’Art-Net, le sACN et la découverte NDI sont hors de portée du navigateur seul.
+    La suite logique est un petit service qui tourne sur le poste de régie (Node ou Python) et expose ces
+    données à l’interface — ou une application de bureau (Tauri / Electron) qui embarque les deux.
+    Tout le reste de l’application fonctionne en web pur, hors ligne compris.
+  </div>
+</div>
+</body>
+</html>
