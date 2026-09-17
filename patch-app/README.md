@@ -21,12 +21,48 @@ ne demande plus jamais internet.
 | Écran | Fonctionnement |
 | --- | --- |
 | Projecteurs, machinerie, hauteurs, MDG | Données embarquées, hors ligne |
-| Calcul DMX | Patch séquentiel, Art-Net net/sub/uni, multicast sACN |
+| Patch | Lignes d'appareils, adressage enchaîné, circuits et numéros de patch, export PDF |
 | Gélatines | Lee → RGBWA, teintes approchées à recaler |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
 | Testeur d'adresse | Émission d'une trame Art-Net sur un canal, sans console |
+
+## Le patch
+
+On pose une ligne par type d'appareil : l'appareil, son mode, la quantité, et
+l'adresse de départ — ou « à la suite » de la ligne précédente. L'application
+enchaîne les adresses en respectant l'empreinte du mode, passe à l'univers
+suivant quand un appareil ne tient plus dans les 512 canaux, et affiche la liste
+appareil par appareil. Chaque ligne porte deux champs libres, **circuit** et
+**numéro de patch**, qui sont à toi et qui partent dans le PDF.
+
+Le patch est enregistré sur le téléphone et survit au redémarrage.
+
+### Export PDF
+
+Le bouton *Exporter en PDF* ouvre la boîte d'impression d'Android, qui sait
+enregistrer en PDF ou envoyer à une imprimante. La feuille tient en A4 : en-tête
+avec le nom du patch et les totaux, tableau N° / circuit / patch / appareil /
+mode / canaux / univers / adresse / fin, récapitulatif par type et
+correspondances réseau par univers. La puissance totale est calculée depuis
+l'inventaire, avec un astérisque si un appareil n'a pas de puissance renseignée.
+
+### Modes DMX
+
+La fiche de chaque appareil porte sa bibliothèque de modes. Deux façons de la
+remplir :
+
+- **à la main** : nom du mode et nombre de canaux, dix secondes par appareil ;
+- **par import GDTF** : le bouton ouvre le sélecteur de fichiers, l'application
+  décompresse l'archive, lit `description.xml` et récupère tous les modes avec
+  leur empreinte exacte — l'empreinte d'un mode étant le plus grand décalage
+  déclaré par ses canaux, comme le veut le format.
+
+Les fichiers GDTF se téléchargent sur gdtf-share.com (compte gratuit, connexion
+requise). Une fois importés, ils restent dans l'application : le plateau n'a
+jamais besoin d'internet. Aucun mode n'est livré d'avance — les données de
+modes ne sont pas dans les bases Notion et ne seront pas inventées.
 
 ## Détails de protocole
 

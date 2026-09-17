@@ -41,6 +41,7 @@
     --ok:#45C47B; --ko:#FF6B63;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none!important}
   body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);
        -webkit-font-smoothing:antialiased}
   button,input{font:inherit;color:inherit}
@@ -128,6 +129,33 @@
   .f input{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;
            font:500 17px/1 var(--mono);outline:none;width:100%}
   .f input:focus{border-color:var(--dmx)}
+  .f select{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;
+            padding:11px 12px;font:500 15px/1.2 var(--body);outline:none;width:100%}
+  .f select:focus{border-color:var(--dmx)}
+  .card h4 .sup{float:right;border:0;background:none;color:var(--ko);cursor:pointer;padding:0;
+       font:700 10px/1 var(--body);letter-spacing:.12em;text-transform:uppercase}
+  .kv input[type="checkbox"]{width:22px;height:22px;accent-color:var(--dmx)}
+
+  .adr{display:grid;grid-template-columns:24px minmax(0,1fr) auto 50px 50px;gap:7px;
+       align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+  .adr:last-of-type{border-bottom:0}
+  .adr .no{font:500 12px/1 var(--mono);color:var(--ink3);text-align:right}
+  .adr .ap{min-width:0}
+  .adr .ap b{display:block;font:700 13.5px/1.2 var(--body);overflow:hidden;
+             text-overflow:ellipsis;white-space:nowrap}
+  .adr .ap span{font-size:11px;color:var(--ink3)}
+  .adr .ad{font:500 11.5px/1.15 var(--mono);color:var(--ink3);text-align:right;white-space:nowrap}
+  .adr .ad b{font-size:14.5px;color:var(--ink);margin-left:3px}
+  .adr .ad i{display:block;font-style:normal;font-size:10.5px}
+  .adr .cc{width:100%;min-width:0;background:var(--bg);border:1.5px solid var(--line);
+           border-radius:9px;padding:8px 4px;font:500 12.5px/1 var(--mono);text-align:center;outline:none}
+  .adr .cc:focus{border-color:var(--dmx)}
+  .modes{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+  .mode{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);
+        border-radius:10px;padding:9px 12px}
+  .mode b{flex:1;font:700 13.5px/1.2 var(--body)}
+  .mode span{font:500 13px/1 var(--mono);color:var(--dmx)}
+  .mode button{border:0;background:none;color:var(--ink3);cursor:pointer;font-size:15px;padding:0 2px}
   .ff{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .big{border-radius:16px;padding:18px;background:var(--sur2);text-align:center;margin-bottom:12px}
   .big b{display:block;font:600 40px/1 var(--mono);color:var(--dmx);font-variant-numeric:tabular-nums}
@@ -259,7 +287,7 @@ const CATS = [
   { k:"mdg", t:"MDG", s:"Procédure brume", c:"var(--mdg)", n:null, i:"mdg" }
 ];
 const TOOLS = [
-  { k:"dmx", t:"Calcul DMX", s:"Patch & univers", c:"var(--dmx)", i:"dmx" },
+  { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx" },
   { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)", i:"gel" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
@@ -383,11 +411,7 @@ function vFiche(p){
       <div><b>${esc(p.kg)}</b><span>Poids</span></div>
       <div><b>${p.nb ?? "—"}</b><span>Au parc</span></div></div>`;
   d.append(h);
-  const m = el("div", "card");
-  m.innerHTML = `<h4>Modes DMX ${p.modesDemo ? '<span class="chipdemo" style="float:right;margin-top:-4px">démo</span>' : ""}</h4>
-    ${p.modes ? p.modes.map(x => `<div class="kv"><span>${esc(x.mode)}</span><b>${x.ch} ch</b></div>`).join("")
-      : `<p class="muted">Non renseignés — champ prêt dans la base, à remplir depuis la fiche constructeur.</p>`}`;
-  d.append(m);
+  d.append(carteModes(p));
   const a = el("div", "card");
   a.innerHTML = `<h4>Accroche</h4>
     <div class="kv"><span>Collier</span><b>Double Doughty</b></div>
@@ -395,6 +419,69 @@ function vFiche(p){
     <div class="kv"><span>Perche basse</span><b>7,75 m</b></div>`;
   d.append(a);
   return d;
+}
+
+/* Bibliothèque de modes : saisie à la main ou import d'un fichier GDTF. */
+function carteModes(p){
+  const k = cleApp(p);
+  const modes = BIB[k] || [];
+  const c = el("div", "card");
+  c.innerHTML = `<h4>Modes DMX</h4>`;
+  const l = el("div", "modes");
+  if(modes.length){
+    modes.forEach((m, i) => {
+      const r = el("div", "mode");
+      r.innerHTML = `<b>${esc(m.nom)}</b><span>${m.ch} ch</span>
+        ${m.demo ? '<span class="chipdemo">démo</span>' : ""}
+        <button aria-label="Retirer le mode ${esc(m.nom)}">✕</button>`;
+      r.querySelector("button").onclick = () => {
+        modes.splice(i, 1); BIB[k] = modes; sauverBib(); render();
+      };
+      l.append(r);
+    });
+  } else {
+    l.append(el("p", "muted", "Aucun mode enregistré. Saisir le nom et l'empreinte, ou importer le fichier GDTF de l'appareil."));
+  }
+  c.append(l);
+
+  const form = el("div", "ff");
+  form.innerHTML = `<div class="f"><label for="m-nom">Nom du mode</label>
+      <input id="m-nom" placeholder="Standard"></div>
+    <div class="f"><label for="m-ch">Canaux</label>
+      <input id="m-ch" type="text" inputmode="numeric" placeholder="20"></div>`;
+  c.append(form);
+
+  const add = el("button", "pill");
+  add.style.cssText = "padding:12px;width:100%;margin-bottom:8px";
+  add.textContent = "Ajouter ce mode";
+  add.onclick = () => {
+    const nom = $("#m-nom", c).value.trim(), ch = +$("#m-ch", c).value;
+    if(!nom || !ch) return;
+    BIB[k] = [...(BIB[k] || []), { nom, ch }];
+    sauverBib(); render();
+  };
+  c.append(add);
+
+  if(NET.natif){
+    const imp = el("button", "pill");
+    imp.style.cssText = "padding:12px;width:100%";
+    imp.textContent = "Importer un fichier GDTF";
+    imp.onclick = () => {
+      imp.textContent = "Ouverture du fichier…";
+      NET.gdtf(r => {
+        if(r.erreur){ imp.textContent = "Échec : " + r.erreur; return; }
+        if(!r.pret) return;
+        if(!r.modes || !r.modes.length){ imp.textContent = "Aucun mode trouvé dans ce fichier"; return; }
+        BIB[k] = r.modes.map(m => ({ nom:m.nom, ch:m.ch }));
+        sauverBib(); render();
+      });
+    };
+    c.append(imp);
+    const note = el("p", "muted", "Le fichier se télécharge sur gdtf-share.com quand tu as du réseau ; une fois importé il reste dans l'application.");
+    note.style.margin = "10px 0 0";
+    c.append(note);
+  }
+  return c;
 }
 
 function vMach(){
@@ -451,37 +538,346 @@ function vMdg(){
   return d;
 }
 
+/* ------------------------------- patch ---------------------------------- */
+/* Le patch et la bibliothèque de modes vivent dans le stockage local :
+   ils survivent au redémarrage de l'application et ne quittent jamais le
+   téléphone. */
+
+const CLE_PATCH = "patch.v1", CLE_BIB = "bibliotheque.v1";
+
+function lireLocal(cle, defaut){
+  try { const v = localStorage.getItem(cle); return v ? JSON.parse(v) : defaut; }
+  catch(e){ return defaut; }
+}
+function ecrireLocal(cle, val){
+  try { localStorage.setItem(cle, JSON.stringify(val)); } catch(e){ }
+}
+
+const cleApp = p => p.marque + " " + p.nom;
+
+let PATCH = lireLocal(CLE_PATCH, { nom:"", lignes:[], fiches:{} });
+let BIB = lireLocal(CLE_BIB, {});
+PROJECTEURS.forEach(p => {
+  if(p.modes && !BIB[cleApp(p)])
+    BIB[cleApp(p)] = p.modes.map(m => ({ nom:m.mode, ch:m.ch, demo:!!p.modesDemo }));
+});
+
+const sauverPatch = () => ecrireLocal(CLE_PATCH, PATCH);
+const sauverBib = () => ecrireLocal(CLE_BIB, BIB);
+
+/* Chaîne les adresses : un appareil ne chevauche jamais deux univers. */
+function calculerPatch(){
+  const out = [];
+  let u = 1, ch = 1, n = 0;
+  PATCH.lignes.forEach(l => {
+    if(!l.suite){ u = Math.max(1, l.u || 1); ch = Math.min(512, Math.max(1, l.adr || 1)); }
+    const foot = Math.min(512, Math.max(1, l.ch || 1));
+    for(let i = 0; i < Math.max(0, l.nb || 0); i++){
+      if(ch + foot - 1 > 512){ u++; ch = 1; }
+      n++;
+      out.push({ n, ligne:l.id, i, app:l.app, mode:l.mode, ch:foot, u, adr:ch, fin:ch + foot - 1 });
+      ch += foot;
+    }
+  });
+  return out;
+}
+
+const cleFiche = (ligne, i) => ligne + ":" + i;
+function fiche(ligne, i){
+  const k = cleFiche(ligne, i);
+  if(!PATCH.fiches[k]) PATCH.fiches[k] = { circuit:"", patch:"" };
+  return PATCH.fiches[k];
+}
+
 function vDmx(){
   const d = el("div");
-  d.append(bar("Calcul DMX"));
-  const f = el("div", "card");
-  f.innerHTML = `<h4>Patch</h4>
-    <div class="ff"><div class="f"><label for="u">Univers</label><input id="u" type="number" min="1" value="1"></div>
-      <div class="f"><label for="c">Canal</label><input id="c" type="number" min="1" max="512" value="1"></div></div>
-    <div class="ff"><div class="f"><label for="fp">Empreinte</label><input id="fp" type="number" min="1" max="512" value="20"></div>
-      <div class="f"><label for="n">Appareils</label><input id="n" type="number" min="1" max="200" value="10"></div></div>`;
-  d.append(f);
-  const o = el("div");
-  o.id = "out";
-  d.append(o);
-  const calc = () => {
-    const u = Math.max(1, +$("#u").value || 1), c = Math.min(512, Math.max(1, +$("#c").value || 1));
-    const fp = Math.min(512, Math.max(1, +$("#fp").value || 1)), n = Math.max(1, +$("#n").value || 1);
-    const l = patch(u, c, n, fp), last = l[l.length - 1], a = artnet(u), s = sacn(u);
-    o.innerHTML = `<div class="big"><b>${parUnivers(fp)}</b><span>appareils par univers</span></div>
-      <div class="card"><h4>Résultat</h4>
-        <div class="kv"><span>Dernière adresse</span><b>U${last.u} / ${last.ch}</b></div>
-        <div class="kv"><span>Univers occupés</span><b>${last.u - u + 1}</b></div>
-        <div class="kv"><span>Canaux utilisés</span><b>${n * fp}</b></div>
-        <div class="kv"><span>Art-Net (U${u})</span><b>${a.net}.${a.sub}.${a.uni}</b></div>
-        <div class="kv"><span>sACN multicast</span><b>${s.ip}</b></div></div>
-      <div class="card"><h4>Adresses</h4>
-        ${l.map(x => `<div class="kv"><span>App. ${x.n}${x.saut ? " · nouvel univers" : ""}</span>
-          <b>U${x.u} / ${x.ch}–${x.fin}</b></div>`).join("")}</div>`;
+  d.append(bar("Patch"));
+
+  const h = el("div", "hero");
+  h.style.setProperty("--c", "var(--dmx)");
+  d.append(h);
+
+  const titre = el("div", "card");
+  titre.innerHTML = `<div class="f" style="margin:0"><label for="p-nom">Nom du patch</label>
+    <input id="p-nom" data-focus="p-nom" value="${esc(PATCH.nom)}" placeholder="Création, série 2026…"></div>`;
+  d.append(titre);
+
+  const zoneLignes = el("div");
+  d.append(zoneLignes);
+
+  const ajout = el("button", "row");
+  ajout.style.setProperty("--c", "var(--dmx)");
+  ajout.innerHTML = `<span class="av">${ic("dmx")}</span>
+    <span class="g"><b>Ajouter une ligne</b><span>un type d'appareil, un mode, une quantité</span></span>`;
+  ajout.onclick = () => {
+    const modele = PROJECTEURS[0];
+    const modes = BIB[cleApp(modele)] || [];
+    PATCH.lignes.push({
+      id: "l" + Date.now().toString(36),
+      app: cleApp(modele),
+      mode: modes.length ? modes[0].nom : "",
+      ch: modes.length ? modes[0].ch : 1,
+      nb: 1,
+      suite: PATCH.lignes.length > 0,
+      u: 1, adr: 1
+    });
+    sauverPatch(); render();
   };
-  f.addEventListener("input", calc);
-  setTimeout(calc);
+  d.append(ajout);
+
+  const zoneAdr = el("div");
+  d.append(zoneAdr);
+
+  /* Rafraîchit ce qui dépend des nombres saisis, sans reconstruire les cartes
+     de lignes : le champ en cours de saisie garde son curseur. */
+  const rafraichir = () => {
+    const liste = calculerPatch();
+    const univ = [...new Set(liste.map(x => x.u))];
+    h.innerHTML = `<div class="kick">${esc(PATCH.nom || "sans titre")}</div>
+      <h3>${liste.length} appareil${liste.length > 1 ? "s" : ""}</h3>
+      <p>${univ.length ? "univers " + univ.map(u => "U" + u).join(", ") : "aucune ligne"}</p>
+      <div class="stats">
+        <div><b>${liste.reduce((a, x) => a + x.ch, 0)}</b><span>canaux</span></div>
+        <div><b>${univ.length}</b><span>univers</span></div>
+        <div><b>${puissanceTotale(liste)}</b><span>puissance</span></div>
+      </div>`;
+    zoneAdr.replaceChildren(...blocsAdresses(liste, univ));
+  };
+
+  $("#p-nom", titre).oninput = e => {
+    PATCH.nom = e.target.value; sauverPatch();
+    const k = h.querySelector(".kick");
+    if(k) k.textContent = PATCH.nom || "sans titre";
+  };
+
+  PATCH.lignes.forEach((l, idx) => zoneLignes.append(carteLigne(l, idx, rafraichir)));
+  rafraichir();
   return d;
+}
+
+function blocsAdresses(liste, univ){
+  if(!liste.length) return [];
+  const out = [];
+
+  const t = el("div", "card");
+  t.innerHTML = `<h4>Adresses</h4>
+    <p class="muted" style="margin:-6px 0 12px">Circuit et numéro de patch sont à toi : ils partent dans le PDF.</p>`;
+  liste.forEach(x => {
+    const f = fiche(x.ligne, x.i);
+    const r = el("div", "adr");
+    r.innerHTML = `
+      <span class="no">${x.n}</span>
+      <span class="ap"><b>${esc(courtNom(x.app))}</b><span>${esc(x.mode || x.ch + " ch")}</span></span>
+      <span class="ad">U${x.u}<b>${x.adr}</b><i>→ ${x.fin}</i></span>
+      <input class="cc" inputmode="numeric" placeholder="circ" value="${esc(f.circuit)}"
+             data-focus="c${x.ligne}-${x.i}" aria-label="Circuit appareil ${x.n}">
+      <input class="cc" inputmode="numeric" placeholder="patch" value="${esc(f.patch)}"
+             data-focus="p${x.ligne}-${x.i}" aria-label="Numéro de patch appareil ${x.n}">`;
+    const [ci, pa] = r.querySelectorAll("input");
+    ci.oninput = () => { f.circuit = ci.value; sauverPatch(); };
+    pa.oninput = () => { f.patch = pa.value; sauverPatch(); };
+    t.append(r);
+  });
+  out.push(t);
+
+  const act = el("div", "ff");
+  act.style.margin = "4px 0 12px";
+  const pdf = el("button", "pill");
+  pdf.style.padding = "13px";
+  pdf.textContent = "Exporter en PDF";
+  pdf.onclick = () => exporterPdf(calculerPatch());
+  const vide = el("button", "pill");
+  vide.style.padding = "13px";
+  vide.textContent = "Vider le patch";
+  vide.onclick = () => {
+    if(!confirm("Effacer toutes les lignes et les circuits saisis ?")) return;
+    PATCH = { nom:"", lignes:[], fiches:{} }; sauverPatch(); render();
+  };
+  act.append(pdf, vide);
+  out.push(act);
+
+  const c = el("div", "card");
+  c.innerHTML = `<h4>Correspondances réseau</h4>` + univ.map(u => {
+    const a = artnet(u), sa = sacn(u);
+    return `<div class="kv"><span>U${u}</span><b>${a.net}.${a.sub}.${a.uni} · ${sa.ip}</b></div>`;
+  }).join("");
+  out.push(c);
+  return out;
+}
+
+function courtNom(nomComplet){
+  const p = PROJECTEURS.find(x => cleApp(x) === nomComplet);
+  return p ? p.nom : nomComplet;
+}
+
+function puissanceTotale(liste){
+  let w = 0, sur = false;
+  liste.forEach(x => {
+    const p = PROJECTEURS.find(y => cleApp(y) === x.app);
+    if(!p){ sur = true; return; }
+    const m = String(p.w).replace(",", ".").match(/([\d.]+)\s*(k?)/i);
+    if(!m){ sur = true; return; }
+    w += parseFloat(m[1]) * (m[2] ? 1000 : 1);
+  });
+  if(!liste.length) return "—";
+  return (w >= 1000 ? (w / 1000).toFixed(1).replace(".", ",") + " kW" : Math.round(w) + " W") + (sur ? "*" : "");
+}
+
+function carteLigne(l, idx, rafraichir){
+  const c = el("div", "card");
+  const modes = BIB[l.app] || [];
+  c.innerHTML = `<h4>Ligne ${idx + 1}
+      <button class="sup" aria-label="Supprimer la ligne">retirer</button></h4>
+    <div class="f"><label>Appareil</label>
+      <select class="sel-app">${MARQUES.map(m =>
+        `<optgroup label="${esc(m)}">${PROJECTEURS.filter(p => p.marque === m).map(p =>
+          `<option value="${esc(cleApp(p))}"${cleApp(p) === l.app ? " selected" : ""}>${esc(p.nom)}</option>`
+        ).join("")}</optgroup>`).join("")}</select></div>
+    <div class="ff">
+      <div class="f"><label>Mode</label>
+        ${modes.length
+          ? `<select class="sel-mode">${modes.map(m =>
+              `<option value="${esc(m.nom)}"${m.nom === l.mode ? " selected" : ""}>${esc(m.nom)} — ${m.ch} ch</option>`
+             ).join("")}</select>`
+          : `<input class="in-ch" data-focus="${l.id}-ch" type="text" inputmode="numeric" value="${l.ch}" aria-label="Empreinte en canaux">`}
+      </div>
+      <div class="f"><label>Quantité</label>
+        <input class="in-nb" data-focus="${l.id}-nb" type="text" inputmode="numeric" value="${l.nb}"></div>
+    </div>
+    ${modes.length ? "" : `<p class="muted" style="margin:-4px 0 12px">
+       Aucun mode enregistré pour cet appareil : saisir l'empreinte, ou l'ajouter depuis sa fiche.</p>`}
+    <div class="kv" style="border:0;padding-top:0">
+      <span>À la suite de la ligne précédente</span>
+      <input class="in-suite" type="checkbox"${l.suite ? " checked" : ""} aria-label="Enchaîner">
+    </div>
+    <div class="ff dep"${l.suite ? ' hidden' : ""}>
+      <div class="f"><label>Univers</label>
+        <input class="in-u" data-focus="${l.id}-u" type="text" inputmode="numeric" value="${l.u}"></div>
+      <div class="f"><label>Adresse de départ</label>
+        <input class="in-adr" data-focus="${l.id}-adr" type="text" inputmode="numeric" value="${l.adr}"></div>
+    </div>`;
+
+  const q = sel => c.querySelector(sel);
+  q(".sup").onclick = () => {
+    PATCH.lignes.splice(idx, 1); sauverPatch(); render();
+  };
+  q(".sel-app").onchange = e => {
+    l.app = e.target.value;
+    const m = BIB[l.app] || [];
+    l.mode = m.length ? m[0].nom : "";
+    l.ch = m.length ? m[0].ch : l.ch;
+    sauverPatch(); render();
+  };
+  if(q(".sel-mode")) q(".sel-mode").onchange = e => {
+    l.mode = e.target.value;
+    const m = (BIB[l.app] || []).find(x => x.nom === l.mode);
+    if(m) l.ch = m.ch;
+    sauverPatch(); render();
+  };
+  if(q(".in-ch")) q(".in-ch").oninput = e => { l.ch = +e.target.value || 1; sauverPatch(); rafraichir(); };
+  q(".in-nb").oninput = e => {
+    const v = e.target.value.replace(/\D/g, "");
+    l.nb = v === "" ? 0 : Math.min(500, +v);
+    sauverPatch(); rafraichir();
+  };
+  q(".in-suite").onchange = e => { l.suite = e.target.checked; sauverPatch(); render(); };
+  if(q(".in-u")) q(".in-u").oninput = e => { l.u = +e.target.value || 1; sauverPatch(); rafraichir(); };
+  if(q(".in-adr")) q(".in-adr").oninput = e => { l.adr = +e.target.value || 1; sauverPatch(); rafraichir(); };
+  return c;
+}
+
+/* ----------------------------- export PDF ------------------------------- */
+
+function exporterPdf(liste){
+  const date = new Date().toLocaleDateString("fr-FR",
+    { day:"2-digit", month:"long", year:"numeric" });
+  const parType = {};
+  liste.forEach(x => {
+    const k = x.app + " · " + (x.mode || x.ch + " ch");
+    parType[k] = parType[k] || { nb:0, ch:x.ch };
+    parType[k].nb++;
+  });
+  const univ = [...new Set(liste.map(x => x.u))];
+
+  const lignes = liste.map(x => {
+    const f = fiche(x.ligne, x.i);
+    return `<tr>
+      <td class="n">${x.n}</td>
+      <td class="n c">${esc(f.circuit)}</td>
+      <td class="n c">${esc(f.patch)}</td>
+      <td>${esc(courtNom(x.app))}</td>
+      <td class="g">${esc(x.mode || "")}</td>
+      <td class="n">${x.ch}</td>
+      <td class="n">${x.u}</td>
+      <td class="n f">${x.adr}</td>
+      <td class="n g">${x.fin}</td>
+    </tr>`;
+  }).join("");
+
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<title>Patch</title><style>
+  @page { size:A4; margin:14mm 12mm; }
+  *{box-sizing:border-box}
+  body{font:10.5pt/1.35 -apple-system,"Helvetica Neue",Arial,sans-serif;color:#111;margin:0}
+  header{display:flex;justify-content:space-between;align-items:flex-end;
+         border-bottom:2px solid #111;padding-bottom:6pt;margin-bottom:10pt}
+  h1{font-size:18pt;margin:0;letter-spacing:-.3pt}
+  .sous{font-size:9pt;color:#555;margin:2pt 0 0}
+  .meta{font-size:9pt;color:#555;text-align:right;line-height:1.5}
+  table{border-collapse:collapse;width:100%}
+  th{font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;color:#555;
+     text-align:left;border-bottom:1px solid #111;padding:4pt 5pt}
+  td{padding:3.6pt 5pt;border-bottom:.5pt solid #ccc;font-size:10pt}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+  td.f{font-weight:700}
+  td.g{color:#555}
+  td.c{background:#f2f2f2}
+  tr{break-inside:avoid}
+  thead{display:table-header-group}
+  h2{font-size:9pt;letter-spacing:.06em;text-transform:uppercase;color:#555;
+     margin:14pt 0 5pt;border-bottom:1px solid #111;padding-bottom:4pt}
+  .recap{display:flex;flex-wrap:wrap;gap:4pt 18pt;font-size:10pt}
+  .recap div{white-space:nowrap}
+  .recap b{font-variant-numeric:tabular-nums}
+  footer{margin-top:12pt;font-size:8pt;color:#777;border-top:.5pt solid #ccc;padding-top:5pt}
+</style></head><body>
+<header>
+  <div><h1>${esc(PATCH.nom || "Patch")}</h1>
+    <p class="sous">${liste.length} appareils · ${liste.reduce((a, x) => a + x.ch, 0)} canaux ·
+      univers ${univ.join(", ")} · ${puissanceTotale(liste)}</p></div>
+  <div class="meta">${date}<br>Patch — inventaire régie</div>
+</header>
+<table><thead><tr>
+  <th>N°</th><th>Circuit</th><th>Patch</th><th>Appareil</th><th>Mode</th>
+  <th>Ch.</th><th>Univ.</th><th>Adresse</th><th>Fin</th>
+</tr></thead><tbody>${lignes}</tbody></table>
+
+<h2>Récapitulatif</h2>
+<div class="recap">${Object.entries(parType).map(([k, v]) =>
+  `<div>${esc(courtNom(k.split(" · ")[0]))} <b>×${v.nb}</b>
+   <span style="color:#777">${esc(k.split(" · ")[1])}</span></div>`).join("")}</div>
+
+<h2>Réseau</h2>
+<div class="recap">${univ.map(u => {
+  const a = artnet(u), sa = sacn(u);
+  return `<div>U${u} — Art-Net <b>${a.net}.${a.sub}.${a.uni}</b> · sACN <b>${sa.ip}</b></div>`;
+}).join("")}</div>
+
+${puissanceTotale(liste).endsWith("*") ? `<footer>L'astérisque signale une puissance
+  incomplète : un appareil du patch n'a pas de puissance renseignée à l'inventaire.</footer>` : ""}
+</body></html>`;
+
+  if(NET.imprimer(html, "patch")) return;
+  // Repli navigateur : impression par cadre masqué
+  const cadre = document.createElement("iframe");
+  cadre.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.append(cadre);
+  const doc = cadre.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  cadre.onload = () => {
+    try { cadre.contentWindow.focus(); cadre.contentWindow.print(); } catch(e){ }
+    setTimeout(() => cadre.remove(), 2000);
+  };
 }
 
 function vGel(){
@@ -701,9 +1097,20 @@ const VIEWS = { home, proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vDmx, ge
                 ndi:vNdi, net:vNet, art:vArt };
 function render(){
   if(STOP){ STOP(); STOP = null; }
+  /* Un rendu détruit les champs : on note lequel avait le curseur pour le rendre. */
+  const avant = document.activeElement;
+  const marque = avant && avant.dataset ? avant.dataset.focus : null;
+  let pos = null;
+  try { pos = avant ? avant.selectionStart : null; } catch(e){ pos = null; }
+
   const r = S.route;
   const node = r.v === "fiche" ? vFiche(r.p) : VIEWS[r.v]();
   $("#app").replaceChildren(node);
+
+  if(marque){
+    const n = document.querySelector('[data-focus="' + marque + '"]');
+    if(n){ n.focus(); try { if(pos != null) n.setSelectionRange(pos, pos); } catch(e){ } }
+  }
   const q = $("#q");
   if(q){
     q.addEventListener("input", e => { S.q = e.target.value; const pos = e.target.selectionStart; render();

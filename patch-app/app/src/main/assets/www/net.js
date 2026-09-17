@@ -77,6 +77,25 @@ const NET = {
     catch(e){ return false; }
   },
 
+  /* Impression : boîte d'impression Android, qui sait enregistrer en PDF. */
+  imprimer(html, nom){
+    if(!PONT) return false;
+    try { return PONT.imprimer(html, nom || "patch"); } catch(e){ return false; }
+  },
+
+  /* Import d'un fichier GDTF : ouvre le sélecteur puis rend les modes lus. */
+  gdtf(cb){
+    if(!PONT){ cb({ erreur:"disponible seulement dans l'application" }); return () => {}; }
+    try { PONT.gdtfStart(); } catch(e){ cb({ erreur:"sélecteur indisponible" }); return () => {}; }
+    let tours = 0, fini = false;
+    const stop = sonder(() => JSON.parse(PONT.gdtfState()), e => {
+      if(fini) return;
+      if(e.pret || e.erreur){ fini = true; stop(); cb(e); }
+      else if(++tours > 300){ fini = true; stop(); cb({ erreur:"délai dépassé" }); }
+    }, 400);
+    return stop;
+  },
+
   arreterTout(){ if(PONT){ try { PONT.stopAll(); } catch(e){} } }
 };
 
@@ -89,7 +108,7 @@ function sonder(lire, cb, ms){
     try { cb(lire()); } catch(e){ /* le pont n'est pas prêt : on retentera */ }
     setTimeout(tour, ms);
   };
-  tour();
+  setTimeout(tour, 0);   // jamais synchrone : l'appelant reçoit son arrêt d'abord
   return () => { vivant = false; };
 }
 

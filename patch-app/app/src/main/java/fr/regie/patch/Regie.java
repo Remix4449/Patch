@@ -15,6 +15,7 @@ import org.json.JSONObject;
  */
 public class Regie {
 
+    private final MainActivity act;
     private final Reseau reseau;
     private final ArtNet art = new ArtNet();
     private final Sacn sacn = new Sacn();
@@ -24,9 +25,10 @@ public class Regie {
     private volatile String proto = "Art-Net";
     private volatile int univers = 1;
 
-    public Regie(Context c) {
-        reseau = new Reseau(c);
-        ndi = new Ndi(c);
+    public Regie(MainActivity a) {
+        act = a;
+        reseau = new Reseau(a);
+        ndi = new Ndi(a);
         new Thread(new Runnable() {
             public void run() {
                 for (int i = 0; i < 100 && !reseau.pret(); i++) {
@@ -229,6 +231,23 @@ public class Regie {
             return art.emettre(universBase1 - 1, d, cible);
         } catch (Exception e) { return false; }
     }
+
+    /* ------------------------- impression et GDTF ----------------------- */
+
+    /** Ouvre la boîte d'impression du système : « Enregistrer au format PDF ». */
+    @JavascriptInterface
+    public boolean imprimer(String html, String nom) {
+        try {
+            act.imprimerHtml(html, (nom == null || nom.isEmpty()) ? "patch" : nom);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    @JavascriptInterface
+    public void gdtfStart() { act.choisirGdtf(); }
+
+    @JavascriptInterface
+    public String gdtfState() { return act.gdtfJson; }
 
     @JavascriptInterface
     public void stopAll() {
