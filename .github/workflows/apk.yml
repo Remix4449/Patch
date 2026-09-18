@@ -2,6 +2,10 @@ name: APK Patch
 
 # Compile l'application Android et publie l'APK dans une release fixe,
 # pour pouvoir la télécharger directement depuis un téléphone.
+#
+# Le numéro de construction sert de numéro de version : il avance à chaque
+# passage, et la fiche version.json déposée à côté de l'APK dit à l'application
+# déjà installée qu'une version plus récente l'attend.
 
 on:
   push:
@@ -41,19 +45,37 @@ jobs:
 
       - name: Construire l'APK
         working-directory: patch-app
-        run: gradle --no-daemon assembleDebug
-
-      - name: Renommer
         run: |
+          gradle --no-daemon assembleDebug \
+            -PversionCode=${{ github.run_number }} \
+            -PversionName=1.0.${{ github.run_number }}
+
+      - name: Renommer et décrire la version
+        run: |
+          set -e
           mkdir -p sortie
           cp patch-app/app/build/outputs/apk/debug/app-debug.apk sortie/patch-regie.apk
+          cat > sortie/version.json <<JSON
+          {
+            "versionCode": ${{ github.run_number }},
+            "versionName": "1.0.${{ github.run_number }}",
+            "sha": "${GITHUB_SHA::7}",
+            "branche": "${GITHUB_REF_NAME}",
+            "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "octets": $(stat -c%s sortie/patch-regie.apk),
+            "apk": "patch-regie.apk"
+          }
+          JSON
+          cat sortie/version.json
           ls -la sortie
 
       - name: Déposer comme artefact
         uses: actions/upload-artifact@v4
         with:
           name: patch-regie-apk
-          path: sortie/patch-regie.apk
+          path: |
+            sortie/patch-regie.apk
+            sortie/version.json
           retention-days: 90
 
       - name: Publier la release téléchargeable
@@ -61,14 +83,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          NOTE="Application Patch — inventaire régie.
-          Télécharger patch-regie.apk depuis ce téléphone, puis l'ouvrir.
-          Android demandera d'autoriser l'installation depuis cette source.
-          Construit depuis ${GITHUB_SHA::7}."
+          NOTE="Application Patch — inventaire régie, version 1.0.${{ github.run_number }}.
+          Une application déjà installée se met à jour toute seule : elle regarde
+          cette release à chaque lancement, rapatrie l'APK, et propose l'installation.
+          Première installation : télécharger patch-regie.apk depuis ce téléphone,
+          puis l'ouvrir. Android demandera d'autoriser l'installation depuis cette source.
+          Construit depuis ${GITHUB_SHA::7} (${GITHUB_REF_NAME})."
           if gh release view apk --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release edit apk --repo "$GITHUB_REPOSITORY" --notes "$NOTE"
           else
             gh release create apk --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" --title "Patch — dernière version" --notes "$NOTE"
           fi
+          # L'APK d'abord : version.json annonce une version, elle doit déjà être là.
           gh release upload apk sortie/patch-regie.apk --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload apk sortie/version.json --repo "$GITHUB_REPOSITORY" --clobber

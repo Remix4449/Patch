@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
+import android.provider.Settings;
 import android.view.WindowManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -18,10 +19,14 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
 
     private static final int CODE_GDTF = 4242;
+    private static final int CODE_SOURCES = 4243;
 
     private WebView web;
     private WebView impression;          // gardée en vie le temps de l'impression
     private Regie pont;
+
+    /** Mise à jour de l'application, partagée avec le pont. */
+    public Maj maj;
 
     /** Résultat de la dernière lecture GDTF, relu par le pont. */
     public volatile String gdtfJson = "{}";
@@ -41,6 +46,7 @@ public class MainActivity extends Activity {
         web.setWebChromeClient(new WebChromeClient());   // sans quoi confirm() est ignoré
         WebView.setWebContentsDebuggingEnabled(true);
 
+        maj = new Maj(this);
         pont = new Regie(this);
         web.addJavascriptInterface(pont, "Regie");
         web.loadUrl("file:///android_asset/www/index.html");
@@ -70,6 +76,22 @@ public class MainActivity extends Activity {
         });
     }
 
+    /**
+     * Écran système « autoriser cette application à installer des applications ».
+     * Android l'exige une fois par application ; au retour, on reprend
+     * l'installation là où elle s'était arrêtée.
+     */
+    public void demanderSourcesInconnues() {
+        try {
+            Intent i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:" + getPackageName()));
+            startActivityForResult(i, CODE_SOURCES);
+        } catch (Exception e) {
+            maj.erreur = "écran des autorisations introuvable";
+            maj.phase = "erreur";
+        }
+    }
+
     /** Sélecteur de fichier pour un GDTF. */
     public void choisirGdtf() {
         gdtfJson = "{}";
@@ -87,6 +109,11 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requete, int resultat, Intent data) {
         super.onActivityResult(requete, resultat, data);
+        if (requete == CODE_SOURCES) {
+            if (getPackageManager().canRequestPackageInstalls()) maj.installer();
+            else maj.phase = "pret";           // refusé : l'écran le redemandera
+            return;
+        }
         if (requete != CODE_GDTF) return;
         if (resultat != RESULT_OK || data == null || data.getData() == null) {
             gdtfJson = "{\"erreur\":\"import annulé\"}";

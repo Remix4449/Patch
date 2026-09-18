@@ -22,11 +22,17 @@ les canevas.
 ## Installer l'application
 
 L'APK est construit par GitHub Actions à chaque modification de `patch-app/` et
-déposé dans la release `apk` du dépôt. Depuis le téléphone :
+déposé dans la release `apk` du dépôt. La première fois, depuis le téléphone :
 
 1. ouvrir la page des releases, section **Patch — dernière version** ;
 2. télécharger `patch-regie.apk` ;
 3. l'ouvrir — Android demande d'autoriser l'installation depuis cette source.
+
+Ensuite, l'application se met à jour toute seule : à chaque lancement elle
+compare sa version à celle publiée dans la release, rapatrie l'APK si elle est en
+retard, et propose l'installation d'une touche. Seule la confirmation reste
+manuelle — Android n'autorise pas une application hors magasin à en installer une
+autre en silence. `patch-app/README.md` détaille le mécanisme.
 
 ## Lancer l'interface dans un navigateur
 

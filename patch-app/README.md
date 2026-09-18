@@ -7,14 +7,57 @@ ordinateur.
 ## Récupérer l'application
 
 L'APK est construit par GitHub Actions à chaque modification et déposé dans la
-release `apk` du dépôt. Depuis le téléphone :
+release `apk` du dépôt. La première fois, depuis le téléphone :
 
 1. ouvrir la page des releases du dépôt, section **Patch — dernière version** ;
 2. télécharger `patch-regie.apk` ;
 3. l'ouvrir — Android demande d'autoriser l'installation depuis cette source.
 
-Aucun compte, aucun store, aucun ordinateur. Une fois installée, l'application
-ne demande plus jamais internet.
+Aucun compte, aucun store, aucun ordinateur. Ensuite l'application se met à jour
+toute seule, et n'a besoin d'internet que pour ça : sur le plateau, elle continue
+de tourner sans.
+
+## La mise à jour
+
+À chaque lancement, l'application regarde la release du dépôt, compare le numéro
+de version publié au sien, et rapatrie l'APK sans rien demander si elle est en
+retard. Un bandeau apparaît alors sur l'accueil : *Installer*. L'écran **Mise à
+jour**, dans les outils, dit la version installée, la version publiée et d'où
+elle a été construite, et permet de vérifier à la main.
+
+**Ce qui reste manuel, et le restera.** Android interdit à une application
+installée hors magasin d'en installer une autre en silence : le dernier geste
+passe forcément par l'écran d'installation du système, qu'il faut confirmer. La
+toute première fois, Android demande en plus d'autoriser Patch à installer des
+applications — une case à cocher, une seule fois. Tout le reste — vérifier,
+télécharger, savoir qu'il y a du nouveau — se fait sans rien toucher.
+
+Quelques détails qui ont leur importance :
+
+- **le numéro de version avance tout seul.** Le numéro de construction de GitHub
+  Actions devient le `versionCode` de l'APK et le `versionName` affiché
+  (`1.0.42`). Sans ça, comparer deux versions n'aurait aucun sens ;
+- **la fiche `version.json`** est déposée dans la release à côté de l'APK, et
+  porte le numéro, l'empreinte du commit, la branche et la taille. C'est un
+  fichier public servi par GitHub : aucun compte, aucun jeton, aucune limite
+  d'appels ;
+- **la vérification sort par un réseau qui a vraiment internet.**
+  `Reseau.java` épingle le processus sur le Wi-Fi du plateau, qui n'a souvent
+  aucun accès extérieur ; `Maj.java` demande explicitement à
+  `ConnectivityManager` un réseau validé, ce qui fait passer la vérification par
+  la 4G le cas échéant. Sans ce détour, elle échouerait là où elle sert le plus ;
+- **l'APK est servi par un `content://`.** Depuis Android 7, passer un `file://`
+  à une autre application lève une exception. `FournisseurApk.java` est un
+  fournisseur minuscule qui ne sert que ce fichier-là — le projet n'ayant pas
+  d'AndroidX, il n'a pas de `FileProvider` à sa disposition ;
+- **la clé de signature est dans le dépôt, exprès.** Android refuse une mise à
+  jour signée par une autre clé que la version en place, et une construction sans
+  clé fixe en fabrique une nouvelle à chaque passage. Voir `cle/README.md` ;
+- **toute branche poussée remplace l'APK de la release.** Le workflow se
+  déclenche sur n'importe quelle poussée touchant `patch-app/` : une correction
+  en cours de relecture arrive donc sur le téléphone. C'est pratique pour
+  essayer un correctif, et c'est à savoir. La branche d'origine est écrite dans
+  l'écran *Mise à jour* quand ce n'est pas `main`.
 
 ## Ce que fait l'application
 
@@ -142,6 +185,10 @@ d'accès du lieu.
 cd patch-app
 gradle assembleDebug        # ou ./gradlew si le wrapper est présent
 ```
+
+Une construction à la main garde le numéro de version 1 et s'affiche
+`1.0.1-local` : elle se croira donc toujours en retard sur la release. La chaîne
+de montage passe les vrais numéros avec `-PversionCode` et `-PversionName`.
 
 Projet Android nu : une `WebView` plein écran, l'interface dans
 `app/src/main/assets/www`, et la couche réseau en Java dans
