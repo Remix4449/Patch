@@ -1175,6 +1175,16 @@ function adrGrada(n){
 
 const allumes = () => Object.keys(NIV).filter(k => NIV[k] > 0).map(Number).sort((a, b) => a - b);
 
+/* Où part vraiment le flux. Un compteur d'envois qui monte ne prouve rien : le
+   sACN a besoin d'une interface à viser, et sans Wi-Fi il n'en a aucune. */
+function routeEmission(etat){
+  if(GRADA.cible) return "vers " + GRADA.cible;
+  if(GRADA.proto !== "sACN") return "en diffusion sur le réseau";
+  if(!etat.ip) return "en attente du Wi-Fi, rien ne part";
+  if(etat.erreur) return "bloqué : " + etat.erreur;
+  return "en multicast sur le réseau" + (etat.iface ? ", par " + etat.iface : "");
+}
+
 /* Range les gradateurs allumés par univers et pose le tout sur le flux. */
 function envoyerGradas(){
   const t = {};
@@ -1404,7 +1414,7 @@ function vTel(){
         GRADA.proto === "sACN" ? " · priorité " + GRADA.prio : ""}</div>
       <h3>${on.length} gradateur${on.length > 1 ? "s" : ""} ${on.length > 1 ? "allumés" : "allumé"}</h3>
       <p>${etat.demo ? `<span class="chipdemo">Démo</span> rien ne part du navigateur`
-                     : `${GRADA.cible ? "vers " + esc(GRADA.cible) : "en direct sur le réseau"}`}</p>
+                     : esc(routeEmission(etat))}</p>
       <div class="stats">
         <div><b>${SEL || "—"}</b><span>appelé</span></div>
         <div><b>${SEL ? (NIV[SEL] || 0) + " %" : "—"}</b><span>niveau</span></div>

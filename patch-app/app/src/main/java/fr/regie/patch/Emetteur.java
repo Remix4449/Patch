@@ -27,7 +27,7 @@ public class Emetteur {
     public volatile int prio = 100;
     public volatile String cible = "";
     public volatile boolean actif;
-    public volatile long envois;
+    public volatile long envois, echecs;
 
     private Thread boucle;
 
@@ -81,9 +81,12 @@ public class Emetteur {
         while (actif) {
             long t = System.currentTimeMillis();
             for (Map.Entry<Integer, byte[]> e : trames.entrySet()) {
-                if ("Art-Net".equals(proto)) art.emettre(e.getKey() - 1, e.getValue(), cible);
-                else sacn.emettre(e.getKey(), e.getValue(), prio, cible, false);
-                envois++;
+                boolean ok = "Art-Net".equals(proto)
+                        ? art.emettre(e.getKey() - 1, e.getValue(), cible)
+                        : sacn.emettre(e.getKey(), e.getValue(), prio, cible, false);
+                // Compter les départs réussis, pas les tentatives : un compteur qui
+                // monte pendant que rien ne part ne dit rien à personne.
+                if (ok) envois++; else echecs++;
             }
             long reste = PERIODE - (System.currentTimeMillis() - t);
             try { Thread.sleep(Math.max(5, reste)); } catch (InterruptedException x) { return; }

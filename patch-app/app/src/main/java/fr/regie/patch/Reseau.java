@@ -20,21 +20,34 @@ import java.net.InetAddress;
  */
 public class Reseau {
 
+    /** Prévenue à chaque fois que l'adresse locale change, ou arrive enfin. */
+    public interface Ecoute { void adresse(String ip, String diffusion); }
+
     private final Context ctx;
     private WifiManager.MulticastLock verrou;
     private ConnectivityManager.NetworkCallback rappel;
     private volatile Network wifi;
+    private volatile Ecoute ecoute;
 
-    public String ip = "";
-    public String masque = "";
-    public String base = "";
-    public String diffusion = "255.255.255.255";
-    public int prefixe = 24;
+    public volatile String ip = "";
+    public volatile String masque = "";
+    public volatile String base = "";
+    public volatile String diffusion = "255.255.255.255";
+    public volatile int prefixe = 24;
 
     public Reseau(Context c) {
         ctx = c.getApplicationContext();
         prendreVerrou();
         suivreWifi();
+    }
+
+    /**
+     * S'abonne aux changements d'adresse. Rappelée tout de suite si l'adresse
+     * est déjà connue, pour qu'un abonné tardif ne rate pas le Wi-Fi.
+     */
+    public void surAdresse(Ecoute e) {
+        ecoute = e;
+        if (e != null && pret()) e.adresse(ip, diffusion);
     }
 
     private void prendreVerrou() {
@@ -59,7 +72,16 @@ public class Reseau {
                 @Override public void onAvailable(Network n) {
                     wifi = n;
                     if (android.os.Build.VERSION.SDK_INT >= 23) cm.bindProcessToNetwork(n);
-                    lireAdresse(cm, n);
+                    lireAdresse(cm.getLinkProperties(n));
+                }
+                /*
+                 * onAvailable arrive avant que le lien porte son adresse : le DHCP
+                 * n'a pas fini. C'est ici, et seulement ici, que l'adresse est sûre,
+                 * et c'est aussi ici qu'on apprend qu'elle a changé.
+                 */
+                @Override public void onLinkPropertiesChanged(Network n, LinkProperties lp) {
+                    wifi = n;
+                    lireAdresse(lp);
                 }
                 @Override public void onLost(Network n) {
                     wifi = null; ip = ""; base = "";
@@ -70,13 +92,13 @@ public class Reseau {
         } catch (Exception ignore) { }
     }
 
-    private void lireAdresse(ConnectivityManager cm, Network n) {
+    private void lireAdresse(LinkProperties lp) {
         try {
-            LinkProperties lp = cm.getLinkProperties(n);
             if (lp == null) return;
             for (LinkAddress la : lp.getLinkAddresses()) {
                 InetAddress a = la.getAddress();
                 if (a instanceof Inet4Address && !a.isLoopbackAddress()) {
+                    String avant = ip;
                     ip = a.getHostAddress();
                     prefixe = la.getPrefixLength();
                     int m = prefixe >= 32 ? -1 : ~((1 << (32 - prefixe)) - 1);
@@ -89,6 +111,10 @@ public class Reseau {
                     diffusion = ((bc >> 24) & 255) + "." + ((bc >> 16) & 255) + "."
                               + ((bc >> 8) & 255) + "." + (bc & 255);
                     base = ip.substring(0, ip.lastIndexOf('.'));
+                    if (!ip.equals(avant)) {
+                        Ecoute e = ecoute;
+                        if (e != null) try { e.adresse(ip, diffusion); } catch (Exception ignore) { }
+                    }
                     return;
                 }
             }
