@@ -8,6 +8,11 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
+    <!-- Mise à jour : ouvrir l'écran d'installation du système sur l'APK
+         rapatrié depuis la release du dépôt. Android demande en plus, une
+         seule fois, d'autoriser cette application à en installer d'autres. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -27,5 +32,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Sert l'APK téléchargé à l'installateur : un file:// est refusé. -->
+        <provider
+            android:name=".FournisseurApk"
+            android:authorities="fr.regie.patch.fichiers"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>

@@ -2,6 +2,15 @@ plugins {
     id 'com.android.application'
 }
 
+/*
+ * Le numéro de version avance à chaque construction : la chaîne de montage
+ * passe -PversionCode et -PversionName, et l'application compare le sien à
+ * celui publié dans la release pour savoir si une mise à jour l'attend.
+ * Une construction à la main garde 1 et se signale comme locale.
+ */
+def codeDeVersion = ((project.findProperty('versionCode') ?: '1') as String) as Integer
+def nomDeVersion = (project.findProperty('versionName') ?: ('1.0.' + codeDeVersion + '-local')) as String
+
 android {
     namespace 'fr.regie.patch'
     compileSdk 34
@@ -10,11 +19,29 @@ android {
         applicationId "fr.regie.patch"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode codeDeVersion
+        versionName nomDeVersion
+    }
+
+    /*
+     * Clé fixe, versionnée avec le code : voir cle/README.md. Sans elle, chaque
+     * machine de construction en fabrique une nouvelle, et Android refuse
+     * d'installer une mise à jour signée par une autre clé que la version en
+     * place — les mises à jour automatiques n'auraient nulle part où aller.
+     */
+    signingConfigs {
+        debug {
+            storeFile file('../cle/patch.jks')
+            storePassword 'patch-regie'
+            keyAlias 'patch'
+            keyPassword 'patch-regie'
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
         }

@@ -18,7 +18,7 @@
     --ink:#0F1116; --ink2:#5A6070; --ink3:#8990A0;
     --proj:#2F4BFF; --mach:#00998D; --haut:#E0218A; --mdg:#7A3FF2;
     --dmx:#E2761C; --gel:#C2185B; --ndi:#0E7BC4; --net:#128A45; --art:#5B3FD6;
-    --tel:#0F7C8C;
+    --tel:#0F7C8C; --maj:#3D4757;
     --ok:#128A45; --ko:#D22B2B;
     --disp:"Bricolage Grotesque",system-ui,sans-serif;
     --body:"Chivo",system-ui,sans-serif;
@@ -31,7 +31,7 @@
       --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
       --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-      --tel:#3FC7DC;
+      --tel:#3FC7DC; --maj:#9AA6BC;
       --ok:#45C47B; --ko:#FF6B63;
     }
   }
@@ -40,7 +40,7 @@
     --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
     --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-    --tel:#3FC7DC;
+    --tel:#3FC7DC; --maj:#9AA6BC;
     --ok:#45C47B; --ko:#FF6B63;
   }
   *{box-sizing:border-box}
@@ -230,6 +230,18 @@
   .u512{display:grid;grid-template-columns:repeat(32,1fr);gap:1.5px;margin-top:10px}
   .c512{aspect-ratio:1;background:var(--sur2);border-radius:1px}
 
+  /* ------------------------------ mise à jour -------------------------- */
+  .maj{display:flex;align-items:center;gap:12px;background:var(--sur);
+       border:1.5px solid var(--maj);border-radius:14px;padding:12px 14px;margin:0 0 18px}
+  .maj .g{flex:1;min-width:0}
+  .maj b{display:block;font:700 14.5px/1.25 var(--body)}
+  .maj span{font-size:12.5px;color:var(--ink2)}
+  .maj button{border:0;background:var(--maj);color:var(--bg);border-radius:99px;
+              padding:10px 15px;font:700 13px/1 var(--body);cursor:pointer;flex:none}
+  .maj button:active{transform:scale(.97)}
+  .jauge{height:5px;border-radius:99px;background:var(--sur2);overflow:hidden;margin-top:8px}
+  .jauge>div{height:100%;background:var(--maj);border-radius:99px;transition:width .2s}
+
   .steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px;font-size:14.5px}
   .steps li::marker{font-weight:700;color:var(--mdg)}
   .alert{background:var(--sur2);border-left:3px solid var(--ko);border-radius:0 10px 10px 0;
@@ -290,6 +302,7 @@
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.2L12 4l9 7.2"/><path d="M5.8 10v9.5h12.4V10"/></symbol>
   <symbol id="i-parc" viewBox="0 0 24 24"><rect x="2.5" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="13" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="7.8" y="3.5" width="8.5" height="8" rx="1.4"/></symbol>
   <symbol id="i-outils" viewBox="0 0 24 24"><path d="M6 3v18M12 3v18M18 3v18"/><rect x="3.8" y="7" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="9.8" y="13" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="15.8" y="5.5" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-maj" viewBox="0 0 24 24"><path d="M12 2.5v11.5"/><path d="M7.5 9.5L12 14l4.5-4.5"/><path d="M4 15.5v3.5a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5v-3.5"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4L21 21"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12l7.5 7.5"/></symbol>
 </defs></svg>
@@ -337,7 +350,8 @@ const TOOLS = [
   { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)", i:"gel" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
-  { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" }
+  { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" },
+  { k:"maj", t:"Mise à jour", s:"Version de l'application", c:"var(--maj)", i:"maj" }
 ];
 const go = r => { S.route = r; window.scrollTo(0, 0); render(); };
 
@@ -348,7 +362,8 @@ function home(){
       <div><h1>Patch</h1><p>Tout le matériel du plateau, en deux touches.</p></div>
       <span class="badge" id="etat-res">hors réseau</span></div>
     <label class="sbar">${ic("search")}
-      <input id="q" value="${esc(S.q)}" placeholder="Ghibli, moteur, passerelle, L201…" autocomplete="off"></label>`;
+      <input id="q" value="${esc(S.q)}" placeholder="Ghibli, moteur, passerelle, L201…" autocomplete="off"></label>
+    <div id="maj-zone"></div>`;
   setTimeout(() => {
     const b = $("#etat-res"), w = NET.wifi();
     if(b) b.textContent = NET.natif ? (w && w.ip ? w.ip : "hors réseau") : "démo";
@@ -1509,9 +1524,114 @@ function exporterGradas(){
   };
 }
 
+/* ----------------------------- mise à jour ------------------------------ */
+/* L'application se compare à la version publiée dans la release du dépôt. Le
+   natif vérifie tout seul au lancement et télécharge dans la foulée ; il reste
+   un geste, l'écran d'installation d'Android, qu'aucune application hors
+   magasin n'a le droit de sauter. Deux endroits affichent le même état — le
+   bandeau d'accueil et cet écran — et aucun des deux n'est forcément là. */
+const MAJ = { e:null };
+const PHASES_BANDEAU = ["disponible", "telechargement", "pret", "autorisation"];
+
+function ko(o){ return o >= 1048576 ? (o / 1048576).toFixed(1).replace(".", ",") + " Mo"
+                                    : Math.round(o / 1024) + " ko"; }
+function nomVer(e){ return e.nomPublie || ("version " + e.publie); }
+/* Une version construite depuis une branche de travail arrive sur le téléphone
+   comme les autres : autant que le bandeau le dise. */
+function branche(e){ return e.branche && e.branche !== "main" ? " Branche " + esc(e.branche) + "." : ""; }
+function jour(iso){ const j = iso.slice(0, 10).split("-"); return j.length === 3 ? j[2] + "/" + j[1] + "/" + j[0] : iso; }
+
+function bandeauMaj(e){
+  if(e.phase === "telechargement"){
+    const pc = e.taille ? Math.min(100, Math.round(e.recus / e.taille * 100)) : 0;
+    return `<div class="maj"><div class="g"><b>Téléchargement de ${esc(nomVer(e))}</b>
+      <span>${ko(e.recus)}${e.taille ? " sur " + ko(e.taille) : ""}</span>
+      <div class="jauge"><div style="width:${pc}%"></div></div></div></div>`;
+  }
+  if(e.phase === "pret")
+    return `<div class="maj"><div class="g"><b>${esc(nomVer(e))} prête</b>
+      <span>Android demandera de confirmer l'installation.${branche(e)}</span></div>
+      <button data-maj="installer">Installer</button></div>`;
+  if(e.phase === "autorisation")
+    return `<div class="maj"><div class="g"><b>Une autorisation à donner</b>
+      <span>Autoriser Patch à installer des applications, puis revenir ici.</span></div>
+      <button data-maj="installer">Reprendre</button></div>`;
+  return `<div class="maj"><div class="g"><b>${esc(nomVer(e))} disponible</b>
+    <span>Téléchargement en attente.${branche(e)}</span></div>
+    <button data-maj="telecharger">Télécharger</button></div>`;
+}
+
+const DITS = {
+  repos:"Pas encore vérifié.", verification:"Vérification en cours…",
+  ajour:"L'application est à jour.", disponible:"Une version plus récente attend.",
+  telechargement:"Téléchargement en cours…", pret:"La version téléchargée attend l'installation.",
+  autorisation:"Android attend l'autorisation d'installer des applications.",
+  erreur:"La vérification a échoué.", demo:"Hors application : rien à mettre à jour."
+};
+
+function ecranMaj(e){
+  const lignes = [];
+  lignes.push(`<div class="kv"><span>Installée</span><b>${esc(e.nomInstalle || "—")}</b></div>`);
+  if(e.publie)
+    lignes.push(`<div class="kv"><span>Publiée</span><b>${esc(e.nomPublie || String(e.publie))}</b></div>`);
+  if(e.sha) lignes.push(`<div class="kv"><span>Construite depuis</span><b>${esc(e.sha)}${
+    e.branche && e.branche !== "main" ? " · " + esc(e.branche) : ""}</b></div>`);
+  if(e.date) lignes.push(`<div class="kv"><span>Publiée le</span><b>${esc(jour(e.date))}</b></div>`);
+  if(e.phase === "telechargement" || (e.phase === "pret" && e.taille))
+    lignes.push(`<div class="kv"><span>Téléchargé</span><b>${ko(e.recus)}${
+      e.taille ? " / " + ko(e.taille) : ""}</b></div>`);
+  const boutons = [];
+  if(e.phase === "pret" || e.phase === "autorisation")
+    boutons.push(`<button class="pill" data-maj="installer" style="padding:12px">Installer</button>`);
+  else if(e.phase === "disponible" || e.phase === "erreur")
+    boutons.push(`<button class="pill" data-maj="telecharger" style="padding:12px">Télécharger</button>`);
+  boutons.push(`<button class="pill" data-maj="verifier" style="padding:12px">Vérifier</button>`);
+  return `<p style="margin:0 0 12px">${e.phase === "ajour" ? `<span class="chipok">à jour</span>` : ""}
+      <span class="muted">${esc(DITS[e.phase] || e.phase)}${
+        e.erreur ? " " + esc(e.erreur) + "." : ""}</span></p>
+    <div class="card"><h4>Version</h4>${lignes.join("")}</div>
+    <div class="${boutons.length > 1 ? "ff" : ""}">${boutons.join("")}</div>
+    <p class="muted" style="margin-top:14px">L'application regarde la release du dépôt à chaque
+      lancement et rapatrie l'APK toute seule. Le dernier geste revient à Android : une application
+      installée hors magasin ne peut pas en installer une autre sans que tu voies son écran et que
+      tu confirmes. La première fois, il faudra aussi autoriser Patch à installer des applications.</p>`;
+}
+
+function cablerMaj(racine){
+  racine.querySelectorAll("[data-maj]").forEach(b => b.onclick = () => {
+    const quoi = b.dataset.maj;
+    if(quoi === "installer") NET.maj.installer();
+    else if(quoi === "telecharger") NET.maj.telecharger();
+    else NET.maj.verifier();
+    setTimeout(peindreMaj, 250);
+  });
+}
+
+function peindreMaj(){
+  const e = MAJ.e;
+  const zone = $("#maj-zone");
+  if(zone){
+    const montre = e && PHASES_BANDEAU.includes(e.phase);
+    zone.innerHTML = montre ? bandeauMaj(e) : "";
+    if(montre) cablerMaj(zone);
+  }
+  const ecran = $("#maj-ecran");
+  if(ecran && e){ ecran.innerHTML = ecranMaj(e); cablerMaj(ecran); }
+}
+
+function vMaj(){
+  const d = el("div");
+  const ecran = el("div");
+  ecran.id = "maj-ecran";
+  d.append(bar("Mise à jour"), ecran);
+  NET.maj.verifier();          // sans effet si une vérification tourne déjà
+  setTimeout(peindreMaj);
+  return d;
+}
+
 /* -------------------------------- moteur -------------------------------- */
 const VIEWS = { home, proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vDmx, tel:vTel,
-                gel:vGel, ndi:vNdi, net:vNet, art:vArt };
+                gel:vGel, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
 function render(){
   if(STOP){ STOP(); STOP = null; }
   /* Un rendu détruit les champs : on note lequel avait le curseur pour le rendre. */
@@ -1536,11 +1656,16 @@ function render(){
   const t = ["proj", "mach", "haut", "mdg", "fiche"].includes(r.v) ? "parc"
           : r.v === "home" ? "home" : "tools";
   document.querySelectorAll(".tb").forEach(b => b.setAttribute("aria-current", b.dataset.t === t ? "true" : "false"));
+  peindreMaj();          // le rendu a jeté le bandeau : on le repose s'il a lieu d'être
 }
 document.querySelectorAll(".tb").forEach(b => b.onclick = () => {
   S.q = "";
   go({ v:b.dataset.t === "home" ? "home" : b.dataset.t === "parc" ? "proj" : "dmx" });
 });
+/* Un seul suivi pour toute l'application : le bandeau et l'écran s'y branchent
+   quand ils existent. Il ne passe pas par poser(), qui est remis à zéro à
+   chaque changement d'écran. */
+NET.maj.suivre(e => { MAJ.e = e; peindreMaj(); });
 render();
 </script>
 </body>

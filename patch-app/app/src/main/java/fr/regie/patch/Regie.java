@@ -22,6 +22,7 @@ public class Regie {
     private final Scanner scan = new Scanner();
     private final Emetteur emetteur = new Emetteur(art, sacn);
     private final Ndi ndi;
+    private final Maj maj;
 
     private volatile String proto = "Art-Net";
     private volatile int univers = 1;
@@ -30,6 +31,8 @@ public class Regie {
         act = a;
         reseau = new Reseau(a);
         ndi = new Ndi(a);
+        maj = a.maj;
+        maj.demarrer();          // vérification au lancement, muette s'il n'y a rien
         // Le Wi-Fi arrive souvent après l'application, et peut changer en cours de
         // route : on repointe les deux protocoles au lieu de rester sur l'état
         // du démarrage, où le sACN n'avait aucune interface à viser.
@@ -298,6 +301,20 @@ public class Regie {
             return o.toString();
         } catch (Exception e) { return "{}"; }
     }
+
+    /* ----------------------------- mise à jour -------------------------- */
+
+    @JavascriptInterface
+    public void majVerifier() { maj.verifier(); }
+
+    @JavascriptInterface
+    public void majTelecharger() { maj.telecharger(); }
+
+    @JavascriptInterface
+    public void majInstaller() { maj.installer(); }
+
+    @JavascriptInterface
+    public String majEtat() { return maj.etat(); }
 
     /* ------------------------- impression et GDTF ----------------------- */
 

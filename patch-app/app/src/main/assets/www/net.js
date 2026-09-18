@@ -101,6 +101,21 @@ const NET = {
     catch(e){ return false; }
   },
 
+  /* Mise à jour de l'application. L'état suit une phase :
+     repos, verification, ajour, disponible, telechargement, pret,
+     autorisation, erreur — plus « demo » hors application, où il n'y a rien à
+     mettre à jour. La vérification part toute seule au lancement. */
+  maj: {
+    suivre(cb){
+      if(!PONT) return sonder(() => ({ phase:"demo", installe:0, nomInstalle:"navigateur",
+                                       publie:0, nomPublie:"", recus:0, taille:0, erreur:"" }), cb, 4000);
+      return sonder(() => JSON.parse(PONT.majEtat()), cb, 900);
+    },
+    verifier(){ if(PONT) try { PONT.majVerifier(); } catch(e){} },
+    telecharger(){ if(PONT) try { PONT.majTelecharger(); } catch(e){} },
+    installer(){ if(PONT) try { PONT.majInstaller(); } catch(e){} }
+  },
+
   /* Impression : boîte d'impression Android, qui sait enregistrer en PDF. */
   imprimer(html, nom){
     if(!PONT) return false;
