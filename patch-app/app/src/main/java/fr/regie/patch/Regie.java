@@ -30,6 +30,21 @@ public class Regie {
         act = a;
         reseau = new Reseau(a);
         ndi = new Ndi(a);
+        // Le Wi-Fi arrive souvent après l'application, et peut changer en cours de
+        // route : on repointe les deux protocoles au lieu de rester sur l'état
+        // du démarrage, où le sACN n'avait aucune interface à viser.
+        reseau.surAdresse(new Reseau.Ecoute() {
+            public void adresse(final String ip, final String diffusion) {
+                // Le rappel de ConnectivityManager arrive sur le fil principal :
+                // on ne touche pas aux prises depuis là.
+                new Thread(new Runnable() {
+                    public void run() {
+                        art.demarrer(diffusion);
+                        sacn.reglerInterface(ip);
+                    }
+                }, "reseau-change").start();
+            }
+        });
         new Thread(new Runnable() {
             public void run() {
                 for (int i = 0; i < 100 && !reseau.pret(); i++) {
@@ -276,6 +291,10 @@ public class Regie {
             o.put("prio", emetteur.prio);
             o.put("cible", emetteur.cible);
             o.put("envois", emetteur.envois);
+            o.put("echecs", emetteur.echecs);
+            o.put("iface", sacn.interfaceEmission());
+            o.put("erreur", sacn.erreur);
+            o.put("ip", reseau.ip);
             return o.toString();
         } catch (Exception e) { return "{}"; }
     }

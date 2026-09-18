@@ -51,11 +51,15 @@ public class Sacn {
     private final Map<Integer, Integer> sequences = new ConcurrentHashMap<Integer, Integer>();
     public volatile String nomSource = "Patch - telecommande";
 
+    /* Ce que l'émission a vraiment fait, pour que l'écran puisse le dire. */
+    public volatile long emis, echecs;
+    public volatile String erreur = "";
+
     public synchronized void demarrer(String ipLocale) {
         if (actif) return;
         actif = true;
-        try { nif = NetworkInterface.getByInetAddress(InetAddress.getByName(ipLocale)); }
-        catch (Exception e) { nif = null; }
+        NetworkInterface n = interfaceDe(ipLocale);
+        if (n != null) nif = n;              // le Wi-Fi a pu arriver avant nous
         boucle = new Thread(new Runnable() { public void run() { ecouter(); } }, "sacn");
         boucle.setDaemon(true);
         boucle.start();
@@ -68,6 +72,7 @@ public class Sacn {
             sock.bind(new InetSocketAddress(PORT));
             sock.setSoTimeout(1000);
             if (nif != null) sock.setNetworkInterface(nif);
+            else erreur = "aucune interface reseau";
             // Sans cela nos propres trames reviennent et se recensent comme une source.
             try { sock.setLoopbackMode(true); } catch (Exception ignore) { }
             rejoindre(groupe(UNIVERS_DECOUVERTE));
@@ -98,6 +103,49 @@ public class Sacn {
             ecoute = universBase1;
             synchronized (niveaux) { java.util.Arrays.fill(niveaux, (byte) 0); }
         } catch (Exception ignore) { }
+    }
+
+    /**
+     * L'interface qui porte cette adresse, et rien d'autre : ni le bouclage, ni
+     * une interface éteinte ou sans multicast.
+     *
+     * InetAddress.getByName("") rend 127.0.0.1, donc une adresse locale encore
+     * vide donnait « lo » : le multicast partait dans le bouclage, l'envoi se
+     * déclarait réussi et rien n'atteignait le plateau. Sans interface sûre on
+     * rend null et on laisse le noyau choisir.
+     */
+    private static NetworkInterface interfaceDe(String ipLocale) {
+        if (ipLocale == null || ipLocale.trim().isEmpty()) return null;
+        try {
+            NetworkInterface n =
+                    NetworkInterface.getByInetAddress(InetAddress.getByName(ipLocale.trim()));
+            if (n == null || n.isLoopback() || !n.isUp() || !n.supportsMulticast()) return null;
+            return n;
+        } catch (Exception e) { return null; }
+    }
+
+    /**
+     * Repointe l'écoute et l'émission sur l'interface qui porte cette adresse.
+     * Le Wi-Fi arrive souvent après l'application, et l'adresse change en cours
+     * de route : sans cela le flux restait accroché à l'état du démarrage.
+     */
+    public synchronized void reglerInterface(String ipLocale) {
+        NetworkInterface neuve = interfaceDe(ipLocale);
+        if (neuve == null) return;
+        if (nif != null && neuve.getName().equals(nif.getName())) return;
+        nif = neuve;
+        erreur = "";
+        if (sock == null || sock.isClosed()) return;
+        try { sock.setNetworkInterface(nif); } catch (Exception ignore) { }
+        // Les adhésions suivent l'interface : il faut les reprendre sur la neuve.
+        try { rejoindre(groupe(UNIVERS_DECOUVERTE)); } catch (Exception ignore) { }
+        if (rejoint > 0) try { rejoindre(groupe(rejoint)); } catch (Exception ignore) { }
+    }
+
+    /** Le nom de l'interface d'émission, vide si le noyau choisit seul. */
+    public String interfaceEmission() {
+        NetworkInterface n = nif;
+        return n == null ? "" : n.getName();
     }
 
     private static String groupe(int u) { return "239.255." + ((u >> 8) & 255) + "." + (u & 255); }
@@ -171,8 +219,14 @@ public class Sacn {
             byte[] p = trame(universBase1, data, prio, fin);
             String dest = (cible == null || cible.isEmpty()) ? groupe(universBase1) : cible;
             prise().send(new DatagramPacket(p, p.length, InetAddress.getByName(dest), PORT));
+            emis++;
             return true;
-        } catch (Exception e) { return false; }
+        } catch (Exception e) {
+            echecs++;
+            erreur = e.getClass().getSimpleName()
+                   + (e.getMessage() == null ? "" : " : " + e.getMessage());
+            return false;
+        }
     }
 
     /** La prise d'écoute si elle est ouverte, sinon une prise d'émission à part. */
