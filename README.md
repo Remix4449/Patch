@@ -13,11 +13,12 @@ désormais, avec son historique.
 | --- | --- |
 | `patch-app/` | L'application Android : une `WebView` plein écran, l'interface en HTML/JS dans `app/src/main/assets/www`, la couche réseau en Java dans `app/src/main/java/fr/regie/patch` |
 | `inventaire/` | Les trois canevas d'interface qui ont précédé l'application, ouvrables tels quels dans un navigateur |
+| `canevas/` | L'atelier de refonte du patch et de la télécommande : huit maquettes manipulables, dont le canevas H retenu |
 | `.github/workflows/apk.yml` | La construction de l'APK et sa publication dans la release `apk` |
 
 `patch-app/README.md` détaille les écrans, les formats de trame Art-Net et sACN,
 et les deux précautions de terrain côté Android. `inventaire/README.md` décrit
-les canevas.
+les canevas d'origine, `canevas/README.md` ceux de la refonte en cours.
 
 ## Installer l'application
 

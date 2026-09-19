@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Canevas B — Relevé</title>
+<link rel="stylesheet" href="socle.css">
+<style>
+/* ---------------------------------------------------------------------------
+   Canevas B — « Relevé »
+
+   Thèse : le vrai geste n'est pas de remplir un tableau, c'est une boucle —
+   allumer, regarder la scène, noter, passer au suivant. Alors l'écran ne
+   pose qu'une question à la fois, en très gros, et il avance tout seul.
+
+   Tout est dimensionné pour le plateau : fond noir, chiffres lisibles à
+   plusieurs mètres, cibles de 64 px minimum, balayage possible sans lâcher
+   le téléphone des yeux — ou sans le regarder du tout, au balayage
+   automatique. La saisie au clavier se fait dans un seul champ, au centre.
+--------------------------------------------------------------------------- */
+
+body{background:#08090C}
+.app{display:flex;flex-direction:column;flex:1;min-height:0;max-width:620px;width:100%;margin:0 auto}
+
+/* ------------------------------ avancement ------------------------------- */
+.prog{flex:none;padding:10px 16px 6px}
+.prog .b{height:5px;border-radius:99px;background:var(--sur2);overflow:hidden}
+.prog .b i{display:block;height:100%;background:var(--tel);transition:width .25s}
+.prog .t{display:flex;justify-content:space-between;margin-top:7px;
+         font:600 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+
+/* --------------------------------- scène --------------------------------- */
+.scene{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;
+       gap:14px;padding:6px 16px;text-align:center;touch-action:pan-y}
+.kick{font:700 12px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--ink3)}
+.geant{font:600 clamp(72px,26vw,150px)/.9 var(--mono);letter-spacing:-.04em;
+       font-variant-numeric:tabular-nums;color:var(--tel)}
+.geant.pale{color:var(--ink3)}
+.sous{font:500 15px/1.4 var(--mono);color:var(--ink2)}
+.q{font:700 20px/1.3 var(--disp);margin:0}
+
+.champ{width:100%;background:var(--sur);border:2px solid var(--line);border-radius:18px;
+       padding:18px;font:600 44px/1 var(--mono);text-align:center;outline:none;
+       color:var(--ink);font-variant-numeric:tabular-nums}
+.champ:focus{border-color:var(--tel)}
+.champ::placeholder{color:var(--ink3);font-size:26px}
+.note{width:100%;background:none;border:0;border-bottom:1.5px solid var(--line);
+      padding:11px 4px;font:500 17px/1 var(--body);text-align:center;outline:none;color:var(--ink2)}
+.note::placeholder{color:var(--ink3);font-style:italic}
+
+.jauge{display:flex;align-items:center;gap:12px;background:var(--sur);border-radius:16px;padding:12px 14px}
+.jauge input{-webkit-appearance:none;appearance:none;flex:1;height:40px;background:none;margin:0}
+.jauge input::-webkit-slider-runnable-track{height:40px;border-radius:12px;background:var(--sur2)}
+.jauge input::-webkit-slider-thumb{-webkit-appearance:none;width:38px;height:40px;border-radius:11px;
+     background:var(--tel);border:0}
+.jauge input::-moz-range-track{height:40px;border-radius:12px;background:var(--sur2)}
+.jauge input::-moz-range-thumb{width:38px;height:40px;border-radius:11px;background:var(--tel);border:0}
+.jauge b{font:600 22px/1 var(--mono);min-width:72px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* -------------------------------- actions -------------------------------- */
+.pied{flex:none;padding:8px 16px calc(14px + env(safe-area-inset-bottom,0px));
+      display:flex;flex-direction:column;gap:9px}
+.gros{border:0;border-radius:18px;padding:22px;font:700 19px/1 var(--body);
+       background:var(--tel);color:#06222A;min-height:66px}
+.gros:active{transform:scale(.99)}
+.gros.sec{background:var(--sur);color:var(--ink)}
+.gros.dmx{background:var(--dmx);color:#231000}
+.rang{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.rang.trois{grid-template-columns:1fr 1fr 1fr}
+.mini{border:1.5px solid var(--line);background:none;border-radius:14px;padding:15px 8px;
+      font:600 14px/1 var(--body);color:var(--ink2);min-height:52px}
+.mini.on{background:var(--tel);border-color:var(--tel);color:#06222A}
+.retour{background:none;border:0;color:var(--ink3);font:600 13px/1 var(--body);padding:10px}
+
+/* --------------------------- listes de l'assistant ----------------------- */
+.choix{display:flex;flex-direction:column;gap:8px;overflow-y:auto;text-align:left}
+.choix button{display:flex;align-items:center;gap:12px;background:var(--sur);border:1.5px solid transparent;
+              border-radius:15px;padding:16px;text-align:left;min-height:64px;width:100%}
+.choix button b{display:block;font:700 16px/1.2 var(--body)}
+.choix button span{font-size:12.5px;color:var(--ink3)}
+.choix button .r{margin-left:auto;font:600 14px/1 var(--mono);color:var(--tel);white-space:nowrap}
+.choix button[aria-pressed="true"]{border-color:var(--tel)}
+.rech{width:100%;background:var(--sur);border:1.5px solid var(--line);border-radius:14px;
+      padding:14px 16px;font:500 16px/1 var(--body);outline:none;margin-bottom:4px}
+
+.recap{overflow-y:auto;text-align:left;display:flex;flex-direction:column;gap:8px}
+.recap .l{display:grid;grid-template-columns:1fr auto;gap:3px 12px;background:var(--sur);
+          border-radius:14px;padding:13px 15px}
+.recap .l b{font:700 15px/1.2 var(--body)}
+.recap .l .m{font-size:12.5px;color:var(--ink3)}
+.recap .l .r{font:500 13px/1.3 var(--mono);color:var(--ink2);text-align:right;white-space:nowrap}
+.recap .l .r i{display:block;font-style:normal;font-size:11px;color:var(--ink3)}
+
+.gliss{font:500 12px/1.4 var(--body);color:var(--ink3);text-align:center}
+.chip{display:inline-block;font:700 10.5px/1 var(--body);letter-spacing:.13em;text-transform:uppercase;
+      border:1.5px solid var(--ink3);border-radius:99px;padding:5px 9px;color:var(--ink3)}
+.chip.on{border-color:var(--ok);color:var(--ok)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="prog"><div class="b"><i id="pb" style="width:0"></i></div>
+    <div class="t"><span id="pl">—</span><span id="pr">—</span></div></div>
+  <div class="scene" id="scene"></div>
+  <div class="pied" id="pied"></div>
+</div>
+
+<script src="socle.js"></script>
+<script>
+bandeau("b");
+
+const S = {
+  ecran:"accueil",          // accueil | tel | patch-app | patch-mode | patch-nb | patch-dep | patch-recap | patch-releve
+  lignes:JSON.parse(JSON.stringify(DEMO_LIGNES)),
+  fiches:{},
+  grada:JSON.parse(JSON.stringify(DEMO_CIRCUITS)),
+  reg:{ ...REGLAGES_DEFAUT },
+  n:1,                      // gradateur en cours de relevé
+  app:1,                    // appareil en cours de relevé
+  niv:100,
+  auto:false, minuterie:null, delai:6,
+  brouillon:null,           // ligne en construction
+  rech:""
+};
+
+const gfiche = n => S.grada[n] || (S.grada[n] = { circuit:"", note:"" });
+const fiche  = n => S.fiches[n] || (S.fiches[n] = { circuit:"", patch:"" });
+const court  = cle => trouverApp(cle).nom;
+
+/* ------------------------------- émission -------------------------------- */
+function allumer(n, pct){
+  const t = {}; t[n] = pct;
+  FLUX.poser(t, S.reg);
+  vibrer(14);
+}
+function eteindre(){ FLUX.arret(); }
+
+/* ------------------------- relevé des gradateurs ------------------------- */
+/* Le cœur du canevas : un gradateur, une question, un champ. Valider allume
+   le suivant — la main ne quitte jamais le bas de l'écran. */
+
+function suivantAReleve(depuis){
+  for(let n = depuis; n < S.reg.premier + S.reg.nb; n++)
+    if(!(S.grada[n] || {}).circuit) return n;
+  return null;
+}
+function allerA(n){
+  if(n == null || n < S.reg.premier || n >= S.reg.premier + S.reg.nb) return;
+  S.n = n; allumer(n, S.niv); rendre();
+  relancerAuto();
+}
+function relancerAuto(){
+  clearTimeout(S.minuterie);
+  if(S.auto && S.ecran === "tel")
+    S.minuterie = setTimeout(() => allerA(S.n + 1), S.delai * 1000);
+}
+
+function ecranTel(){
+  const a = adrGrada(S.n, S.reg) || { u:"—", canal:"—" };
+  const f = gfiche(S.n);
+  const sc = el("div");
+  sc.innerHTML = `<div class="kick">Gradateur allumé — que voit-on sur scène ?</div>
+    <div class="geant">${S.n}</div>
+    <div class="sous">${S.reg.proto} · U${a.u} · canal ${a.canal} · ${S.niv} %</div>`;
+
+  const ch = el("input", "champ");
+  Object.assign(ch, { inputMode:"numeric", placeholder:"n° de circuit", value:f.circuit });
+  ch.setAttribute("aria-label", "Circuit du gradateur " + S.n);
+  ch.oninput = () => { f.circuit = ch.value; majProg(); };
+  ch.onkeydown = e => { if(e.key === "Enter") valider(); };
+  sc.append(ch);
+
+  const no = el("input", "note");
+  Object.assign(no, { placeholder:"repère — face jardin, contre 2…", value:f.note });
+  no.setAttribute("aria-label", "Repère du gradateur " + S.n);
+  no.oninput = () => { f.note = no.value; };
+  sc.append(no);
+
+  const j = el("div", "jauge");
+  j.innerHTML = `<input type="range" min="0" max="100" value="${S.niv}" aria-label="Niveau"><b>${S.niv} %</b>`;
+  const r = j.querySelector("input");
+  r.oninput = e => { S.niv = +e.target.value; allumer(S.n, S.niv); j.querySelector("b").textContent = S.niv + " %";
+    sc.querySelector(".sous").textContent = `${S.reg.proto} · U${a.u} · canal ${a.canal} · ${S.niv} %`; };
+  sc.append(j);
+  sc.append(el("p", "gliss", "Glisser l'écran vers la gauche ou la droite pour changer de gradateur."));
+
+  /* Le pied : une action franche, et de quoi s'écarter du chemin. */
+  const p = el("div");
+  const ok = el("button", "gros", "Noté — gradateur suivant ▶");
+  ok.onclick = valider;
+  p.append(ok);
+
+  const r2 = el("div", "rang trois");
+  const prec = el("button", "mini", "◀ précédent");
+  const trou = el("button", "mini", "Sauter");
+  const auto = el("button", "mini" + (S.auto ? " on" : ""), S.auto ? `Auto ${S.delai}s` : "Balayage auto");
+  prec.onclick = () => allerA(S.n - 1);
+  trou.onclick = () => allerA(suivantAReleve(S.n + 1) ?? S.n + 1);
+  auto.onclick = () => { S.auto = !S.auto; rendre(); relancerAuto(); };
+  r2.append(prec, trou, auto);
+  p.append(r2);
+
+  const r3 = el("div", "rang");
+  const noir = el("button", "mini", "Noir plateau");
+  const fin = el("button", "mini", "Terminer le relevé");
+  noir.onclick = () => { eteindre(); S.auto = false; clearTimeout(S.minuterie); rendre(); };
+  fin.onclick = () => { eteindre(); clearTimeout(S.minuterie); S.ecran = "accueil"; rendre(); };
+  r3.append(noir, fin);
+  p.append(r3);
+
+  setTimeout(() => ch.focus({ preventScroll:true }));
+  return [sc, p];
+}
+
+function valider(){
+  const n = suivantAReleve(S.n + 1);
+  allerA(n ?? S.n + 1);
+}
+
+/* --------------------------- assistant de patch -------------------------- */
+/* Poser une ligne, c'est trois décisions. Le canevas les pose une par une,
+   avec un titre en français plutôt qu'un formulaire à six champs. */
+
+function ecranPatchApp(){
+  const sc = el("div");
+  sc.innerHTML = `<h2 class="q">Quel appareil ?</h2>`;
+  const r = el("input", "rech");
+  Object.assign(r, { placeholder:"Ghibli, Lustr, 614…", value:S.rech });
+  r.oninput = () => { S.rech = r.value; majChoix(); };
+  sc.append(r);
+  const z = el("div", "choix");
+  sc.append(z);
+  function majChoix(){
+    const q = S.rech.toLowerCase();
+    z.replaceChildren(...APPAREILS
+      .filter(a => (a.marque + " " + a.nom + " " + a.fam).toLowerCase().includes(q))
+      .map(a => {
+        const b = el("button");
+        b.innerHTML = `<span><b>${esc(a.nom)}</b><span>${esc(a.marque)} · ${esc(a.fam)}</span></span>
+          <span class="r">${a.modes.length} mode${a.modes.length > 1 ? "s" : ""}</span>`;
+        b.onclick = () => {
+          S.brouillon = { id:"l" + Date.now().toString(36), app:cleApp(a),
+                          mode:a.modes[0].nom, ch:a.modes[0].ch, nb:1,
+                          suite:S.lignes.length > 0, u:1, adr:1 };
+          S.ecran = "patch-mode"; rendre();
+        };
+        return b;
+      }));
+  }
+  majChoix();
+  const p = el("div");
+  p.append(bRetour(() => { S.ecran = "patch-recap"; rendre(); }));
+  return [sc, p];
+}
+
+function ecranPatchMode(){
+  const l = S.brouillon, a = trouverApp(l.app);
+  const sc = el("div");
+  sc.innerHTML = `<div class="kick">${esc(a.marque)} ${esc(a.nom)}</div>
+    <h2 class="q">Quel mode DMX ?</h2>`;
+  const z = el("div", "choix");
+  a.modes.forEach(m => {
+    const b = el("button");
+    b.setAttribute("aria-pressed", m.nom === l.mode);
+    b.innerHTML = `<span><b>${esc(m.nom)}</b><span>${Math.floor(512 / m.ch)} par univers</span></span>
+      <span class="r">${m.ch} canaux</span>`;
+    b.onclick = () => { l.mode = m.nom; l.ch = m.ch; S.ecran = "patch-nb"; rendre(); };
+    z.append(b);
+  });
+  sc.append(z);
+  sc.append(el("p", "gliss",
+    "Les modes viennent de la bibliothèque, remplie à la main ou par import GDTF."));
+  const p = el("div");
+  p.append(bRetour(() => { S.ecran = "patch-app"; rendre(); }));
+  return [sc, p];
+}
+
+function ecranPatchNb(){
+  const l = S.brouillon;
+  const sc = el("div");
+  sc.innerHTML = `<div class="kick">${esc(court(l.app))} · ${esc(l.mode)}</div>
+    <h2 class="q">Combien d'appareils ?</h2>
+    <div class="geant">${l.nb}</div>
+    <div class="sous">${l.nb * l.ch} canaux au total · ${Math.floor(512 / l.ch)} tiennent dans un univers</div>`;
+  const g = el("div", "rang trois");
+  [-1, +1, +6].forEach(d => {
+    const b = el("button", "mini", (d > 0 ? "+" : "") + d);
+    b.onclick = () => { l.nb = Math.max(1, Math.min(500, l.nb + d)); rendre(); };
+    g.append(b);
+  });
+  sc.append(g);
+  const p = el("div");
+  const ok = el("button", "gros dmx", "Continuer ▶");
+  ok.onclick = () => { S.ecran = "patch-dep"; rendre(); };
+  p.append(ok, bRetour(() => { S.ecran = "patch-mode"; rendre(); }));
+  return [sc, p];
+}
+
+function ecranPatchDep(){
+  const l = S.brouillon;
+  const projet = adresser([...S.lignes, l]).filter(x => x.ligne === l.id);
+  const sc = el("div");
+  sc.innerHTML = `<div class="kick">${esc(court(l.app))} × ${l.nb}</div>
+    <h2 class="q">Où commence cette ligne ?</h2>`;
+  const z = el("div", "choix");
+  const suite = el("button");
+  suite.setAttribute("aria-pressed", l.suite);
+  suite.innerHTML = `<span><b>À la suite</b><span>juste après la ligne précédente</span></span>`;
+  suite.onclick = () => { l.suite = true; rendre(); };
+  const fixe = el("button");
+  fixe.setAttribute("aria-pressed", !l.suite);
+  fixe.innerHTML = `<span><b>À une adresse choisie</b><span>univers et canal imposés</span></span>`;
+  fixe.onclick = () => { l.suite = false; rendre(); };
+  z.append(suite, fixe);
+  sc.append(z);
+
+  if(!l.suite){
+    const g = el("div", "rang");
+    g.innerHTML = `<input class="champ" id="du" inputmode="numeric" value="${l.u}" aria-label="Univers">
+      <input class="champ" id="da" inputmode="numeric" value="${l.adr}" aria-label="Adresse">`;
+    g.querySelectorAll("input").forEach((i, k) => i.oninput = () => {
+      const v = +i.value.replace(/\D/g, "") || 1;
+      if(k === 0) l.u = v; else l.adr = Math.min(512, v);
+      const s = sc.querySelector(".sous");
+      const pr = adresser([...S.lignes, l]).filter(x => x.ligne === l.id);
+      if(s && pr.length) s.textContent = `U${pr[0].u} ${pr[0].adr} → U${pr[pr.length - 1].u} ${pr[pr.length - 1].fin}`;
+    });
+    sc.append(g);
+  }
+  sc.insertAdjacentHTML("beforeend", projet.length
+    ? `<div class="sous">U${projet[0].u} ${projet[0].adr} → U${projet[projet.length - 1].u} ${projet[projet.length - 1].fin}</div>`
+    : `<div class="sous">—</div>`);
+
+  const p = el("div");
+  const ok = el("button", "gros dmx", "Poser la ligne");
+  ok.onclick = () => { S.lignes.push(l); S.brouillon = null; S.ecran = "patch-recap"; rendre(); };
+  p.append(ok, bRetour(() => { S.ecran = "patch-nb"; rendre(); }));
+  return [sc, p];
+}
+
+function ecranPatchRecap(){
+  const liste = adresser(S.lignes);
+  const ko = collisions(liste);
+  const univ = [...new Set(liste.map(x => x.u))];
+  const releves = liste.filter(x => (S.fiches[x.n] || {}).circuit).length;
+  const sc = el("div");
+  sc.innerHTML = `<div class="kick">Patch en cours</div>
+    <div class="geant pale" style="font-size:clamp(54px,18vw,110px)">${liste.length}</div>
+    <div class="sous">appareils · ${univ.length} univers · ${puissance(liste)}
+      ${ko.size ? `<br><span class="chip" style="border-color:var(--ko);color:var(--ko)">${ko.size} chevauchements</span>` : ""}</div>`;
+  const z = el("div", "recap");
+  S.lignes.forEach(l => {
+    const mes = liste.filter(x => x.ligne === l.id);
+    const d = el("div", "l");
+    d.innerHTML = `<div><b>${esc(court(l.app))} × ${l.nb}</b>
+        <div class="m">${esc(l.mode)} · ${l.ch} ch${l.suite ? " · à la suite" : ""}</div></div>
+      <span class="r">${mes.length ? `U${mes[0].u} ${mes[0].adr}` : "—"}<i>${
+        mes.length ? `→ U${mes[mes.length - 1].u} ${mes[mes.length - 1].fin}` : ""}</i></span>`;
+    z.append(d);
+  });
+  sc.append(z);
+
+  const p = el("div");
+  const add = el("button", "gros dmx", "+ Ajouter une ligne");
+  add.onclick = () => { S.rech = ""; S.ecran = "patch-app"; rendre(); };
+  const rel = el("button", "gros sec",
+    `Relever les circuits — ${releves} / ${liste.length}`);
+  rel.onclick = () => { S.app = 1; S.ecran = "patch-releve"; rendre(); };
+  p.append(add, rel, bRetour(() => { S.ecran = "accueil"; rendre(); }));
+  return [sc, p];
+}
+
+function ecranPatchReleve(){
+  /* Le même geste que pour les gradateurs, appliqué aux appareils du patch :
+     un appareil à l'écran, un champ, on avance. */
+  const liste = adresser(S.lignes);
+  const x = liste.find(y => y.n === S.app) || liste[0];
+  const sc = el("div");
+  if(!x){ sc.innerHTML = `<p class="q">Le patch est vide.</p>`; return [sc, el("div")]; }
+  const f = fiche(x.n);
+  sc.innerHTML = `<div class="kick">Appareil ${x.n} sur ${liste.length}</div>
+    <div class="geant" style="color:var(--dmx)">${x.adr}</div>
+    <div class="sous">${esc(court(x.app))} · ${esc(x.mode)} · U${x.u} ${x.adr} → ${x.fin}</div>`;
+  const ch = el("input", "champ");
+  Object.assign(ch, { inputMode:"numeric", placeholder:"n° de circuit", value:f.circuit });
+  ch.setAttribute("aria-label", "Circuit de l'appareil " + x.n);
+  ch.oninput = () => { f.circuit = ch.value; majProg(); };
+  ch.onkeydown = e => { if(e.key === "Enter"){ S.app = Math.min(liste.length, x.n + 1); rendre(); } };
+  sc.append(ch);
+  const no = el("input", "note");
+  Object.assign(no, { inputMode:"numeric", placeholder:"n° de patch", value:f.patch });
+  no.oninput = () => { f.patch = no.value; };
+  sc.append(no);
+  sc.append(el("p", "gliss", "Glisser pour passer d'un appareil à l'autre."));
+
+  const p = el("div");
+  const ok = el("button", "gros dmx", "Noté — appareil suivant ▶");
+  ok.onclick = () => { S.app = Math.min(liste.length, x.n + 1); vibrer(12); rendre(); };
+  const r = el("div", "rang");
+  const prec = el("button", "mini", "◀ précédent");
+  const fin = el("button", "mini", "Terminer");
+  prec.onclick = () => { S.app = Math.max(1, x.n - 1); rendre(); };
+  fin.onclick = () => { S.ecran = "patch-recap"; rendre(); };
+  r.append(prec, fin);
+  p.append(ok, r);
+  setTimeout(() => ch.focus({ preventScroll:true }));
+  return [sc, p];
+}
+
+/* -------------------------------- accueil -------------------------------- */
+function ecranAccueil(){
+  const liste = adresser(S.lignes);
+  let faits = 0;
+  for(let n = S.reg.premier; n < S.reg.premier + S.reg.nb; n++)
+    if((S.grada[n] || {}).circuit) faits++;
+  const sc = el("div");
+  sc.innerHTML = `<div class="kick">Canevas B</div>
+    <h2 class="q" style="font-size:26px">Qu'est-ce qu'on relève ?</h2>`;
+  const z = el("div", "choix");
+  const t = el("button");
+  t.innerHTML = `<span><b>Les gradateurs</b><span>appeler, regarder, noter le circuit</span></span>
+    <span class="r">${faits} / ${S.reg.nb}</span>`;
+  t.onclick = () => { S.n = suivantAReleve(S.reg.premier) ?? S.reg.premier; S.ecran = "tel";
+                      allumer(S.n, S.niv); rendre(); };
+  const pt = el("button");
+  pt.innerHTML = `<span><b>Le patch</b><span>poser les lignes, relever les circuits</span></span>
+    <span class="r">${liste.length} app.</span>`;
+  pt.onclick = () => { S.ecran = "patch-recap"; rendre(); };
+  z.append(t, pt);
+  sc.append(z);
+  sc.append(el("p", "gliss",
+    "Un seul écran à la fois, aucune liste à faire défiler : c'est la proposition."));
+  return [sc, el("div")];
+}
+
+/* --------------------------------- rendu --------------------------------- */
+function bRetour(fn){ const b = el("button", "retour", "↤ Retour"); b.onclick = fn; return b; }
+
+function majProg(){
+  let cible = 1, fait = 0, texte = "";
+  if(S.ecran === "tel"){
+    cible = S.reg.nb; texte = "Relevé des gradateurs";
+    for(let n = S.reg.premier; n < S.reg.premier + S.reg.nb; n++)
+      if((S.grada[n] || {}).circuit) fait++;
+  } else if(S.ecran === "patch-releve"){
+    const liste = adresser(S.lignes);
+    cible = Math.max(1, liste.length); texte = "Relevé du patch";
+    fait = liste.filter(x => (S.fiches[x.n] || {}).circuit).length;
+  } else if(S.ecran.startsWith("patch")){
+    const etapes = { "patch-app":1, "patch-mode":2, "patch-nb":3, "patch-dep":4, "patch-recap":4 };
+    cible = 4; fait = etapes[S.ecran] || 0; texte = "Nouvelle ligne";
+  } else { texte = "Plateau"; fait = 0; cible = 1; }
+  $("#pb").style.width = Math.round(fait / cible * 100) + "%";
+  $("#pl").textContent = texte;
+  $("#pr").textContent = S.ecran === "accueil" ? (FLUX.actif ? "flux actif" : "flux au repos")
+    : `${fait} / ${cible}`;
+}
+
+const ECRANS = { accueil:ecranAccueil, tel:ecranTel, "patch-app":ecranPatchApp,
+                 "patch-mode":ecranPatchMode, "patch-nb":ecranPatchNb, "patch-dep":ecranPatchDep,
+                 "patch-recap":ecranPatchRecap, "patch-releve":ecranPatchReleve };
+
+function rendre(){
+  const [sc, p] = ECRANS[S.ecran]();
+  $("#scene").replaceChildren(sc);
+  $("#pied").replaceChildren(p);
+  majProg();
+}
+
+/* Glissement horizontal : précédent / suivant, sans viser un bouton. */
+let x0 = null;
+$("#scene").addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, { passive:true });
+$("#scene").addEventListener("touchend", e => {
+  if(x0 == null) return;
+  const dx = e.changedTouches[0].clientX - x0;
+  x0 = null;
+  if(Math.abs(dx) < 60) return;
+  if(S.ecran === "tel") allerA(S.n + (dx < 0 ? 1 : -1));
+  else if(S.ecran === "patch-releve"){
+    const max = adresser(S.lignes).length;
+    S.app = Math.max(1, Math.min(max, S.app + (dx < 0 ? 1 : -1))); rendre();
+  }
+}, { passive:true });
+
+/* Ancres d'ouverture, comme dans les autres canevas : #tel entre directement
+   dans le relevé des gradateurs, #patch dans le plan de feu. */
+if(location.hash === "#tel"){
+  S.n = suivantAReleve(S.reg.premier) ?? S.reg.premier;
+  S.ecran = "tel"; allumer(S.n, S.niv);
+} else if(location.hash === "#patch") S.ecran = "patch-recap";
+
+rendre();
+</script>
+</body>
+</html>
