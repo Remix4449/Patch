@@ -125,6 +125,9 @@
        color:var(--dmx);border:1.5px solid var(--dmx);border-radius:99px;padding:4px 8px}
   .chipok{display:inline-block;font:700 10px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;
        color:var(--ok);border:1.5px solid var(--ok);border-radius:99px;padding:4px 8px}
+  .chiptrad{display:inline-block;font:700 9.5px/1 var(--body);letter-spacing:.13em;text-transform:uppercase;
+       color:var(--tel);border:1.5px solid var(--tel);border-radius:99px;padding:3px 6px;margin-left:7px;
+       vertical-align:1px}
   .muted{color:var(--ink3);font-size:13.5px}
 
   .f{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
@@ -493,7 +496,7 @@ const $ = (s, r=document) => r.querySelector(s);
 const el = (t, c, h) => { const n = document.createElement(t); if(c) n.className = c; if(h!=null) n.innerHTML = h; return n; };
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const vg = n => String(n).replace(".", ",");
-const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, gel:LEE.find(g => g.ref === "L128") || LEE[0] };
+const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, typeApp:null, gel:LEE.find(g => g.ref === "L128") || LEE[0] };
 
 const ic = (n, cls="ic") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const ICO_FAM = {
@@ -596,7 +599,8 @@ function rowProj(p){
   const b = el("button", "row");
   b.style.setProperty("--c", "var(--proj)");
   b.innerHTML = `<span class="av">${ic(ICO_FAM[p.fam] || "lyre")}</span>
-    <span class="g"><b>${esc(p.nom)}</b><span>${esc(p.marque)} · ${esc(p.fam)}</span></span>
+    <span class="g"><b>${esc(p.nom)}${estTrad(p) ? '<span class="chiptrad">trad</span>' : ""}</b>
+      <span>${esc(p.marque)} · ${esc(p.fam)}</span></span>
     <span class="r">${esc(p.w)}<i>${p.nb ? "×" + p.nb : esc(p.kg)}</i></span>`;
   b.onclick = () => go({ v:"fiche", p });
   return b;
@@ -622,14 +626,27 @@ function bar(titre, cnt, back){
 function vProj(){
   const d = el("div");
   d.append(bar("Projecteurs", PROJECTEURS.length + " réf."));
-  const p = el("div", "pills");
   const mk = (lab, on, fn) => { const b = el("button", "pill", lab);
     b.setAttribute("aria-pressed", on ? "true" : "false"); b.onclick = fn; return b; };
-  p.append(mk("Tout", !S.marque, () => { S.marque = null; render(); }));
+  /* Deux rangs de filtres : le type d'abord — fixtures ou trad, la séparation
+     qui décide de tout le reste — les marques ensuite. */
+  const nT = PROJECTEURS.filter(estTrad).length;
+  const t = el("div", "pills");
+  t.append(mk("Tout", !S.typeApp, () => { S.typeApp = null; render(); }),
+           mk("Fixtures · " + (PROJECTEURS.length - nT), S.typeApp === "fixture",
+              () => { S.typeApp = S.typeApp === "fixture" ? null : "fixture"; render(); }),
+           mk("Trad · " + nT, S.typeApp === "trad",
+              () => { S.typeApp = S.typeApp === "trad" ? null : "trad"; render(); }));
+  d.append(t);
+  const p = el("div", "pills");
+  p.append(mk("Toutes marques", !S.marque, () => { S.marque = null; render(); }));
   MARQUES.forEach(m => p.append(mk(m, S.marque === m, () => { S.marque = S.marque === m ? null : m; render(); })));
   d.append(p);
   const l = el("div", "rowlist");
-  PROJECTEURS.filter(x => !S.marque || x.marque === S.marque).forEach(x => l.append(rowProj(x)));
+  const vus = PROJECTEURS.filter(x => (!S.marque || x.marque === S.marque)
+    && (!S.typeApp || (S.typeApp === "trad") === estTrad(x)));
+  vus.forEach(x => l.append(rowProj(x)));
+  if(!vus.length) l.append(el("p", "muted", "Aucune référence dans ce filtre."));
   d.append(l);
   return d;
 }
@@ -639,13 +656,14 @@ function vFiche(p){
   d.append(bar(p.marque, null, () => go({ v:"proj" })));
   const h = el("div", "hero");
   h.style.setProperty("--c", "var(--proj)");
-  h.innerHTML = `<div class="kick">${esc(p.fam)}</div><h3>${esc(p.nom)}</h3>
+  h.innerHTML = `<div class="kick">${esc(p.fam)}${estTrad(p) ? " · Trad" : ""}</div><h3>${esc(p.nom)}</h3>
     <p>${esc(p.marque)}</p>
     <div class="stats"><div><b>${esc(p.w)}</b><span>Puissance</span></div>
       <div><b>${esc(p.kg)}</b><span>Poids</span></div>
       <div><b>${p.nb ?? "—"}</b><span>Au parc</span></div></div>`;
   d.append(h);
-  d.append(carteModes(p));
+  d.append(carteType(p));
+  d.append(estTrad(p) ? carteTrad(p) : carteModes(p));
   const a = el("div", "card");
   a.innerHTML = `<h4>Accroche</h4>
     <div class="kv"><span>Collier</span><b>Double Doughty</b></div>
@@ -653,6 +671,48 @@ function vFiche(p){
     <div class="kv"><span>Perche basse</span><b>7,75 m</b></div>`;
   d.append(a);
   return d;
+}
+
+/* Fixture ou trad : le choix tient en deux boutons et se garde d'une fois sur
+   l'autre. C'est lui qui décide du reste — une fixture demande une empreinte et
+   descend dans le patch, un trad n'a ni l'une ni l'autre. */
+function carteType(p){
+  const trad = estTrad(p);
+  const c = el("div", "card");
+  c.innerHTML = `<h4>Type d'appareil</h4>`;
+  const g = el("div", "pills");
+  g.style.cssText = "margin:0 0 4px;padding-inline:0;padding-bottom:0";
+  const mk = (lab, on, versTrad) => {
+    const b = el("button", "pill", lab);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.onclick = () => { poserType(p, versTrad); render(); };
+    return b;
+  };
+  g.append(mk("Fixture DMX", !trad, false), mk("Trad · gradateur", trad, true));
+  c.append(g);
+  const note = el("p", "muted", trad
+    ? "Branché sur un gradateur : un seul canal, pas d'empreinte à saisir. "
+      + "Retiré de la liste d'appareils du patch — il se relève dans la feuille des gradateurs."
+    : "Appareil DMX : il porte une empreinte, se choisit dans le patch et s'adresse comme tel.");
+  note.style.margin = "10px 0 0";
+  c.append(note);
+  return c;
+}
+
+/* Un trad n'a pas de bibliothèque de modes : le gradateur le tient sur son
+   canal, il n'y a rien à saisir. La carte le dit plutôt que de laisser un
+   formulaire d'empreinte qui n'a pas de sens ici. */
+function carteTrad(p){
+  const c = el("div", "card");
+  c.innerHTML = `<h4>Gradateur</h4>
+    <div class="kv"><span>Empreinte</span><b>1 canal</b></div>
+    <div class="kv"><span>Commande</span><b>Gradateur</b></div>
+    <div class="kv"><span>Puissance</span><b>${esc(p.w)}</b></div>`;
+  const note = el("p", "muted", "Le numéro de circuit se note dans le patch, "
+    + "à la ligne du gradateur qui porte la lampe.");
+  note.style.margin = "10px 0 0";
+  c.append(note);
+  return c;
 }
 
 /* Bibliothèque de modes : saisie à la main ou import d'un fichier GDTF. */
@@ -785,7 +845,7 @@ function vMdg(){
    Le patch appartient au spectacle : chaque création a le sien, avec ses
    appareils, ses circuits relevés et ses réglages de flux. */
 
-const CLE_PATCHS = "patchs.v2", CLE_BIB = "bibliotheque.v1";
+const CLE_PATCHS = "patchs.v2", CLE_BIB = "bibliotheque.v1", CLE_TYPES = "types.v1";
 const CLE_PATCH_V1 = "patch.v1", CLE_GRADA_V1 = "gradateurs.v1";
 
 function lireLocal(cle, defaut){
@@ -804,6 +864,33 @@ PROJECTEURS.forEach(p => {
     BIB[cleApp(p)] = p.modes.map(m => ({ nom:m.mode, ch:m.ch, demo:!!p.modesDemo }));
 });
 const sauverBib = () => ecrireLocal(CLE_BIB, BIB);
+
+/* Le type de chaque appareil du parc : « trad » pour ceux qui sont branchés sur
+   un gradateur, « fixture » pour les autres. Ce qui n'a jamais été choisi suit
+   la famille (tradParDefaut) ; dès qu'on choisit, c'est le choix qui vaut, et
+   il tient d'un lancement à l'autre. */
+let TYPES = lireLocal(CLE_TYPES, {});
+const estTrad = p => {
+  const v = TYPES[cleApp(p)];
+  return v === undefined ? tradParDefaut(p) : v === "trad";
+};
+const poserType = (p, trad) => {
+  TYPES[cleApp(p)] = trad ? "trad" : "fixture";
+  ecrireLocal(CLE_TYPES, TYPES);
+};
+
+/* Le patch ne propose que des fixtures : un trad n'a pas d'empreinte, il tient
+   sur le canal de son gradateur et se relève dans la feuille. Un appareil déjà
+   posé dans le patch reste dans sa propre liste même s'il vient de basculer en
+   trad — sinon la ligne changerait d'appareil toute seule. */
+function optionsAppareils(courant){
+  const dispo = PROJECTEURS.filter(p => !estTrad(p) || cleApp(p) === courant);
+  return [...new Set(dispo.map(p => p.marque))].map(m =>
+    `<optgroup label="${esc(m)}">${dispo.filter(p => p.marque === m).map(p =>
+      `<option value="${esc(cleApp(p))}"${cleApp(p) === courant ? " selected" : ""}>${
+        esc(p.nom)}${estTrad(p) ? " · trad" : ""}</option>`).join("")}</optgroup>`).join("");
+}
+const premiereFixture = () => PROJECTEURS.find(p => !estTrad(p)) || PROJECTEURS[0];
 
 /* ------------------------------ le modèle -------------------------------- */
 /* Un patch : ses lignes d'appareils, le circuit de chacun, la plage de
@@ -1583,10 +1670,8 @@ function majVoletFiche(){
         <input class="cir" data-focus="fic-cir" inputmode="numeric" value="${esc(circuitApp(x.n))}"
                placeholder="—" aria-label="Circuit de l'appareil ${x.n}"></div>
       <div class="f"><label>Type d'appareil</label>
-        <select class="sa" aria-label="Type de l'appareil ${x.n}">${MARQUES.map(m =>
-          `<optgroup label="${esc(m)}">${PROJECTEURS.filter(y => y.marque === m).map(y =>
-            `<option value="${esc(cleApp(y))}"${cleApp(y) === x.app ? " selected" : ""}>${
-              esc(y.nom)}</option>`).join("")}</optgroup>`).join("")}</select></div>
+        <select class="sa" aria-label="Type de l'appareil ${x.n}">${
+          optionsAppareils(x.app)}</select></div>
       <div class="f"><label>${modes.length ? "Mode" : "Empreinte en canaux"}</label>${modes.length
         ? `<select class="sm" aria-label="Mode de l'appareil ${x.n}">${modes.map(m =>
             `<option value="${esc(m.nom)}"${m.nom === x.mode ? " selected" : ""}>${
@@ -1710,10 +1795,8 @@ function majVoletAjouter(){
     const enKo = mes.some(x => ko.has(x.n));
     const r = el("div", "lg");
     r.innerHTML = `<span class="cf c-app"><i>type d'appareil</i>
-        <select class="sa" aria-label="Type d'appareil">${MARQUES.map(m =>
-          `<optgroup label="${esc(m)}">${PROJECTEURS.filter(p => p.marque === m).map(p =>
-            `<option value="${esc(cleApp(p))}"${cleApp(p) === l.app ? " selected" : ""}>${
-              esc(p.nom)}</option>`).join("")}</optgroup>`).join("")}</select></span>
+        <select class="sa" aria-label="Type d'appareil">${
+          optionsAppareils(l.app)}</select></span>
       <span class="cf c-mode"><i>${modes.length ? "mode" : "canaux par appareil"}</i>${modes.length
         ? `<select class="sm" aria-label="Mode">${modes.map(m =>
             `<option value="${esc(m.nom)}"${m.nom === l.mode ? " selected" : ""}>${
@@ -1767,7 +1850,7 @@ function majVoletAjouter(){
   const pied = el("div", "pied");
   const add = el("button", null, "+ Ligne d'appareils");
   add.onclick = () => {
-    const modele = PROJECTEURS[0];
+    const modele = premiereFixture();
     const modes = BIB[cleApp(modele)] || [];
     const foot = modes.length ? modes[0].ch : 1;
     /* La ligne neuve se pose sur la première adresse qui ne gêne personne — ni un
@@ -1796,10 +1879,11 @@ function majVoletAjouter(){
     }).join("");
     d.append(res);
   }
-  d.append(el("p", "aide", "Les modes viennent de la bibliothèque : la fiche d'un appareil "
-    + "permet de les saisir à la main ou de les importer d'un fichier GDTF. Une ligne neuve "
-    + "arrive sur la première adresse libre ; « départ imposé » la fixe là où elle est, "
-    + "« à la suite » la chaîne sur la ligne d'avant."));
+  d.append(el("p", "aide", "Seules les fixtures sont listées ici : les trad sont branchés "
+    + "sur un gradateur et se relèvent dans la feuille. Les modes viennent de la bibliothèque : "
+    + "la fiche d'un appareil permet de les saisir à la main ou de les importer d'un fichier "
+    + "GDTF. Une ligne neuve arrive sur la première adresse libre ; « départ imposé » la fixe "
+    + "là où elle est, « à la suite » la chaîne sur la ligne d'avant."));
   const fin = el("button", "act", "Terminer");
   fin.onclick = () => fermerVolet();
   d.append(fin);

@@ -111,6 +111,8 @@ la remplacer : on voit la rangée se remplir pendant qu'on écrit.
   libre** : la première plage assez large qui ne croise ni un appareil déjà
   posé, ni un gradateur de la feuille. Les chevauchements sont comptés, la
   ligne fautive signalée, et « adresse libre » la repose ailleurs d'une touche.
+  La liste d'appareils ne propose que des **fixtures** : un trad n'a pas
+  d'empreinte à poser, il se relève dans la feuille des gradateurs.
 
 Toucher une rangée ouvre sa **fiche**. Celle d'un appareil porte son circuit,
 son **type** et son **mode** — qui se changent là, appareil par appareil : la
@@ -159,10 +161,28 @@ appareils qui y sont branchés, ce qu'aucune des deux feuilles d'avant ne
 pouvait dire —, et le patch appareil par appareil. Les correspondances Art-Net
 et sACN de chaque univers ferment la page.
 
+### Fixtures et trad
+
+Deux familles au parc, et la différence décide du reste. Une **fixture** porte
+son électronique et prend une empreinte DMX — plusieurs canaux, un mode. Un
+**trad** est une lampe branchée sur un gradateur : le gradateur la tient sur un
+seul canal, il n'y a donc ni mode ni empreinte à noter.
+
+Le type se choisit dans la fiche de l'appareil, en deux boutons, et il tient
+d'un lancement à l'autre (clé `types.v1`). Tant qu'on n'a rien choisi, la
+famille décide : les découpes et les PC à lampe partent en trad, tout le reste
+en fixture. L'écran *Projecteurs* filtre sur l'un ou l'autre, et chaque rangée
+porte sa pastille.
+
+Un appareil passé en trad quitte la liste d'appareils du patch — celle du volet
+*Ajouter* comme celle de la fiche — puisqu'il n'y a rien à adresser. Une
+exception : s'il est déjà posé dans le patch, il reste dans sa propre liste,
+marqué « trad », pour que la ligne ne change pas d'appareil toute seule.
+
 ### Modes DMX
 
-La fiche de chaque appareil porte sa bibliothèque de modes. Deux façons de la
-remplir :
+La fiche d'une fixture porte sa bibliothèque de modes ; celle d'un trad affiche
+son canal unique à la place. Deux façons de remplir la bibliothèque :
 
 - **à la main** : nom du mode et nombre de canaux, dix secondes par appareil ;
 - **par import GDTF** : le bouton ouvre le sélecteur de fichiers, l'application

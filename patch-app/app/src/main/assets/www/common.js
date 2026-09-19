@@ -258,3 +258,12 @@ function demoUniverse(seed){
 
 const FAMILLES = [...new Set(PROJECTEURS.map(p => p.fam))].sort();
 const MARQUES = [...new Set(PROJECTEURS.map(p => p.marque))].sort();
+
+/* Deux familles au parc. Les *fixtures* portent leur électronique et prennent
+   une empreinte DMX — plusieurs canaux, un mode. Les *trad* sont les lampes
+   branchées sur un gradateur : le gradateur les tient sur un seul canal, il n'y
+   a donc ni mode ni empreinte à noter, et elles ne se patchent pas comme un
+   appareil DMX. Par défaut les découpes et les PC à lampe ; le choix se change
+   appareil par appareil dans sa fiche, et ce choix-là prime. */
+const FAM_TRAD = ["Découpe", "PC"];
+const tradParDefaut = p => FAM_TRAD.includes(p.fam);
