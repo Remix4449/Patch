@@ -655,12 +655,28 @@ function vFiche(p){
   return d;
 }
 
+/* Le mode que le patch prendra tout seul. On le met en tête de la carte :
+   c'est la première chose qu'on règle une fois les modes importés, et c'est
+   celle qu'on vient revérifier avant de patcher. Sans mode enregistré il n'y a
+   rien à choisir : la carte ne pose pas le champ. */
+function champDefaut(k, modes){
+  const def = modeDefaut(k);
+  const f = el("div", "f");
+  f.innerHTML = `<label for="m-def">Mode par défaut</label>
+    <select id="m-def" aria-label="Mode par défaut au patch">${modes.map(m =>
+      `<option value="${esc(m.nom)}"${def && m.nom === def.nom ? " selected" : ""}>${
+        esc(m.nom)} · ${m.ch} ch</option>`).join("")}</select>`;
+  f.querySelector("select").onchange = e => { poserModeDefaut(k, e.target.value); render(); };
+  return f;
+}
+
 /* Bibliothèque de modes : saisie à la main ou import d'un fichier GDTF. */
 function carteModes(p){
   const k = cleApp(p);
   const modes = BIB[k] || [];
   const c = el("div", "card");
   c.innerHTML = `<h4>Modes DMX</h4>`;
+  if(modes.length) c.append(champDefaut(k, modes));
   const l = el("div", "modes");
   if(modes.length){
     modes.forEach((m, i) => {
@@ -786,6 +802,7 @@ function vMdg(){
    appareils, ses circuits relevés et ses réglages de flux. */
 
 const CLE_PATCHS = "patchs.v2", CLE_BIB = "bibliotheque.v1";
+const CLE_MODES_DEFAUT = "modesdefaut.v1";
 const CLE_PATCH_V1 = "patch.v1", CLE_GRADA_V1 = "gradateurs.v1";
 
 function lireLocal(cle, defaut){
@@ -804,6 +821,22 @@ PROJECTEURS.forEach(p => {
     BIB[cleApp(p)] = p.modes.map(m => ({ nom:m.mode, ch:m.ch, demo:!!p.modesDemo }));
 });
 const sauverBib = () => ecrireLocal(CLE_BIB, BIB);
+
+/* Le mode par défaut de chaque appareil : celui que le patch pose tout seul
+   quand on ajoute une ligne ou qu'on change le type d'un appareil. Il se
+   choisit sur la fiche et tient d'un lancement à l'autre. Tant qu'on n'a rien
+   choisi — ou si le mode retenu a disparu de la bibliothèque depuis — c'est le
+   premier de la liste qui vaut, comme avant. */
+let DEFAUTS = lireLocal(CLE_MODES_DEFAUT, {});
+const modeDefaut = app => {
+  const modes = BIB[app] || [];
+  if(!modes.length) return null;
+  return modes.find(m => m.nom === DEFAUTS[app]) || modes[0];
+};
+const poserModeDefaut = (app, nom) => {
+  DEFAUTS[app] = nom;
+  ecrireLocal(CLE_MODES_DEFAUT, DEFAUTS);
+};
 
 /* ------------------------------ le modèle -------------------------------- */
 /* Un patch : ses lignes d'appareils, le circuit de chacun, la plage de
@@ -1607,8 +1640,8 @@ function majVoletFiche(){
        scinde toute seule pour que les autres exemplaires restent ce qu'ils
        sont. */
     d.querySelector(".sa").onchange = e => {
-      const app = e.target.value, m = BIB[app] || [];
-      changerAppareil(x, { app, mode:m.length ? m[0].nom : "", ch:m.length ? m[0].ch : x.ch });
+      const app = e.target.value, m = modeDefaut(app);
+      changerAppareil(x, { app, mode:m ? m.nom : "", ch:m ? m.ch : x.ch });
       peindre();
     };
     const sm = d.querySelector(".sm");
@@ -1730,9 +1763,9 @@ function majVoletAjouter(){
         enKo ? `<button class="lib" title="Reposer la ligne sur une plage libre">adresse libre</button>` : ""}</div>`;
     r.querySelector(".sa").onchange = e => {
       l.app = e.target.value;
-      const m = BIB[l.app] || [];
-      l.mode = m.length ? m[0].nom : "";
-      l.ch = m.length ? m[0].ch : l.ch;
+      const m = modeDefaut(l.app);
+      l.mode = m ? m.nom : "";
+      l.ch = m ? m.ch : l.ch;
       peindre();
     };
     const sm = r.querySelector(".sm");
@@ -1768,14 +1801,14 @@ function majVoletAjouter(){
   const add = el("button", null, "+ Ligne d'appareils");
   add.onclick = () => {
     const modele = PROJECTEURS[0];
-    const modes = BIB[cleApp(modele)] || [];
-    const foot = modes.length ? modes[0].ch : 1;
+    const def = modeDefaut(cleApp(modele));
+    const foot = def ? def.ch : 1;
     /* La ligne neuve se pose sur la première adresse qui ne gêne personne — ni un
        appareil déjà posé, ni un gradateur de la feuille — au lieu de se chaîner
        à l'aveugle sur une plage occupée. */
     const libre = premiereLibre(foot, liste);
     P.lignes.push({ id:idLigne(), app:cleApp(modele),
-                    mode:modes.length ? modes[0].nom : "", ch:foot,
+                    mode:def ? def.nom : "", ch:foot,
                     nb:1, suite:false, u:libre.u, adr:libre.adr });
     peindre();
   };
