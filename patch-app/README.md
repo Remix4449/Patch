@@ -63,13 +63,36 @@ Quelques détails qui ont leur importance :
 
 | Écran | Fonctionnement |
 | --- | --- |
-| Projecteurs, machinerie, hauteurs, MDG | Données embarquées, hors ligne |
+| Projecteurs, machinerie, hauteurs | Recherche, filtres, et l'inventaire se modifie depuis l'application |
+| MDG | Procédure embarquée, hors ligne |
 | Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé et l'ajout d'appareils en volets, l'impression |
 | Gélatines | Lee → RGBWA, teintes approchées à recaler |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
 | Testeur d'adresse | Émission d'une trame Art-Net sur un canal, sans console |
+
+## L'inventaire se tient depuis l'application
+
+Le parc livré avec l'APK vient des bases Notion : c'est un point de départ, pas
+une vérité. Un projecteur arrive, un moteur part en réparation, une passerelle
+est remesurée — les trois listes s'ajoutent, se corrigent et se vident depuis
+l'application.
+
+- Le crayon au bout d'une rangée ouvre sa fiche ; le bouton en pied de liste en
+  ouvre une vide. Le retrait demande deux touches : la première prévient, la
+  seconde exécute.
+- Ce qui est modifié est gardé dans la clé locale `inventaire.v1` et remplace la
+  liste livrée au chargement suivant. Rien ne part sur le réseau. Vider les
+  données de l'application ramène le parc d'origine.
+- Renommer un projecteur déplace ce qui le désignait : ses modes DMX et les
+  lignes d'appareils des patchs, qui le nomment « marque + nom ».
+
+Chaque liste a sa barre de recherche — elle traverse tous les champs de la
+fiche, « 1000 W » ou « 8 m/min » trouvent aussi bien qu'un nom — et son bandeau
+de filtres : les marques pour les projecteurs, les types pour la machinerie. Le
+bandeau garde sa position quand on appuie dessus, et la page ne remonte plus en
+haut.
 
 ## Le patch et le plateau, sur un seul écran
 
