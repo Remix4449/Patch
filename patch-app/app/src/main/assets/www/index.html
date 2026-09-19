@@ -445,6 +445,33 @@
       padding:8px 11px;font:600 11.5px/1 var(--body);color:var(--ink2);white-space:nowrap;cursor:pointer}
   .pat .p.ici .ouv{border-color:var(--tel);color:var(--tel)}
   .pat .p .sup{border:0;background:none;color:var(--ink3);font-size:15px;padding:4px 2px;cursor:pointer}
+
+  /* ------------------- inventaire : recherche, ajout, fiche ------------- */
+  /* Les trois listes du parc se tiennent pareil : une recherche, un bandeau
+     de filtres, les rangées avec leur crayon, un ajout en pied de liste. */
+  .sbar.inv{margin:0 0 10px}
+  .rowed{display:flex;align-items:stretch;gap:6px}
+  .rowed .row{flex:1;min-width:0}
+  .rowed .ed{flex:none;width:44px;border:1.5px solid var(--line);background:var(--bg);
+       border-radius:14px;cursor:pointer;color:var(--ink2);display:grid;place-items:center}
+  .rowed .ed:active{transform:scale(.97)}
+  .rowed .ed .ic{width:18px;height:18px}
+  .ajout{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+       border:1.5px dashed var(--line);background:none;border-radius:14px;padding:13px;
+       margin-top:12px;color:var(--ink2);font:700 13.5px/1 var(--body);cursor:pointer}
+  .ajout .ic{width:17px;height:17px}
+  .ajout:active{transform:scale(.99)}
+  .vide{color:var(--ink3);font-size:13.5px;padding:14px 2px;margin:0}
+  .fin{display:flex;gap:10px;margin:16px 0 4px}
+  .fin button{flex:1;border:0;border-radius:14px;padding:14px;cursor:pointer;
+       font:700 14px/1 var(--body)}
+  .fin .val{background:var(--ink);color:var(--bg)}
+  .fin .ann{background:var(--sur);color:var(--ink2)}
+  .fin button:active{transform:scale(.99)}
+  .sup-tot{width:100%;border:1.5px solid var(--ko);background:none;color:var(--ko);
+       border-radius:14px;padding:13px;margin-top:8px;cursor:pointer;
+       font:700 13px/1 var(--body)}
+  .err{color:var(--ko);font-size:13px;margin:8px 0 0}
 </style>
 </head>
 <body>
@@ -478,6 +505,8 @@
   <symbol id="i-maj" viewBox="0 0 24 24"><path d="M12 2.5v11.5"/><path d="M7.5 9.5L12 14l4.5-4.5"/><path d="M4 15.5v3.5a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5v-3.5"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4L21 21"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12l7.5 7.5"/></symbol>
+  <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M15.7 4.3l4 4L8.4 19.6H4.4v-4z"/><path d="M13.2 6.8l4 4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
 </defs></svg>
 <div class="shell" id="app"></div>
 <nav class="tabbar"><div class="in">
@@ -493,7 +522,9 @@ const $ = (s, r=document) => r.querySelector(s);
 const el = (t, c, h) => { const n = document.createElement(t); if(c) n.className = c; if(h!=null) n.innerHTML = h; return n; };
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const vg = n => String(n).replace(".", ",");
-const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, gel:LEE.find(g => g.ref === "L128") || LEE[0] };
+const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, typeMach:null,
+            qs:{ proj:"", mach:"", haut:"" },
+            gel:LEE.find(g => g.ref === "L128") || LEE[0] };
 
 const ic = (n, cls="ic") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const ICO_FAM = {
@@ -511,10 +542,12 @@ const ICO_MACH = {
 };
 const ICO_HAUT = { Passerelle:"passerelle", "Plateforme élévatrice":"nacelle" };
 
+/* Le compte est une fonction : l'inventaire se modifie depuis l'application,
+   la tuile doit dire ce qu'il contient maintenant. */
 const CATS = [
-  { k:"proj", t:"Projecteurs", s:"Parc lumière", c:"var(--proj)", n:PROJECTEURS.length, i:"lyre" },
-  { k:"mach", t:"Machinerie", s:"Structure & textile", c:"var(--mach)", n:MACHINERIE.length, i:"structure" },
-  { k:"haut", t:"Hauteurs", s:"Passerelles & PEMP", c:"var(--haut)", n:HAUTEURS.length, i:"passerelle" },
+  { k:"proj", t:"Projecteurs", s:"Parc lumière", c:"var(--proj)", n:() => PROJECTEURS.length, i:"lyre" },
+  { k:"mach", t:"Machinerie", s:"Structure & textile", c:"var(--mach)", n:() => MACHINERIE.length, i:"structure" },
+  { k:"haut", t:"Hauteurs", s:"Passerelles & PEMP", c:"var(--haut)", n:() => HAUTEURS.length, i:"passerelle" },
   { k:"mdg", t:"MDG", s:"Procédure brume", c:"var(--mdg)", n:null, i:"mdg" }
 ];
 const TOOLS = [
@@ -547,7 +580,7 @@ function home(){
   CATS.forEach(c => {
     const b = el("button", "tile");
     b.style.setProperty("--c", c.c);
-    b.innerHTML = `${c.n ? `<span class="n">${c.n}</span>` : ""}${ic(c.i)}
+    b.innerHTML = `${c.n ? `<span class="n">${c.n()}</span>` : ""}${ic(c.i)}
       <span class="tx"><b>${c.t}</b><span>${c.s}</span></span>`;
     b.onclick = () => go({ v:c.k });
     g.append(b);
@@ -581,10 +614,8 @@ function resultats(){
     d.append(l);
   };
   bloc("Projecteurs", proj, p => rowProj(p));
-  bloc("Machinerie", mach, m => rowSimple(m.nom, m.type, m.nb ? "×" + m.nb : "", m.charge || m.l || "",
-    "var(--mach)", ICO_MACH[m.type] || "structure"));
-  bloc("Hauteurs", haut, h => rowSimple(h.nom, h.type, vg(h.h.toFixed(2)) + " m", h.charge ? h.charge + " kg" : "",
-    "var(--haut)", ICO_HAUT[h.type] || "passerelle"));
+  bloc("Machinerie", mach, m => rowMach(m));
+  bloc("Hauteurs", haut, h => rowHaut(h));
   bloc("Gélatines", gel, g => { const r = rowSimple(g.ref, g.nom, "", "", g.hex, "gel");
     r.onclick = () => { S.gel = g; go({ v:"gel" }); }; return r; });
   if(!proj.length && !mach.length && !haut.length && !gel.length)
@@ -609,6 +640,16 @@ function rowSimple(t, s, r, r2, c, icone){
     <span class="r">${esc(r)}<i>${esc(r2)}</i></span>`;
   return b;
 }
+function rowMach(m){
+  return rowSimple(m.nom,
+    [m.l && "L " + m.l, m.h && "H " + m.h, m.vit, m.trust].filter(Boolean).join(" · ") || "—",
+    m.nb ? "×" + m.nb : "", m.charge || "", "var(--mach)", ICO_MACH[m.type] || "structure");
+}
+function rowHaut(h){
+  return rowSimple(h.nom, [h.type, h.pos].filter(Boolean).join(" · ") || "—",
+    metres(h.h) + " m", h.charge ? h.charge + " kg" : "",
+    "var(--haut)", ICO_HAUT[h.type] || "passerelle");
+}
 function bar(titre, cnt, back){
   const d = el("div", "bar");
   const b = el("button", "bk", ic("back"));
@@ -622,15 +663,15 @@ function bar(titre, cnt, back){
 function vProj(){
   const d = el("div");
   d.append(bar("Projecteurs", PROJECTEURS.length + " réf."));
-  const p = el("div", "pills");
-  const mk = (lab, on, fn) => { const b = el("button", "pill", lab);
-    b.setAttribute("aria-pressed", on ? "true" : "false"); b.onclick = fn; return b; };
-  p.append(mk("Tout", !S.marque, () => { S.marque = null; render(); }));
-  MARQUES.forEach(m => p.append(mk(m, S.marque === m, () => { S.marque = S.marque === m ? null : m; render(); })));
-  d.append(p);
-  const l = el("div", "rowlist");
-  PROJECTEURS.filter(x => !S.marque || x.marque === S.marque).forEach(x => l.append(rowProj(x)));
-  d.append(l);
+  d.append(recherche("proj", "Ghibli, Robe, découpe, 1000 W…"));
+  d.append(bandeau(marques(), S.marque, v => { S.marque = v; render(); }));
+  const liste = filtrer("proj", x => !S.marque || x.marque === S.marque);
+  if(liste.length){
+    const l = el("div", "rowlist");
+    liste.forEach(({ x, i }) => l.append(avecCrayon(rowProj(x), "proj", i)));
+    d.append(l);
+  } else d.append(el("p", "vide", "Aucun projecteur ne correspond."));
+  d.append(boutonAjout("proj", "Ajouter un projecteur"));
   return d;
 }
 
@@ -652,6 +693,12 @@ function vFiche(p){
     <div class="kv"><span>Charge collier</span><b>750 kg</b></div>
     <div class="kv"><span>Perche basse</span><b>7,75 m</b></div>`;
   d.append(a);
+  const i = PROJECTEURS.indexOf(p);
+  if(i >= 0){
+    const mod = el("button", "ajout", ic("crayon") + "<span>Modifier cette fiche</span>");
+    mod.onclick = () => go({ v:"edit", k:"proj", i });
+    d.append(mod);
+  }
   return d;
 }
 
@@ -721,36 +768,57 @@ function carteModes(p){
 function vMach(){
   const d = el("div");
   d.append(bar("Machinerie", MACHINERIE.length + " réf."));
-  const types = [...new Set(MACHINERIE.map(m => m.type))];
-  types.forEach(t => {
+  d.append(recherche("mach", "moteur, pendrillon, collier, 2 m…"));
+  d.append(bandeau(typesMach(), S.typeMach, v => { S.typeMach = v; render(); }));
+  const liste = filtrer("mach", x => !S.typeMach || x.type === S.typeMach);
+  /* Les types restent des intertitres : la liste se lit comme l'inventaire,
+     le filtre et la recherche ne font que la resserrer. */
+  const vus = [];
+  liste.forEach(({ x }) => { if(!vus.includes(x.type)) vus.push(x.type); });
+  vus.forEach(t => {
     d.insertAdjacentHTML("beforeend", `<h2 class="sec">${esc(t)}</h2>`);
     const l = el("div", "rowlist");
-    MACHINERIE.filter(m => m.type === t).forEach(m =>
-      l.append(rowSimple(m.nom, [m.l && "L " + m.l, m.h && "H " + m.h, m.vit, m.trust].filter(Boolean).join(" · ") || "—",
-        m.nb ? "×" + m.nb : "", m.charge || "", "var(--mach)", ICO_MACH[m.type] || "structure")));
+    liste.filter(({ x }) => x.type === t).forEach(({ x, i }) =>
+      l.append(avecCrayon(rowMach(x), "mach", i)));
     d.append(l);
   });
+  if(!liste.length) d.append(el("p", "vide", "Aucun matériel ne correspond."));
+  d.append(boutonAjout("mach", "Ajouter du matériel"));
   return d;
 }
 
 function vHaut(){
   const d = el("div");
   d.append(bar("Hauteurs", HAUTEURS.length + " niveaux"));
+  /* Les chiffres du bandeau se lisent dans la liste : elle se modifie. */
+  const tri = HAUTEURS.map((x, i) => ({ x, i })).sort((a, b) => Number(a.x.h) - Number(b.x.h));
+  const hs = HAUTEURS.map(x => Number(x.h)).filter(v => isFinite(v));
+  const pemp = HAUTEURS.filter(x => x.type === "Plateforme élévatrice");
+  const bas = hs.length ? Math.min(...hs) : 0, sommet = hs.length ? Math.max(...hs) : 0;
+  const cha = pemp.map(x => Number(x.charge)).filter(v => isFinite(v) && v > 0);
+  const n = HAUTEURS.length;
   const h = el("div", "hero");
   h.style.setProperty("--c", "var(--haut)");
-  h.innerHTML = `<div class="kick">Plateau</div><h3>Grill à 17,00 m</h3>
-    <p>Neuf niveaux de passerelle, une nacelle.</p>
-    <div class="stats"><div><b>7,75</b><span>plus bas (m)</span></div>
-      <div><b>17,00</b><span>grill (m)</span></div>
-      <div><b>136</b><span>PEMP (kg)</span></div></div>`;
+  h.innerHTML = `<div class="kick">Plateau</div><h3>Point haut à ${metres(sommet)} m</h3>
+    <p>${n} niveau${n > 1 ? "x" : ""} relevé${n > 1 ? "s" : ""}${
+      pemp.length ? ` · ${pemp.length} plateforme${pemp.length > 1 ? "s" : ""} élévatrice${
+        pemp.length > 1 ? "s" : ""}` : ""}.</p>
+    <div class="stats"><div><b>${metres(bas)}</b><span>plus bas (m)</span></div>
+      <div><b>${metres(sommet)}</b><span>point haut (m)</span></div>
+      <div><b>${cha.length ? Math.max(...cha) : "—"}</b><span>PEMP (kg)</span></div></div>`;
   d.append(h);
   const c = el("div", "card");
   c.innerHTML = `<h4>Élévation</h4><div class="scale">
-    ${[...HAUTEURS].sort((a, b) => a.h - b.h).map(x => `<div class="st ${x.type === "Plateforme élévatrice" ? "pemp" : ""}">
-      <span class="m">${vg(x.h.toFixed(2))}</span>${ic(ICO_HAUT[x.type] || "passerelle")}<b>${esc(x.nom)}</b>
-      ${x.charge ? `<em>${x.charge} kg</em>` : ""}${x.note ? `<em>${esc(x.note)}</em>` : ""}</div>`).join("")}
+    ${tri.map(({ x }) => `<div class="st ${x.type === "Plateforme élévatrice" ? "pemp" : ""}">
+      <span class="m">${metres(x.h)}</span>${ic(ICO_HAUT[x.type] || "passerelle")}<b>${esc(x.nom)}</b>
+      ${x.charge ? `<em>${esc(x.charge)} kg</em>` : ""}${x.note ? `<em>${esc(x.note)}</em>` : ""}</div>`).join("")}
   </div>`;
   d.append(c);
+  d.insertAdjacentHTML("beforeend", `<h2 class="sec">Niveaux</h2>`);
+  const l = el("div", "rowlist");
+  tri.forEach(({ x, i }) => l.append(avecCrayon(rowHaut(x), "haut", i)));
+  d.append(l);
+  d.append(boutonAjout("haut", "Ajouter un niveau"));
   return d;
 }
 
@@ -798,12 +866,209 @@ function ecrireLocal(cle, val){
 
 const cleApp = p => p.marque + " " + p.nom;
 
+/* ------------------------- l'inventaire modifiable ----------------------- */
+/* Les trois listes de `common.js` sont le parc d'origine. Ce qu'on ajoute,
+   corrige ou retire depuis l'application est gardé en local et remplace la
+   liste au chargement : le matériel bouge, le fichier livré avec l'APK non.
+   Les tableaux sont modifiés sur place — tout le reste du code les lit par
+   leur nom, sans avoir à savoir d'où ils viennent. */
+const CLE_INV = "inventaire.v1";
+const INV = {
+  proj:{ liste:PROJECTEURS, titre:"Projecteurs", un:"projecteur" },
+  mach:{ liste:MACHINERIE, titre:"Machinerie", un:"matériel" },
+  haut:{ liste:HAUTEURS, titre:"Hauteurs", un:"niveau" }
+};
+(function chargerInv(){
+  const sauv = lireLocal(CLE_INV, null);
+  if(!sauv) return;
+  Object.keys(INV).forEach(k => {
+    if(Array.isArray(sauv[k])) INV[k].liste.splice(0, INV[k].liste.length, ...sauv[k]);
+  });
+})();
+const sauverInv = () => ecrireLocal(CLE_INV,
+  { proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS });
+
+/* La bibliothèque de modes se garnit après : elle suit l'inventaire en place,
+   pas celui livré avec l'APK. */
 let BIB = lireLocal(CLE_BIB, {});
 PROJECTEURS.forEach(p => {
   if(p.modes && !BIB[cleApp(p)])
     BIB[cleApp(p)] = p.modes.map(m => ({ nom:m.mode, ch:m.ch, demo:!!p.modesDemo }));
 });
 const sauverBib = () => ecrireLocal(CLE_BIB, BIB);
+
+/* Recalculés à la demande : `MARQUES` et `FAMILLES` de common.js ont été figés
+   au chargement, avant que l'inventaire local ne soit relu. */
+const marques = () => [...new Set(PROJECTEURS.map(p => p.marque))].sort();
+const familles = () => [...new Set(PROJECTEURS.map(p => p.fam))].sort();
+const typesMach = () => [...new Set(MACHINERIE.map(m => m.type))];
+const typesHaut = () => [...new Set(HAUTEURS.map(h => h.type))];
+const metres = v => vg(Number(v || 0).toFixed(2));
+
+/* Renommer un projecteur déplace ce qui le désignait : ses modes DMX et les
+   lignes d'appareils des patchs, qui le nomment « marque + nom ». */
+function renommerApp(ancien, neuf){
+  if(ancien === neuf) return;
+  if(BIB[ancien]){ BIB[neuf] = BIB[ancien]; delete BIB[ancien]; sauverBib(); }
+  let touche = false;
+  PATCHS.forEach(x => (x.lignes || []).forEach(l => {
+    if(l.app === ancien){ l.app = neuf; touche = true; }
+  }));
+  if(touche) sauverPatchs();
+}
+function oublierApp(cle){
+  if(BIB[cle]){ delete BIB[cle]; sauverBib(); }
+}
+
+/* Les champs d'une fiche. `t` dit comment la valeur se range — texte, entier,
+   décimal — et `liste` propose ce qui existe déjà sans interdire autre chose. */
+const CHAMPS = {
+  proj:[
+    { c:"nom", l:"Nom", ph:"Ghibli", req:true },
+    { c:"marque", l:"Marque", ph:"Ayrton", req:true, liste:marques },
+    { c:"fam", l:"Famille", ph:"Lyre découpe", req:true, liste:familles },
+    { c:"w", l:"Puissance", ph:"800 W" },
+    { c:"kg", l:"Poids", ph:"35,6 kg" },
+    { c:"nb", l:"Au parc", ph:"4", t:"entier" }
+  ],
+  mach:[
+    { c:"nom", l:"Nom", ph:"ASD 2 m", req:true },
+    { c:"type", l:"Type", ph:"Structure", req:true, liste:typesMach },
+    { c:"nb", l:"Quantité", ph:"19", t:"entier" },
+    { c:"l", l:"Longueur", ph:"2 m" },
+    { c:"h", l:"Hauteur", ph:"8 m" },
+    { c:"charge", l:"Charge", ph:"750 kg" },
+    { c:"vit", l:"Vitesse", ph:"4 m/min" },
+    { c:"trust", l:"Treillis", ph:"Carrée" }
+  ],
+  haut:[
+    { c:"nom", l:"Nom", ph:"Grill", req:true },
+    { c:"type", l:"Type", ph:"Passerelle", req:true, liste:typesHaut },
+    { c:"pos", l:"Position", ph:"Plateau" },
+    { c:"h", l:"Hauteur (m)", ph:"17", t:"decimal", req:true },
+    { c:"charge", l:"Charge (kg)", ph:"136", t:"entier" },
+    { c:"note", l:"Note", ph:"Hauteur réglage tour" }
+  ]
+};
+
+/* ----------------------- les morceaux communs aux listes ----------------- */
+/* La recherche traverse tous les champs de la fiche : « 1000 W », « 2 m » ou
+   « Doughty » trouvent aussi bien qu'un nom. */
+function filtrer(k, garde){
+  const q = (S.qs[k] || "").trim().toLowerCase();
+  return INV[k].liste.map((x, i) => ({ x, i })).filter(({ x }) =>
+    (!garde || garde(x)) && (!q || Object.keys(x).some(c =>
+      x[c] != null && typeof x[c] !== "object" && String(x[c]).toLowerCase().includes(q))));
+}
+function recherche(k, ph){
+  const lab = el("label", "sbar inv");
+  lab.innerHTML = `${ic("search")}<input data-focus="q-${k}" value="${esc(S.qs[k])}"
+      placeholder="${esc(ph)}" autocomplete="off" aria-label="Rechercher">`;
+  lab.querySelector("input").addEventListener("input", e => {
+    S.qs[k] = e.target.value; render();
+  });
+  return lab;
+}
+function bandeau(vals, actif, fn){
+  const p = el("div", "pills");
+  const mk = (lab, v) => {
+    const b = el("button", "pill", esc(lab));
+    b.setAttribute("aria-pressed", v === actif ? "true" : "false");
+    b.onclick = () => fn(v === actif ? null : v);
+    return b;
+  };
+  p.append(mk("Tout", null));
+  vals.forEach(v => p.append(mk(v, v)));
+  return p;
+}
+function avecCrayon(rangee, k, i){
+  const w = el("div", "rowed");
+  const b = el("button", "ed", ic("crayon"));
+  b.setAttribute("aria-label", "Modifier cette fiche");
+  b.onclick = () => go({ v:"edit", k, i });
+  w.append(rangee, b);
+  return w;
+}
+function boutonAjout(k, lab){
+  const b = el("button", "ajout", ic("plus") + "<span>" + esc(lab) + "</span>");
+  b.onclick = () => go({ v:"edit", k, i:null });
+  return b;
+}
+
+/* ------------------------- la fiche : ajout, édition, retrait ------------- */
+function vEdit(k, i){
+  const def = INV[k];
+  const neuf = i == null;
+  const src = neuf ? {} : (def.liste[i] || {});
+  const d = el("div");
+  d.append(bar(neuf ? "Nouveau " + def.un : (src.nom || "Fiche"), null, () => go({ v:k })));
+
+  const c = el("div", "card");
+  c.innerHTML = `<h4>${neuf ? "Ajouter" : "Modifier"}</h4>`;
+  CHAMPS[k].forEach(f => {
+    const id = "ch-" + f.c;
+    const val = src[f.c] == null ? "" : (f.t === "decimal" ? vg(src[f.c]) : String(src[f.c]));
+    c.insertAdjacentHTML("beforeend",
+      `<div class="f"><label for="${id}">${esc(f.l)}${f.req ? " *" : ""}</label>
+        <input id="${id}" value="${esc(val)}" placeholder="${esc(f.ph)}" autocomplete="off"${
+          f.liste ? ` list="dl-${f.c}"` : ""}${
+          f.t ? ` inputmode="${f.t === "decimal" ? "decimal" : "numeric"}"` : ""}>${
+        f.liste ? `<datalist id="dl-${f.c}">${
+          f.liste().map(v => `<option value="${esc(v)}"></option>`).join("")}</datalist>` : ""}</div>`);
+  });
+  const err = el("p", "err");
+  err.hidden = true;
+  c.append(err);
+  d.append(c);
+
+  const fin = el("div", "fin");
+  const ann = el("button", "ann", "Annuler");
+  ann.onclick = () => go({ v:k });
+  const val = el("button", "val", neuf ? "Ajouter" : "Enregistrer");
+  val.onclick = () => {
+    const o = {}, manque = [];
+    CHAMPS[k].forEach(f => {
+      const v = $("#ch-" + f.c, c).value.trim();
+      if(!v){ if(f.req) manque.push(f.l); else o[f.c] = null; return; }
+      if(f.t){
+        const x = parseFloat(v.replace(",", ".").replace(/[^\d.\-]/g, ""));
+        if(!isFinite(x)){ manque.push(f.l); return; }
+        o[f.c] = f.t === "entier" ? Math.round(x) : x;
+      } else o[f.c] = v;
+    });
+    if(manque.length){
+      err.textContent = "À remplir : " + manque.join(", ") + ".";
+      err.hidden = false;
+      return;
+    }
+    const fiche = { ...src, ...o };
+    if(k === "proj" && !neuf) renommerApp(cleApp(src), cleApp(fiche));
+    if(neuf) def.liste.push(fiche); else def.liste[i] = fiche;
+    sauverInv();
+    go({ v:k });
+  };
+  fin.append(ann, val);
+  d.append(fin);
+
+  if(!neuf){
+    /* Deux touches pour retirer une fiche : la première demande, la seconde
+       exécute. Pas de boîte de dialogue — la WebView n'en veut pas. */
+    const sup = el("button", "sup-tot", "Retirer de l'inventaire");
+    sup.onclick = () => {
+      if(sup.dataset.sur !== "1"){
+        sup.dataset.sur = "1";
+        sup.textContent = "Confirmer le retrait de « " + (src.nom || "cette fiche") + " »";
+        return;
+      }
+      if(k === "proj") oublierApp(cleApp(src));
+      def.liste.splice(i, 1);
+      sauverInv();
+      go({ v:k });
+    };
+    d.append(sup);
+  }
+  return d;
+}
 
 /* ------------------------------ le modèle -------------------------------- */
 /* Un patch : ses lignes d'appareils, le circuit de chacun, la plage de
@@ -1583,7 +1848,7 @@ function majVoletFiche(){
         <input class="cir" data-focus="fic-cir" inputmode="numeric" value="${esc(circuitApp(x.n))}"
                placeholder="—" aria-label="Circuit de l'appareil ${x.n}"></div>
       <div class="f"><label>Type d'appareil</label>
-        <select class="sa" aria-label="Type de l'appareil ${x.n}">${MARQUES.map(m =>
+        <select class="sa" aria-label="Type de l'appareil ${x.n}">${marques().map(m =>
           `<optgroup label="${esc(m)}">${PROJECTEURS.filter(y => y.marque === m).map(y =>
             `<option value="${esc(cleApp(y))}"${cleApp(y) === x.app ? " selected" : ""}>${
               esc(y.nom)}</option>`).join("")}</optgroup>`).join("")}</select></div>
@@ -1710,7 +1975,7 @@ function majVoletAjouter(){
     const enKo = mes.some(x => ko.has(x.n));
     const r = el("div", "lg");
     r.innerHTML = `<span class="cf c-app"><i>type d'appareil</i>
-        <select class="sa" aria-label="Type d'appareil">${MARQUES.map(m =>
+        <select class="sa" aria-label="Type d'appareil">${marques().map(m =>
           `<optgroup label="${esc(m)}">${PROJECTEURS.filter(p => p.marque === m).map(p =>
             `<option value="${esc(cleApp(p))}"${cleApp(p) === l.app ? " selected" : ""}>${
               esc(p.nom)}</option>`).join("")}</optgroup>`).join("")}</select></span>
@@ -1768,6 +2033,7 @@ function majVoletAjouter(){
   const add = el("button", null, "+ Ligne d'appareils");
   add.onclick = () => {
     const modele = PROJECTEURS[0];
+    if(!modele) return;          // plus un seul projecteur à l'inventaire
     const modes = BIB[cleApp(modele)] || [];
     const foot = modes.length ? modes[0].ch : 1;
     /* La ligne neuve se pose sur la première adresse qui ne gêne personne — ni un
@@ -2378,6 +2644,7 @@ function vMaj(){
 /* -------------------------------- moteur -------------------------------- */
 const VIEWS = { home, proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 gel:vGel, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
+let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
   if(STOP){ STOP(); STOP = null; }
   /* Un rendu détruit les champs : on note lequel avait le curseur pour le rendre. */
@@ -2386,20 +2653,45 @@ function render(){
   let pos = null;
   try { pos = avant ? avant.selectionStart : null; } catch(e){ pos = null; }
 
+  /* Un filtre ne fait pas remonter la page : quand on reste sur le même écran,
+     on repose le défilement — celui de la page et celui du bandeau de filtres,
+     que le rendu vient de recréer au début. */
   const r = S.route;
-  const node = r.v === "fiche" ? vFiche(r.p) : VIEWS[r.v]();
+  const meme = VUE_AV === r.v;
+  VUE_AV = r.v;
+  const pav = document.querySelector(".pills");
+  const sx = pav ? pav.scrollLeft : 0;
+  const sy = window.scrollY;
+
+  const node = r.v === "fiche" ? vFiche(r.p)
+             : r.v === "edit" ? vEdit(r.k, r.i)
+             : VIEWS[r.v]();
   $("#app").replaceChildren(node);
 
+  /* Rendre le curseur avant de reposer le défilement, et sans que le champ se
+     ramène lui-même à l'écran : c'est ce `focus` qui faisait sauter la page en
+     haut dès qu'on touchait un filtre en ayant écrit dans la recherche. */
   if(marque){
     const n = document.querySelector('[data-focus="' + marque + '"]');
-    if(n){ n.focus(); try { if(pos != null) n.setSelectionRange(pos, pos); } catch(e){ } }
+    if(n){
+      n.focus({ preventScroll:true });
+      try { if(pos != null) n.setSelectionRange(pos, pos); } catch(e){ }
+    }
+  }
+
+  if(meme){
+    const pap = $(".pills");
+    if(pap && sx) pap.scrollLeft = sx;
+    /* Le contenu neuf n'est pas encore mesuré : sans cette lecture, le
+       navigateur rabat le défilement à zéro faute de savoir jusqu'où il va. */
+    if(sy){ void document.body.offsetHeight; window.scrollTo(0, sy); }
   }
   const q = $("#q");
   if(q){
     q.addEventListener("input", e => { S.q = e.target.value; const pos = e.target.selectionStart; render();
-      const n = $("#q"); if(n){ n.focus(); n.setSelectionRange(pos, pos); } });
+      const n = $("#q"); if(n){ n.focus({ preventScroll:true }); n.setSelectionRange(pos, pos); } });
   }
-  const t = ["proj", "mach", "haut", "mdg", "fiche"].includes(r.v) ? "parc"
+  const t = ["proj", "mach", "haut", "mdg", "fiche", "edit"].includes(r.v) ? "parc"
           : r.v === "home" ? "home" : "tools";
   document.querySelectorAll(".tb").forEach(b => b.setAttribute("aria-current", b.dataset.t === t ? "true" : "false"));
   peindreMaj();          // le rendu a jeté le bandeau : on le repose s'il a lieu d'être
