@@ -129,7 +129,7 @@
 
   .f{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
   .f label{font:700 10.5px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
-  .f input{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;
+  .f input,.f select{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;
            font:500 17px/1 var(--mono);outline:none;width:100%}
   .f input:focus{border-color:var(--dmx)}
   .f select{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;
@@ -340,6 +340,8 @@
   .p-volet .corps{flex:1;min-height:0;overflow-y:auto;padding:12px 16px
       calc(14px + env(safe-area-inset-bottom,0px))}
   .p-volet .aide{font:500 12.5px/1.5 var(--body);color:var(--ink3);margin:10px 2px}
+  .p-volet .alert{font:500 13px/1.5 var(--body);color:var(--ink2);margin:14px 0 0}
+  .p-volet .alert b{color:var(--ko)}
   .p-volet .route{font:500 11.5px/1.4 var(--mono);color:var(--ink3);margin:10px 2px 0;text-align:center}
   .p-volet .rang{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:9px}
   .p-volet .rang2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
@@ -393,23 +395,33 @@
   /* Le tableau d'ajout de lignes. */
   .pf{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px;
       background:var(--bg)}
-  .pf .lg{display:grid;grid-template-columns:minmax(0,1fr) 68px 30px;gap:7px;
+  .pf .lg{display:grid;grid-template-columns:minmax(0,1fr) 84px 30px;gap:7px;
       grid-template-areas:"app app x" "mode qte x" "et et et";
       padding:9px 12px;border-top:1px solid var(--line)}
   .pf .lg:first-of-type{border-top:0}
   .pf select,.pf .lg input{background:var(--sur);border:1.5px solid var(--line);border-radius:9px;
       padding:8px 9px;outline:none;width:100%;font:500 13px/1.2 var(--body);min-width:0}
   .pf .lg input{font-family:var(--mono);text-align:center}
-  .pf .lg .sa{grid-area:app}
-  .pf .lg .sm{grid-area:mode}
-  .pf .lg .qn{grid-area:qte}
-  .pf .lg .x{grid-area:x;align-self:start;border:0;background:none;color:var(--ink3);
+  /* Chaque champ porte son libellé : deux nombres nus côte à côte ne disaient
+     pas lequel était l'empreinte et lequel la quantité. */
+  .pf .lg .cf{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .pf .lg .cf i{font:700 9.5px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;
+      color:var(--ink3);font-style:normal;padding-left:3px;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis}
+  .pf .lg .c-app{grid-area:app}
+  .pf .lg .c-mode{grid-area:mode}
+  .pf .lg .c-qte{grid-area:qte}
+  .pf .lg .x{grid-area:x;align-self:center;border:0;background:none;color:var(--ink3);
       font-size:15px;padding:8px 2px;cursor:pointer}
-  .pf .lg .et{grid-area:et;text-align:left;border:1px solid var(--line);background:var(--sur);
+  .pf .lg .rg{grid-area:et;display:flex;gap:7px;align-items:stretch}
+  .pf .lg .et{flex:1;min-width:0;text-align:left;border:1px solid var(--line);background:var(--sur);
       border-radius:9px;padding:7px 10px;display:flex;justify-content:space-between;
       align-items:baseline;gap:10px;font:500 11px/1.3 var(--mono);color:var(--ink3);cursor:pointer}
   .pf .lg .et b{color:var(--ink);font-size:12px}
   .pf .lg .et.ko b{color:var(--ko)}
+  .pf .lg .lib{flex:none;border:1px solid var(--ko);background:var(--sur);border-radius:9px;
+      padding:7px 10px;font:600 11px/1.2 var(--body);color:var(--ko);cursor:pointer;
+      white-space:nowrap}
   .pf .pied{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;
       background:var(--sur2);border-top:1px solid var(--line)}
   .pf .pied button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;
@@ -888,6 +900,99 @@ function collisions(liste){
     }
   });
   return ko;
+}
+
+/* Les appareils qui mordent sur celui-ci : même univers, plages qui se croisent. */
+function chevauchants(n){
+  const liste = appareils();
+  const x = liste.find(y => y.n === n);
+  if(!x) return [];
+  return liste.filter(y => y.n !== n && y.u === x.u && y.adr <= x.fin && y.fin >= x.adr)
+              .map(y => y.n);
+}
+
+/* La première adresse où un appareil de `foot` canaux tient sans croiser ni un
+   autre appareil ni un gradateur de la feuille. C'est ce qu'on propose quand on
+   ajoute une ligne : se chaîner à l'aveugle posait les nouveaux appareils sur
+   des adresses déjà occupées. */
+function premiereLibre(foot, liste){
+  const f = Math.min(512, Math.max(1, foot || 1));
+  const pris = new Set();
+  let uMax = 1;
+  const prendre = (u, c) => { pris.add(u + ":" + c); uMax = Math.max(uMax, u); };
+  (liste || []).forEach(x => { for(let c = x.adr; c <= x.fin; c++) prendre(x.u, c); });
+  gradas().forEach(n => { const a = adrGrada(n); if(a) prendre(a.u, a.canal); });
+  for(let u = 1; u <= uMax + 1; u++){
+    let a = 1;
+    while(a + f - 1 <= 512){
+      let bute = 0;
+      for(let c = a; c <= a + f - 1; c++) if(pris.has(u + ":" + c)) bute = c;
+      if(!bute) return { u, adr:a };
+      a = bute + 1;
+    }
+  }
+  return { u:uMax + 1, adr:1 };
+}
+
+let nLigne = 0;
+const idLigne = () => "l" + Date.now().toString(36) + (nLigne++).toString(36);
+
+/* Épingler la ligne d'après là où elle se trouve : toucher à une ligne ne doit
+   pas emmener tout le reste du patch avec elle. Ce qui suit reste en place ;
+   s'il y a chevauchement, la fiche et le tableau le disent. */
+function figerSuivante(l, liste){
+  const k = P.lignes.findIndex(y => y.id === l.id);
+  const sv = P.lignes[k + 1];
+  if(!sv || !sv.suite) return;
+  const y = (liste || []).find(z => z.ligne === sv.id);
+  if(y){ sv.suite = false; sv.u = y.u; sv.adr = y.adr; }
+}
+
+/* Un appareil pris seul dans sa ligne : si la ligne en porte plusieurs, elle se
+   scinde en trois — ce qui précède, lui, ce qui suit. L'ordre ne change pas,
+   donc ni les numéros d'appareil ni les circuits qui y sont attachés ne
+   bougent. */
+function isolerAppareil(x){
+  const liste = appareils();
+  const k = P.lignes.findIndex(y => y.id === x.ligne);
+  if(k < 0) return null;
+  const l = P.lignes[k];
+  const nb = Math.max(1, l.nb || 1);
+  figerSuivante(l, liste);
+  if(nb <= 1) return l;
+
+  const avant = x.i, apres = nb - x.i - 1;
+  const seul = { ...l, id:idLigne(), nb:1, suite:avant > 0 ? true : l.suite };
+  const suivants = apres ? { ...l, id:idLigne(), nb:apres, suite:true } : null;
+  const rmp = [];
+  if(avant) rmp.push({ ...l, nb:avant });
+  rmp.push(seul);
+  if(suivants) rmp.push(suivants);
+  P.lignes.splice(k, 1, ...rmp);
+  /* Les exemplaires d'après gardent leur adresse du moment, eux aussi. */
+  if(suivants){
+    const y = liste.find(z => z.n === x.n + 1);
+    if(y){ suivants.suite = false; suivants.u = y.u; suivants.adr = y.adr; }
+  }
+  return seul;
+}
+
+/* Changer le type ou le mode d'un seul appareil, sans toucher aux autres
+   exemplaires de sa ligne. */
+function changerAppareil(x, maj){
+  const l = isolerAppareil(x);
+  if(!l) return;
+  l.app = maj.app;
+  l.mode = maj.mode || "";
+  l.ch = Math.min(512, Math.max(1, maj.ch || 1));
+}
+
+/* Poser cet appareil à la première adresse qui ne gêne personne. */
+function placerAppareilLibre(x){
+  const l = isolerAppareil(x);
+  if(!l) return;
+  const libre = premiereLibre(l.ch, appareils().filter(y => y.n !== x.n));
+  l.suite = false; l.u = libre.u; l.adr = libre.adr;
 }
 
 const appareils = () => adresser(P.lignes);
@@ -1473,10 +1578,21 @@ function majVoletFiche(){
     const enHl = !!(HL && HL.n === x.n);
     volet.querySelector(".tete h3").textContent = courtNom(x.app);
     volet.querySelector(".tete .cpt").textContent = `appareil ${x.n} · U${x.u} · ${x.adr}`;
+    const modes = BIB[x.app] || [];
     d.innerHTML = `<div class="f"><label>Circuit</label>
         <input class="cir" data-focus="fic-cir" inputmode="numeric" value="${esc(circuitApp(x.n))}"
                placeholder="—" aria-label="Circuit de l'appareil ${x.n}"></div>
-      <div class="kv"><span>Mode</span><b>${esc(x.mode || x.ch + " ch")}</b></div>
+      <div class="f"><label>Type d'appareil</label>
+        <select class="sa" aria-label="Type de l'appareil ${x.n}">${MARQUES.map(m =>
+          `<optgroup label="${esc(m)}">${PROJECTEURS.filter(y => y.marque === m).map(y =>
+            `<option value="${esc(cleApp(y))}"${cleApp(y) === x.app ? " selected" : ""}>${
+              esc(y.nom)}</option>`).join("")}</optgroup>`).join("")}</select></div>
+      <div class="f"><label>${modes.length ? "Mode" : "Empreinte en canaux"}</label>${modes.length
+        ? `<select class="sm" aria-label="Mode de l'appareil ${x.n}">${modes.map(m =>
+            `<option value="${esc(m.nom)}"${m.nom === x.mode ? " selected" : ""}>${
+              esc(m.nom)} · ${m.ch} ch</option>`).join("")}</select>`
+        : `<input class="sm" inputmode="numeric" value="${x.ch}"
+                  aria-label="Empreinte en canaux de l'appareil ${x.n}">`}</div>
       <div class="kv"><span>Empreinte</span><b>${x.ch} canaux</b></div>
       <div class="kv"><span>Adresse</span><b>U${x.u} · ${x.adr} → ${x.fin}</b></div>
       <div class="kv"><span>Mise en évidence sur tous les canaux</span>
@@ -1486,6 +1602,39 @@ function majVoletFiche(){
       P.fiches[x.n] = e.target.value; majListe(); majCompteurs(); };
     d.querySelector(".hltout").onchange = e => {
       P.reg.hlTout = e.target.checked; envoyer(); sauverPatchs(); };
+
+    /* Le type et le mode se changent ici, appareil par appareil : la ligne se
+       scinde toute seule pour que les autres exemplaires restent ce qu'ils
+       sont. */
+    d.querySelector(".sa").onchange = e => {
+      const app = e.target.value, m = BIB[app] || [];
+      changerAppareil(x, { app, mode:m.length ? m[0].nom : "", ch:m.length ? m[0].ch : x.ch });
+      peindre();
+    };
+    const sm = d.querySelector(".sm");
+    if(modes.length) sm.onchange = e => {
+      const m = modes.find(y => y.nom === e.target.value);
+      changerAppareil(x, { app:x.app, mode:e.target.value, ch:m ? m.ch : x.ch });
+      peindre();
+    };
+    else sm.onchange = e => {
+      changerAppareil(x, { app:x.app, mode:x.mode,
+                           ch:+e.target.value.replace(/\D/g, "") || 1 });
+      peindre();
+    };
+
+    /* Changer de type change l'empreinte : on le dit tout de suite si l'appareil
+       mord sur ses voisins, avec de quoi le décaler d'une touche. */
+    const gene = chevauchants(x.n);
+    if(gene.length){
+      const av = el("div", "alert",
+        `<b>Chevauchement</b> — cet appareil occupe U${x.u}·${x.adr}→${x.fin} et croise ${
+          gene.length > 1 ? "les appareils" : "l'appareil"} ${gene.join(", ")}.`);
+      const dec = el("button", "act sec", "Décaler à la première adresse libre");
+      dec.onclick = () => { placerAppareilLibre(x); peindre(); };
+      av.append(dec);
+      d.append(av);
+    }
 
     const r = el("div", "rang2");
     const all = el("button", "act" + (enHl ? "" : " sec"),
@@ -1500,8 +1649,10 @@ function majVoletFiche(){
     sup.onclick = () => supprimerAppareil(x);
     d.append(sup);
     d.append(el("p", "aide", "Par défaut, la mise en évidence envoie le premier canal "
-      + "à fond — l'intensité, sur la plupart des appareils. Retirer un appareil enlève "
-      + "un exemplaire à sa ligne : les appareils suivants remontent d'un cran."));
+      + "à fond — l'intensité, sur la plupart des appareils. Changer le type ou le mode "
+      + "ne touche que cet appareil : les autres exemplaires de sa ligne gardent leur adresse, "
+      + "quitte à ce que la nouvelle empreinte les chevauche. Retirer un appareil enlève un "
+      + "exemplaire à sa ligne : les appareils suivants remontent d'un cran."));
   }
 
   c.replaceChildren(d);
@@ -1558,22 +1709,25 @@ function majVoletAjouter(){
     const mes = liste.filter(x => x.ligne === l.id);
     const enKo = mes.some(x => ko.has(x.n));
     const r = el("div", "lg");
-    r.innerHTML = `<select class="sa">${MARQUES.map(m =>
-        `<optgroup label="${esc(m)}">${PROJECTEURS.filter(p => p.marque === m).map(p =>
-          `<option value="${esc(cleApp(p))}"${cleApp(p) === l.app ? " selected" : ""}>${
-            esc(p.nom)}</option>`).join("")}</optgroup>`).join("")}</select>
-      ${modes.length
-        ? `<select class="sm">${modes.map(m =>
+    r.innerHTML = `<span class="cf c-app"><i>type d'appareil</i>
+        <select class="sa" aria-label="Type d'appareil">${MARQUES.map(m =>
+          `<optgroup label="${esc(m)}">${PROJECTEURS.filter(p => p.marque === m).map(p =>
+            `<option value="${esc(cleApp(p))}"${cleApp(p) === l.app ? " selected" : ""}>${
+              esc(p.nom)}</option>`).join("")}</optgroup>`).join("")}</select></span>
+      <span class="cf c-mode"><i>${modes.length ? "mode" : "canaux par appareil"}</i>${modes.length
+        ? `<select class="sm" aria-label="Mode">${modes.map(m =>
             `<option value="${esc(m.nom)}"${m.nom === l.mode ? " selected" : ""}>${
-              esc(m.nom)}</option>`).join("")}</select>`
+              esc(m.nom)} · ${m.ch} ch</option>`).join("")}</select>`
         : `<input class="sm in-ch" data-focus="${l.id}-ch" inputmode="numeric" value="${l.ch}"
-                  aria-label="Empreinte en canaux">`}
-      <input class="qn" data-focus="${l.id}-nb" inputmode="numeric" value="${l.nb}"
-             aria-label="Quantité">
-      <button class="et${enKo ? " ko" : ""}" title="Basculer le départ">${
+                  aria-label="Empreinte en canaux">`}</span>
+      <span class="cf c-qte"><i>quantité</i>
+        <input class="qn" data-focus="${l.id}-nb" inputmode="numeric" value="${l.nb}"
+               aria-label="Quantité d'appareils"></span>
+      <button class="x" aria-label="Retirer la ligne">✕</button>
+      <div class="rg"><button class="et${enKo ? " ko" : ""}" title="Basculer le départ">${
         l.suite ? "à la suite" : "départ imposé"}
-        <b>${mes.length ? `U${mes[0].u}·${mes[0].adr}→${mes[mes.length - 1].fin}` : "—"}</b></button>
-      <button class="x" aria-label="Retirer la ligne">✕</button>`;
+        <b>${mes.length ? `U${mes[0].u}·${mes[0].adr}→${mes[mes.length - 1].fin}` : "—"}</b></button>${
+        enKo ? `<button class="lib" title="Reposer la ligne sur une plage libre">adresse libre</button>` : ""}</div>`;
     r.querySelector(".sa").onchange = e => {
       l.app = e.target.value;
       const m = BIB[l.app] || [];
@@ -1599,6 +1753,14 @@ function majVoletAjouter(){
     };
     r.querySelector(".x").onclick = () => {
       P.lignes = P.lignes.filter(y => y.id !== l.id); peindre(); };
+    const lib = r.querySelector(".lib");
+    if(lib) lib.onclick = () => {
+      const span = Math.min(512, Math.max(1, l.ch || 1) * Math.max(1, l.nb || 1));
+      figerSuivante(l, liste);
+      const libre = premiereLibre(span, liste.filter(x => x.ligne !== l.id));
+      l.suite = false; l.u = libre.u; l.adr = libre.adr;
+      peindre();
+    };
     pf.append(r);
   });
 
@@ -1607,9 +1769,14 @@ function majVoletAjouter(){
   add.onclick = () => {
     const modele = PROJECTEURS[0];
     const modes = BIB[cleApp(modele)] || [];
-    P.lignes.push({ id:"l" + Date.now().toString(36), app:cleApp(modele),
-                    mode:modes.length ? modes[0].nom : "", ch:modes.length ? modes[0].ch : 1,
-                    nb:1, suite:P.lignes.length > 0, u:1, adr:1 });
+    const foot = modes.length ? modes[0].ch : 1;
+    /* La ligne neuve se pose sur la première adresse qui ne gêne personne — ni un
+       appareil déjà posé, ni un gradateur de la feuille — au lieu de se chaîner
+       à l'aveugle sur une plage occupée. */
+    const libre = premiereLibre(foot, liste);
+    P.lignes.push({ id:idLigne(), app:cleApp(modele),
+                    mode:modes.length ? modes[0].nom : "", ch:foot,
+                    nb:1, suite:false, u:libre.u, adr:libre.adr });
     peindre();
   };
   pied.append(add);
@@ -1630,7 +1797,9 @@ function majVoletAjouter(){
     d.append(res);
   }
   d.append(el("p", "aide", "Les modes viennent de la bibliothèque : la fiche d'un appareil "
-    + "permet de les saisir à la main ou de les importer d'un fichier GDTF."));
+    + "permet de les saisir à la main ou de les importer d'un fichier GDTF. Une ligne neuve "
+    + "arrive sur la première adresse libre ; « départ imposé » la fixe là où elle est, "
+    + "« à la suite » la chaîne sur la ligne d'avant."));
   const fin = el("button", "act", "Terminer");
   fin.onclick = () => fermerVolet();
   d.append(fin);

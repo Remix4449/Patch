@@ -104,10 +104,20 @@ la remplacer : on voit la rangée se remplir pendant qu'on écrit.
   appeler un gradateur précis — le 147 se tape, il ne se cherche pas ; un numéro
   au-delà de la plage l'allonge. « + un gradateur » et « Supprimer » sont là
   aussi.
-- **Ajouter** : une ligne par type d'appareil — l'appareil, son mode, la
-  quantité — avec l'étendue calculée en regard. Un appui sur l'étendue bascule
-  entre « à la suite » et départ imposé. Les chevauchements sont comptés, et la
-  ligne fautive signalée.
+- **Ajouter** : une ligne par type d'appareil — l'appareil, son mode ou son
+  empreinte, la quantité, chaque champ sous son libellé — avec l'étendue
+  calculée en regard. Un appui sur l'étendue bascule entre « à la suite » et
+  départ imposé. Une ligne neuve arrive d'emblée sur la **première adresse
+  libre** : la première plage assez large qui ne croise ni un appareil déjà
+  posé, ni un gradateur de la feuille. Les chevauchements sont comptés, la
+  ligne fautive signalée, et « adresse libre » la repose ailleurs d'une touche.
+
+Toucher une rangée ouvre sa **fiche**. Celle d'un appareil porte son circuit,
+son **type** et son **mode** — qui se changent là, appareil par appareil : la
+ligne se scinde toute seule pour que les autres exemplaires gardent le leur et
+leur adresse. Comme la nouvelle empreinte peut être plus large que l'ancienne,
+la fiche dit alors en clair quels appareils sont chevauchés, et propose de
+décaler celui-ci à la première adresse libre.
 
 L'émission est tenue, pas envoyée une fois : un récepteur sACN relâche un
 univers après quelques secondes sans trame, et un nœud Art-Net fait de même.
