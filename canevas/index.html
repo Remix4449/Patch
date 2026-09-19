@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Patch & télécommande — huit canevas</title>
+<link rel="stylesheet" href="socle.css">
+<style>
+.page{max-width:820px;margin:0 auto;padding:22px 18px 60px}
+h1{font:800 32px/1.1 var(--disp);letter-spacing:-.03em;margin:0 0 6px}
+.chapo{color:var(--ink2);font-size:15.5px;margin:0 0 26px;max-width:62ch}
+h2{font:700 11px/1 var(--body);letter-spacing:.17em;text-transform:uppercase;color:var(--ink3);
+   margin:30px 0 12px}
+.gr{display:flex;flex-direction:column;gap:9px;margin-bottom:8px}
+.pb{display:grid;grid-template-columns:30px 1fr;gap:12px;background:var(--sur);border-radius:13px;
+    padding:13px 15px}
+.pb .k{font:600 13px/1.3 var(--mono);color:var(--ko)}
+.pb b{display:block;font:700 14.5px/1.3 var(--body);margin-bottom:2px}
+.pb span{font-size:13.5px;color:var(--ink2)}
+.pb .o{display:block;margin-top:5px;font-size:12.5px;color:var(--ink3)}
+
+.cv{display:block;text-decoration:none;color:inherit;border:1.5px solid var(--line);
+    border-radius:17px;padding:17px 18px;margin-bottom:11px;background:var(--bg)}
+.cv:hover{border-color:var(--ink3)}
+.cv .h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:7px}
+.cv .l{font:700 11px/1 var(--body);letter-spacing:.15em;text-transform:uppercase;
+       background:var(--c);color:#fff;border-radius:99px;padding:5px 9px}
+.cv h3{font:800 21px/1.15 var(--disp);letter-spacing:-.02em;margin:0}
+.cv .th{font-size:14.5px;color:var(--ink);margin:0 0 9px}
+.cv .th b{color:var(--c)}
+.cv ul{margin:0 0 9px;padding-left:18px;display:flex;flex-direction:column;gap:4px;
+       font-size:13.5px;color:var(--ink2)}
+.cv .pc{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink3);
+        border-top:1px solid var(--line);padding-top:9px}
+.cv .pc b{color:var(--ink2);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:10px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:700 10.5px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+td:first-child{color:var(--ink2);width:34%}
+.fin{font-size:13.5px;color:var(--ink2);border-left:3px solid var(--dmx);padding:2px 0 2px 14px;
+     margin-top:22px}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Patch & télécommande</h1>
+<p class="chapo">Huit refontes des deux outils, poussées jusqu'à la maquette manipulable :
+quatre propositions d'abord, chacune défendant une idée différente de ce qui cloche ; puis trois
+mélanges, qui reprennent les deux pièces retenues et ne changent que l'assemblage, et un dernier
+canevas à onglets et volets. Les données,
+les calculs d'adresses et les correspondances Art-Net / sACN sont réels ; l'émission est simulée.</p>
+
+<h2>Ce qui gêne aujourd'hui</h2>
+<div class="gr">
+  <div class="pb"><span class="k">1</span><div><b>Ce qui commande défile avec le reste</b>
+    <span>Le clavier de la télécommande est une carte dans une page : dès qu'on descend dans la
+    feuille pour écrire un circuit, il disparaît. Or les deux servent en même temps.</span>
+    <span class="o">Même chose au patch : le bouton d'export est sous cent lignes d'adresses.</span></div></div>
+  <div class="pb"><span class="k">2</span><div><b>La saisie se fait dans des cases de 50 pixels</b>
+    <span>Circuit et n° de patch sont deux champs minuscules par appareil, au milieu d'une liste.
+    Sur un plateau, avec une lampe frontale, c'est la mauvaise cible.</span>
+    <span class="o">Et rien n'enchaîne : après un champ, il faut viser le suivant.</span></div></div>
+  <div class="pb"><span class="k">3</span><div><b>Le geste réel n'est pas premier</b>
+    <span>Appeler, regarder la scène, noter, passer au suivant : cette boucle n'existe nulle part
+    comme telle. Il faut la reconstituer à la main, touche par touche.</span></div></div>
+  <div class="pb"><span class="k">4</span><div><b>Le ✓ et le niveau se contredisent</b>
+    <span><code>+</code> et <code>−</code> valident d'abord la frappe en cours, puis changent le
+    niveau : la même touche fait deux choses selon ce qui a été tapé avant.</span></div></div>
+  <div class="pb"><span class="k">5</span><div><b>L'univers est invisible</b>
+    <span>512 canaux, et aucun moyen de voir la place restante, les trous, ni un chevauchement.
+    Deux lignes peuvent se marcher dessus sans que rien ne le dise.</span></div></div>
+  <div class="pb"><span class="k">6</span><div><b>Le circuit est saisi deux fois</b>
+    <span>Une colonne « circuit » dans le patch, une autre dans la feuille de gradateurs, et
+    aucun lien : l'application ne peut pas dire quel projecteur est alimenté par quel gradateur.</span></div></div>
+  <div class="pb"><span class="k">7</span><div><b>Chaque frappe reconstruit l'écran</b>
+    <span>Un réglage modifié relance tout le rendu ; le curseur est rattrapé au vol par un
+    <code>data-focus</code>, le volet des réglages par une variable globale. Le symptôme d'une
+    structure à revoir.</span></div></div>
+</div>
+
+<h2>Les quatre premiers canevas</h2>
+
+<a class="cv" href="a-pupitre.html" style="--c:var(--tel)">
+  <div class="h"><span class="l">Canevas A</span><h3>Pupitre</h3></div>
+  <p class="th">Thèse : <b>ce qui commande ne défile jamais.</b> L'écran est coupé en deux —
+  liste défilante en haut, dock de commande fixe en bas. C'est la liste qui vient au pouce.</p>
+  <ul>
+    <li>Pavé, fader et champ de saisie toujours au même endroit, sous le pouce.</li>
+    <li>On ne saisit plus dans la liste : toucher une ligne la charge dans le dock, où le champ est grand et unique.</li>
+    <li>La feuille se recentre toute seule sur le gradateur appelé.</li>
+    <li>Patch et télécommande partagent le même châssis, un simple segment les échange.</li>
+    <li>Le dock du patch enchaîne les fiches appareil par appareil, sans revenir à la liste.</li>
+  </ul>
+  <p class="pc"><span><b>Pour qui</b> · l'usage courant, une main, debout</span>
+    <span><b>Coût</b> · la moitié basse de l'écran est prise en permanence</span></p>
+</a>
+
+<a class="cv" href="b-releve.html" style="--c:var(--dmx)">
+  <div class="h"><span class="l">Canevas B</span><h3>Relevé</h3></div>
+  <p class="th">Thèse : <b>le travail est une boucle, pas un tableau.</b> Allumer, regarder,
+  noter, suivant. L'écran ne pose qu'une question à la fois, en très gros, et il avance seul.</p>
+  <ul>
+    <li>Un gradateur par écran, chiffres lisibles à plusieurs mètres, fond noir de plateau.</li>
+    <li>Valider saute au prochain gradateur <em>non relevé</em> et l'allume : la boucle est la machine.</li>
+    <li>Balayage automatique toutes les n secondes, pour relever sans toucher le téléphone.</li>
+    <li>Glisser à gauche ou à droite pour changer d'appareil, sans viser de bouton.</li>
+    <li>Le patch devient un assistant : appareil, mode, quantité, départ — une décision par écran.</li>
+  </ul>
+  <p class="pc"><span><b>Pour qui</b> · le relevé long, le noir, le plateau</span>
+    <span><b>Coût</b> · beaucoup d'écrans ; on ne voit jamais l'ensemble</span></p>
+</a>
+
+<a class="cv" href="c-plan.html" style="--c:var(--proj)">
+  <div class="h"><span class="l">Canevas C</span><h3>Plan 512</h3></div>
+  <p class="th">Thèse : <b>un univers, ce sont 512 cases — il faut les voir.</b> Le patch devient
+  un plan qu'on manipule au doigt, la télécommande une matrice façon pupitre.</p>
+  <ul>
+    <li>Chaque ligne est un bloc posé sur la grille ; on la fait glisser pour l'adresser.</li>
+    <li>Les chevauchements clignotent en rouge sous le doigt, la place libre se compte d'un coup d'œil.</li>
+    <li>Matrice de gradateurs colorée par circuit : un doublage se voit sans rien toucher.</li>
+    <li>Remplissage de la case = niveau ; appui long = écrire le circuit sans changer de mode.</li>
+    <li>Tire parti du paysage et des grands écrans ; aucun assistant, densité maximale.</li>
+  </ul>
+  <p class="pc"><span><b>Pour qui</b> · qui sait déjà, et veut tout voir</span>
+    <span><b>Coût</b> · cibles petites, peu adapté au travail à bout de bras</span></p>
+</a>
+
+<a class="cv" href="d-feuille.html" style="--c:var(--ok)">
+  <div class="h"><span class="l">Canevas D</span><h3>Feuille unique</h3></div>
+  <p class="th">Thèse : <b>le défaut est dans le modèle, pas dans l'écran.</b> Le circuit est la
+  colonne vertébrale du document ; patch et télécommande deviennent deux façons d'y écrire.</p>
+  <ul>
+    <li>Un seul document : chaque circuit porte ses gradateurs d'un côté, ses appareils de l'autre.</li>
+    <li>Le circuit n'est saisi qu'une fois — la feuille sait enfin quel projecteur est sur quel gradateur.</li>
+    <li>La télécommande n'est plus un écran mais une barre collante, disponible partout.</li>
+    <li>Tester un circuit allume tous ses gradateurs d'un coup, depuis sa ligne.</li>
+    <li>Un seul PDF, qui remplace les deux tableaux d'aujourd'hui.</li>
+  </ul>
+  <p class="pc"><span><b>Pour qui</b> · la préparation, la reprise, la transmission</span>
+    <span><b>Coût</b> · impose une migration des données déjà saisies</span></p>
+</a>
+
+<h2>Trois mélanges — E, F, G</h2>
+<p class="chapo" style="margin-bottom:14px">Le tableau d'ajout d'appareils et les rangées de liste
+du canevas D, plus le relevé plein écran du canevas B : les mêmes pièces, assemblées trois fois.
+Le code commun tient dans <code>mix.js</code> et <code>mix.css</code> ; chaque canevas n'ajoute
+que son assemblage.</p>
+
+<a class="cv" href="e-registre.html" style="--c:var(--tel)">
+  <div class="h"><span class="l">Canevas E</span><h3>Registre</h3></div>
+  <p class="th">Thèse : <b>un registre par objet.</b> Les appareils d'un côté, les gradateurs de
+  l'autre, le même visuel de liste pour les deux.</p>
+  <ul>
+    <li>Le tableau d'ajout ouvre le registre des appareils, les réglages de plage celui des gradateurs.</li>
+    <li>Le bouton du bas emmène au relevé plein écran et ramène la liste remplie.</li>
+    <li>Toucher la pastille « circ ? » d'une rangée entre dans le relevé à cet élément.</li>
+  </ul>
+  <p class="pc"><span><b>Pour qui</b> · quand on cherche une chose précise</span>
+    <span><b>Coût</b> · le lien appareil ↔ gradateur n'apparaît nulle part</span></p>
+</a>
+
+<a class="cv" href="f-deux-temps.html" style="--c:var(--dmx)">
+  <div class="h"><span class="l">Canevas F</span><h3>Deux temps</h3></div>
+  <p class="th">Thèse : <b>ce n'est pas l'outil qui change, c'est la posture.</b> Assis on prépare,
+  debout on relève.</p>
+  <ul>
+    <li>La préparation montre tout à plat : plan de feu, plage de gradateurs, les deux listes.</li>
+    <li>Un seul bouton bascule sur le plateau, avec une file unique : gradateurs puis appareils.</li>
+    <li>Une seule barre d'avancement pour les deux — on ne revient qu'une fois le travail fait.</li>
+  </ul>
+  <p class="pc"><span><b>Pour qui</b> · une séance de relevé d'un bloc</span>
+    <span><b>Coût</b> · pas de télécommande sous la main pendant la préparation</span></p>
+</a>
+
+<a class="cv" href="g-circuits.html" style="--c:var(--ok)">
+  <div class="h"><span class="l">Canevas G</span><h3>Circuits</h3></div>
+  <p class="th">Thèse : <b>le circuit organise l'écran.</b> Chaque carte porte ses gradateurs et
+  ses appareils, et se teste d'une touche.</p>
+  <ul>
+    <li>Le plan de feu vit dans un volet : il pose les appareils et leurs adresses, sans circuit.</li>
+    <li>Les relevés plein écran remplissent les cartes, qui se forment derrière.</li>
+    <li>« Tester ▶ » allume tous les gradateurs d'un circuit — le doublage se vérifie d'une touche.</li>
+  </ul>
+  <p class="pc"><span><b>Pour qui</b> · la vérification et la transmission</span>
+    <span><b>Coût</b> · tant que rien n'est relevé, la feuille est presque vide</span></p>
+</a>
+
+<h2>Onglets et volets — H</h2>
+
+<a class="cv" href="h-onglets.html" style="--c:var(--tel)">
+  <div class="h"><span class="l">Canevas H</span><h3>Onglets</h3></div>
+  <p class="th">Thèse : <b>le volet recouvre la liste, il ne la remplace pas.</b> Une seule liste
+  à trois onglets, la mini-télécommande en haut, deux volets en bas.</p>
+  <ul>
+    <li>Onglets « Tout », « Appareils », « Gradateurs » : la même rangée partout, et chacun annonce ce qui lui reste.</li>
+    <li>Le volet de relevé laisse voir trois ou quatre rangées : la ligne se remplit à la frappe, derrière.</li>
+    <li>Sur 215 gradateurs, seuls ceux qui portent un circuit s'affichent ; le pavé numérique appelle le 147 sans le chercher.</li>
+    <li>La pastille d'une rangée ouvre sa fiche — circuit, repère, suppression ; le corps de la rangée allume, appareil compris.</li>
+    <li>Un patch par spectacle, avec ses réglages de flux, et l'impression de la feuille en A4.</li>
+  </ul>
+  <p class="pc"><span><b>Pour qui</b> · le premier jet à ajuster</span>
+    <span><b>Coût</b> · le volet mange la moitié basse pendant le relevé</span></p>
+</a>
+
+<h2>Comparaison</h2>
+<table>
+  <tr><th></th><th>A · Pupitre</th><th>B · Relevé</th><th>C · Plan</th><th>D · Feuille</th></tr>
+  <tr><td>Commande à portée</td><td>toujours</td><td>toujours</td><td>volet latéral</td><td>barre en haut</td></tr>
+  <tr><td>Vue d'ensemble</td><td>moyenne</td><td>aucune</td><td>totale</td><td>bonne</td></tr>
+  <tr><td>Lisible à bout de bras</td><td>correct</td><td>oui</td><td>non</td><td>non</td></tr>
+  <tr><td>Chevauchements visibles</td><td>comptés</td><td>comptés</td><td>montrés</td><td>comptés</td></tr>
+  <tr><td>Patch et gradateurs liés</td><td>non</td><td>non</td><td>non</td><td>oui</td></tr>
+  <tr><td>Écart au code actuel</td><td>moyen</td><td>fort</td><td>fort</td><td>fort — modèle de données</td></tr>
+</table>
+
+<p class="fin">Ces pages sont des maquettes : rien n'est enregistré, rien ne part sur le réseau.
+Elles sont écrites pour être manipulées au doigt sur un téléphone — c'est là qu'on saura
+laquelle tient. Une fois le choix fait, la refonte se porte dans le dépôt
+<a href="https://github.com/Remix4449/Patch">Remix4449/Patch</a>, où vit l'application.</p>
+</div>
+<script src="socle.js"></script>
+<script>bandeau("");</script>
+</body>
+</html>

@@ -64,71 +64,100 @@ Quelques détails qui ont leur importance :
 | Écran | Fonctionnement |
 | --- | --- |
 | Projecteurs, machinerie, hauteurs, MDG | Données embarquées, hors ligne |
-| Patch | Lignes d'appareils, adressage enchaîné, circuits et numéros de patch, export PDF |
-| Télécommande | Clavier de gradateurs en sACN ou Art-Net, feuille de circuits, export PDF |
+| Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé et l'ajout d'appareils en volets, l'impression |
 | Gélatines | Lee → RGBWA, teintes approchées à recaler |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
 | Testeur d'adresse | Émission d'une trame Art-Net sur un canal, sans console |
 
-## Le patch
+## Le patch et le plateau, sur un seul écran
 
-On pose une ligne par type d'appareil : l'appareil, son mode, la quantité, et
-l'adresse de départ — ou « à la suite » de la ligne précédente. L'application
-enchaîne les adresses en respectant l'empreinte du mode, passe à l'univers
-suivant quand un appareil ne tient plus dans les 512 canaux, et affiche la liste
-appareil par appareil. Chaque ligne porte deux champs libres, **circuit** et
-**numéro de patch**, qui sont à toi et qui partent dans le PDF.
+Le patch et la télécommande faisaient le même travail — savoir ce qui est
+branché où — sans jamais se parler : le circuit s'écrivait deux fois, et le
+clavier disparaissait dès qu'on descendait dans la feuille pour le noter. Ils
+n'en font plus qu'un.
 
-Le patch est enregistré sur le téléphone et survit au redémarrage.
+**La liste est au centre**, en trois onglets : tout, les appareils, les
+gradateurs. La rangée est la même pour les deux — badge, désignation, adresse
+DMX à droite, une pastille. Toucher la pastille ouvre la fiche de l'élément :
+changer son numéro de circuit, corriger son repère, ou le retirer de la
+feuille. Toucher la rangée l'allume : un gradateur à son canal, un appareil à
+son adresse — le premier canal à fond, ce qui suffit à la plupart des
+projecteurs, et « tous les canaux » dans sa fiche pour les autres.
 
-### Export PDF
+Sur deux cents gradateurs, la liste n'affiche que ceux qui portent déjà un
+circuit ; les autres vivent dans le relevé, et un bouton de l'en-tête les rend
+visibles le temps d'une vérification.
 
-Le bouton *Exporter en PDF* ouvre la boîte d'impression d'Android, qui sait
-enregistrer en PDF ou envoyer à une imprimante. La feuille tient en A4 : en-tête
-avec le nom du patch et les totaux, tableau N° / circuit / patch / appareil /
-mode / canaux / univers / adresse / fin, récapitulatif par type et
-correspondances réseau par univers. La puissance totale est calculée depuis
-l'inventaire, avec un astérisque si un appareil n'a pas de puissance renseignée.
+**La télécommande tient en une barre**, au-dessus de la liste : le gradateur
+appelé, son adresse, son circuit, le niveau au doigt, Noir, Full, précédent,
+suivant, Zéro. Un chevron la replie sur une seule ligne — le gradateur, son
+niveau, et de quoi éteindre — quand c'est la liste qui compte.
 
-## La télécommande de gradateurs
+**Deux volets** s'ouvrent depuis le bas et recouvrent la liste à moitié, sans
+la remplacer : on voit la rangée se remplir pendant qu'on écrit.
 
-Le geste du plateau, sans monter en régie : on appelle un gradateur au clavier,
-il s'allume, on regarde quel circuit vient de s'éclairer, et on l'écrit dans la
-feuille — le tout depuis la scène, téléphone en main.
+- **Relever** : le gradateur s'allume, on regarde la scène, on écrit le
+  circuit, et « Noté » saute au suivant *non relevé* en l'allumant. La liste se
+  déplace toute seule dessus. Toucher le grand numéro ouvre un pavé pour
+  appeler un gradateur précis — le 147 se tape, il ne se cherche pas ; un numéro
+  au-delà de la plage l'allonge. « + un gradateur » et « Supprimer » sont là
+  aussi.
+- **Ajouter** : une ligne par type d'appareil — l'appareil, son mode ou son
+  empreinte, la quantité, chaque champ sous son libellé — avec l'étendue
+  calculée en regard. Un appui sur l'étendue bascule entre « à la suite » et
+  départ imposé. Une ligne neuve arrive d'emblée sur la **première adresse
+  libre** : la première plage assez large qui ne croise ni un appareil déjà
+  posé, ni un gradateur de la feuille. Les chevauchements sont comptés, la
+  ligne fautive signalée, et « adresse libre » la repose ailleurs d'une touche.
 
-L'écran tient en trois morceaux :
+Toucher une rangée ouvre sa **fiche**. Celle d'un appareil porte son circuit,
+son **type** et son **mode** — qui se changent là, appareil par appareil : la
+ligne se scinde toute seule pour que les autres exemplaires gardent le leur et
+leur adresse. Comme la nouvelle empreinte peut être plus large que l'ancienne,
+la fiche dit alors en clair quels appareils sont chevauchés, et propose de
+décaler celui-ci à la première adresse libre.
 
-- **le clavier** : chiffres, `C` pour effacer la frappe, `✓` pour appeler le
-  gradateur, `−` et `+` pour le niveau par pas réglable, *Noir* et *Full*, et
-  précédent / suivant pour balayer le gradateur voisin. En mode « un seul
-  gradateur à la fois », appeler le suivant éteint le précédent ;
-- **la feuille de patch** : une ligne par gradateur — son numéro, son adresse
-  DMX calculée, le circuit qu'il alimente et un repère libre. Toucher le numéro
-  appelle le gradateur. Plusieurs gradateurs peuvent porter le même circuit :
-  c'est le cas courant d'un circuit doublé ;
-- **la vue par circuit** : chaque circuit avec la liste de ses gradateurs.
-  Toucher un circuit allume tous ses gradateurs d'un coup, ce qui vérifie un
-  doublage en une touche.
-
-La feuille s'exporte en PDF par la boîte d'impression d'Android : tableau
-gradateur / univers / adresse / circuit / repère, puis le récapitulatif par
-circuit. Elle est enregistrée sur le téléphone et survit au redémarrage.
-
-Les réglages tiennent dans le volet *Réglages du flux* : protocole (sACN ou
-Art-Net), univers de départ, numéro du premier gradateur et son adresse DMX,
-nombre de gradateurs, pas du `+` / `−`, priorité sACN et destination. Un
-gradateur au-delà du canal 512 passe tout seul à l'univers suivant. Sans
-destination, sACN part en multicast et Art-Net en diffusion ; une adresse IP
-force l'envoi vers ce seul nœud.
-
-**L'émission est tenue, pas envoyée une fois.** Un récepteur sACN relâche un
-univers après quelques secondes sans trame, et un nœud Art-Net fait de même :
+L'émission est tenue, pas envoyée une fois : un récepteur sACN relâche un
+univers après quelques secondes sans trame, et un nœud Art-Net fait de même.
 `Emetteur.java` répète donc les univers posés à 30 Hz tant que l'écran est
 ouvert. Quitter l'écran relâche proprement — trois trames à zéro, marquées fin
 de flux en sACN — plutôt que de laisser le plateau allumé sur la dernière
 valeur reçue.
+
+## Un patch par spectacle
+
+Chaque création a le sien. Le nom en haut de l'écran ouvre le menu : ouvrir un
+autre patch, en créer un, dupliquer celui-ci, le renommer, le supprimer. Un
+patch garde ses lignes d'appareils, les circuits relevés, les repères, les
+gradateurs retirés et ses **réglages de flux** — protocole, univers, première
+adresse, premier numéro, nombre de gradateurs, priorité sACN, destination. Une
+reprise dans une autre salle n'a ni le même univers ni le même nombre de
+gradateurs. Changer de patch éteint le plateau.
+
+Tout est enregistré sur le téléphone, sous la clé `patchs.v2`, et n'en sort
+jamais. Les niveaux, eux, ne sont pas enregistrés : rien ne doit rallumer un
+plateau au lancement.
+
+**Reprise de l'ancien format.** Les patchs faits avant cette refonte vivaient
+dans deux clés séparées, `patch.v1` et `gradateurs.v1`, où le circuit était
+écrit deux fois sans que l'une sache ce que l'autre contenait. Au premier
+lancement, l'application en fait un premier spectacle : les lignes d'appareils,
+leurs circuits — recalés du couple « ligne:rang » vers le numéro d'appareil que
+la liste affiche —, la plage de gradateurs et leurs relevés. Les anciennes clés
+sont laissées en place, au cas où il faudrait revenir en arrière.
+
+### Impression
+
+Une seule feuille là où il en fallait deux. Le bouton **PDF** ouvre la boîte
+d'impression d'Android, qui sait enregistrer en PDF ou envoyer à une
+imprimante. La feuille A4 porte le nom du patch, la date, les totaux, puis
+trois tableaux : les gradateurs relevés (numéro, univers, adresse, circuit,
+repère), le récapitulatif **par circuit** — avec ses gradateurs *et* les
+appareils qui y sont branchés, ce qu'aucune des deux feuilles d'avant ne
+pouvait dire —, et le patch appareil par appareil. Les correspondances Art-Net
+et sACN de chaque univers ferment la page.
 
 ### Modes DMX
 

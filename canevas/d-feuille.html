@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Canevas D — Feuille unique</title>
+<link rel="stylesheet" href="socle.css">
+<style>
+/* ---------------------------------------------------------------------------
+   Canevas D — « Feuille unique »
+
+   Thèse : le défaut n'est pas dans les écrans, il est dans le modèle. Le
+   circuit est aujourd'hui saisi deux fois — une fois dans le patch, une fois
+   dans la feuille de gradateurs — sans qu'aucune des deux ne sache que
+   l'autre existe. Résultat : deux tableaux, deux PDF, et rien qui dise quel
+   projecteur est branché sur quel gradateur.
+
+   Ici il n'y a qu'un document, la feuille du plateau, et le circuit en est la
+   colonne vertébrale : il porte ses gradateurs d'un côté, ses appareils de
+   l'autre. Le patch et la télécommande deviennent deux manières d'écrire dans
+   la même feuille. La télécommande n'est plus un écran mais une barre, posée
+   en haut, toujours disponible.
+--------------------------------------------------------------------------- */
+
+.page{max-width:900px;margin:0 auto;padding:0 14px calc(28px + env(safe-area-inset-bottom,0px))}
+
+/* ---------------------------- barre télécommande ------------------------- */
+/* La télécommande réduite à une barre : elle ne prend plus un écran entier,
+   elle accompagne la feuille. */
+.tele{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 94%,transparent);
+      backdrop-filter:blur(10px);border-bottom:1.5px solid var(--line);
+      margin:0 -14px 12px;padding:9px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tele .ap{display:flex;align-items:baseline;gap:7px;min-width:118px}
+.tele .ap b{font:600 26px/1 var(--mono);color:var(--tel);font-variant-numeric:tabular-nums}
+.tele .ap span{font:500 11.5px/1.2 var(--mono);color:var(--ink3)}
+.tele .niv{font:600 19px/1 var(--mono);min-width:56px;text-align:right;font-variant-numeric:tabular-nums}
+.tele button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;
+             padding:8px 10px;font:600 12.5px/1 var(--body);color:var(--ink2);min-width:42px}
+.tele button.on{background:var(--tel);border-color:var(--tel);color:#fff}
+.tele input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;min-width:120px;height:32px;
+     background:none;margin:0}
+.tele input[type="range"]::-webkit-slider-runnable-track{height:32px;border-radius:10px;background:var(--sur2)}
+.tele input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:32px;
+     border-radius:9px;background:var(--tel);border:0}
+.tele input[type="range"]::-moz-range-track{height:32px;border-radius:10px;background:var(--sur2)}
+.tele input[type="range"]::-moz-range-thumb{width:28px;height:32px;border-radius:9px;background:var(--tel);border:0}
+.tele .led{flex:none;width:9px;height:9px;border-radius:99px;background:var(--line)}
+.tele .led.on{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+
+/* --------------------------------- entête -------------------------------- */
+.ent{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:6px 0 14px}
+.ent h1{font:800 25px/1.1 var(--disp);letter-spacing:-.025em;margin:0}
+.ent input.titre{border:0;border-bottom:1.5px dashed var(--line);background:none;outline:none;
+                 font:800 25px/1.1 var(--disp);letter-spacing:-.025em;padding:2px 0;min-width:200px}
+.ent .st{display:flex;gap:16px;margin-left:auto}
+.ent .st div b{display:block;font:600 17px/1 var(--mono)}
+.ent .st div span{font:600 9.5px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+
+.filtres{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.filtres button{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;
+                padding:7px 13px;font:600 12.5px/1 var(--body);color:var(--ink2)}
+.filtres button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.filtres .sp{flex:1}
+.filtres button.lien{border-style:dashed}
+
+/* -------------------------------- la feuille ----------------------------- */
+.circ{border:1.5px solid var(--line);border-radius:14px;margin-bottom:9px;overflow:hidden}
+.circ>.tete{display:grid;grid-template-columns:62px 1fr auto auto;gap:10px;align-items:center;
+            padding:10px 12px;background:var(--sur)}
+.circ>.tete .no{font:600 21px/1 var(--mono);color:var(--ink);text-align:center;
+     background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:8px 0}
+.circ.on>.tete .no{background:var(--tel);border-color:var(--tel);color:#fff}
+.circ>.tete .rep{border:0;background:none;outline:none;font:600 15px/1.2 var(--body);width:100%;
+                 padding:4px 0;border-bottom:1px dashed transparent}
+.circ>.tete .rep:focus{border-bottom-color:var(--line)}
+.circ>.tete .rep::placeholder{color:var(--ink3);font-weight:500;font-style:italic}
+.circ>.tete .cpt{font:500 11px/1.35 var(--mono);color:var(--ink3);text-align:right;white-space:nowrap}
+.circ>.tete .test{border:1.5px solid var(--tel);background:var(--bg);color:var(--tel);
+     border-radius:10px;padding:9px 12px;font:700 12.5px/1 var(--body);white-space:nowrap}
+.circ.on>.tete .test{background:var(--tel);color:#fff}
+
+.el{display:grid;grid-template-columns:22px 1fr 96px 64px;gap:9px;align-items:center;
+    padding:8px 12px;border-top:1px solid var(--line);font-size:13.5px}
+.el .ic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;
+        font:700 10px/1 var(--mono);color:#fff;background:var(--tel)}
+.el .ic.ap{background:var(--dmx)}
+.el .tx b{display:block;font:600 13.5px/1.25 var(--body)}
+.el .tx span{font-size:11.5px;color:var(--ink3)}
+.el .dm{font:500 12px/1.3 var(--mono);color:var(--ink2);text-align:right;white-space:nowrap}
+.el .dm b{color:var(--ink)}
+.el .go{border:1.5px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 0;
+        font:600 11.5px/1 var(--body);color:var(--ink2)}
+.el .go.on{background:var(--tel);border-color:var(--tel);color:#fff}
+
+.aff{display:grid;grid-template-columns:22px 1fr 96px 74px;gap:9px;align-items:center;
+     padding:8px 12px;border-top:1px solid var(--line)}
+.aff input{background:var(--bg);border:1.5px solid var(--line);border-radius:9px;padding:8px 6px;
+           font:600 13px/1 var(--mono);text-align:center;outline:none;width:100%}
+.aff input:focus{border-color:var(--dmx)}
+.bloc{border:1.5px dashed var(--line);border-radius:14px;margin-bottom:9px;overflow:hidden}
+.bloc>h3{margin:0;padding:11px 12px;background:var(--sur);font:700 11px/1 var(--body);
+         letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
+         display:flex;justify-content:space-between;align-items:center}
+.bloc>h3 span{font:500 11px/1 var(--mono);text-transform:none;letter-spacing:0}
+
+/* ------------------------------- plan de feu ----------------------------- */
+.lignes{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px}
+.lignes .lg{display:grid;grid-template-columns:1fr 104px 66px 92px 34px;gap:8px;align-items:center;
+            padding:9px 12px;border-top:1px solid var(--line)}
+.lignes .lg:first-of-type{border-top:0}
+.lignes select,.lignes .lg input{background:var(--bg);border:1.5px solid var(--line);border-radius:9px;
+     padding:8px 9px;outline:none;width:100%;font:500 13px/1.2 var(--body)}
+.lignes .lg input{font-family:var(--mono);text-align:center}
+.lignes .lg .et{font:500 11.5px/1.3 var(--mono);color:var(--ink3);text-align:right}
+.lignes .lg .et b{display:block;color:var(--ink);font-size:12.5px}
+.lignes .lg .x{border:0;background:none;color:var(--ink3);font-size:16px;padding:4px}
+.lignes .pied{display:flex;gap:8px;padding:10px 12px;background:var(--sur);border-top:1px solid var(--line)}
+.lignes .pied button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;
+     padding:9px 13px;font:600 12.5px/1 var(--body);color:var(--ink2)}
+
+.pdf{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0 6px}
+.pdf button{border:0;border-radius:13px;padding:14px;font:700 14px/1 var(--body);background:var(--dmx);color:#fff}
+.pdf button.sec{background:var(--sur);color:var(--ink2);border:1.5px solid var(--line)}
+.note{font:500 12.5px/1.5 var(--body);color:var(--ink3);margin:10px 0}
+.vide{color:var(--ink3);font-size:13px;padding:14px 12px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="tele" id="tele"></div>
+  <div id="corps"></div>
+</div>
+
+<script src="socle.js"></script>
+<script>
+bandeau("d");
+
+/* --------------------------------- état ---------------------------------- */
+/* Un seul document. Les gradateurs et les appareils ne portent qu'une chose
+   en commun : le numéro de circuit. C'est lui qui les réunit. */
+const S = {
+  nom:"Création — série 2026",
+  lignes:JSON.parse(JSON.stringify(DEMO_LIGNES)),
+  grada:JSON.parse(JSON.stringify(DEMO_CIRCUITS)),   // gradateur -> { circuit, note }
+  affect:{ 1:"101", 2:"101", 3:"102", 5:"103" },     // appareil du patch -> circuit
+  reperes:{ 101:"face jardin", 103:"contre 1" },     // circuit -> repère
+  reg:{ ...REGLAGES_DEFAUT },
+  niv:{}, sel:0,
+  filtre:"tout",       // tout | arelever | gradateurs | appareils
+  plan:false           // volet « plan de feu » ouvert
+};
+const court = cle => trouverApp(cle).nom;
+
+/* La feuille : on range gradateurs et appareils sous leur circuit. */
+function feuille(){
+  const m = new Map();
+  const c = k => m.get(k) || m.set(k, { circuit:k, gradas:[], apps:[] }).get(k);
+  Object.keys(S.grada).forEach(n => {
+    const x = (S.grada[n].circuit || "").trim();
+    if(x) c(x).gradas.push(+n);
+  });
+  const liste = adresser(S.lignes);
+  liste.forEach(a => {
+    const x = (S.affect[a.n] || "").trim();
+    if(x) c(x).apps.push(a);
+  });
+  return [...m.values()].sort((a, b) =>
+    (parseInt(a.circuit) || 0) - (parseInt(b.circuit) || 0) || a.circuit.localeCompare(b.circuit));
+}
+const gradasLibres = () => {
+  const out = [];
+  for(let n = S.reg.premier; n < S.reg.premier + S.reg.nb; n++)
+    if(!((S.grada[n] || {}).circuit || "").trim()) out.push(n);
+  return out;
+};
+const appsLibres = () => adresser(S.lignes).filter(a => !((S.affect[a.n] || "").trim()));
+
+/* ------------------------------ télécommande ----------------------------- */
+function allumer(ns, pct = 100){
+  if(S.reg.solo) S.niv = {};
+  ns.forEach(n => S.niv[n] = pct);
+  S.sel = ns[0] || 0;
+  FLUX.poser(S.niv, S.reg); vibrer(12);
+  rendre();
+}
+function niveau(pct){
+  if(!S.sel) return;
+  const v = Math.max(0, Math.min(100, Math.round(pct)));
+  Object.keys(S.niv).forEach(k => { if(S.niv[k] > 0 || +k === S.sel) S.niv[k] = v; });
+  FLUX.poser(S.niv, S.reg);
+  rendre();
+}
+
+function barre(){
+  const d = el("div");
+  const on = Object.keys(S.niv).filter(k => S.niv[k] > 0).map(Number);
+  const lv = S.sel ? (S.niv[S.sel] || 0) : 0;
+  const a = S.sel ? adrGrada(S.sel, S.reg) : null;
+  const cir = S.sel ? (S.grada[S.sel] || {}).circuit : "";
+
+  d.innerHTML = `<span class="led${on.length ? " on" : ""}" title="${
+      on.length ? S.reg.proto + " · " + on.length + " allumé(s)" : "plateau noir"}"></span>
+    <span class="ap"><b>${S.sel || "—"}</b>
+      <span>${a ? `U${a.u}·${a.canal}${cir ? " · circ. " + esc(cir) : ""}`
+                : on.length ? `${on.length} allumé${on.length > 1 ? "s" : ""}` : "plateau noir"}</span></span>
+    <input type="range" min="0" max="100" value="${lv}" aria-label="Niveau"${S.sel ? "" : " disabled"}>
+    <span class="niv">${lv} %</span>
+    <button data-a="noir">Noir</button>
+    <button data-a="full">Full</button>
+    <button data-a="prec" aria-label="Gradateur précédent">◀</button>
+    <button data-a="suiv" aria-label="Gradateur suivant">▶</button>
+    <button data-a="zero">Zéro</button>`;
+
+  d.querySelector("input").oninput = e => niveau(+e.target.value);
+  const act = {
+    noir: () => niveau(0),
+    full: () => niveau(100),
+    prec: () => allumer([Math.max(S.reg.premier, (S.sel || S.reg.premier + 1) - 1)]),
+    suiv: () => allumer([Math.min(S.reg.premier + S.reg.nb - 1, (S.sel || S.reg.premier - 1) + 1)]),
+    zero: () => { S.niv = {}; S.sel = 0; FLUX.arret(); rendre(); }
+  };
+  d.querySelectorAll("button").forEach(b => {
+    b.onclick = act[b.dataset.a];
+    if(b.dataset.a === "noir" && S.sel && lv === 0) b.classList.add("on");
+    if(b.dataset.a === "full" && lv === 100) b.classList.add("on");
+  });
+  return d;
+}
+
+/* --------------------------------- corps --------------------------------- */
+function corps(){
+  const d = el("div");
+  const liste = adresser(S.lignes);
+  const f = feuille();
+  const libres = gradasLibres(), libresA = appsLibres();
+
+  const ent = el("div", "ent");
+  ent.innerHTML = `<input class="titre" value="${esc(S.nom)}" aria-label="Nom de la feuille">
+    <div class="st">
+      <div><b>${f.length}</b><span>circuits</span></div>
+      <div><b>${S.reg.nb - libres.length}</b><span>gradateurs</span></div>
+      <div><b>${liste.length - libresA.length}</b><span>appareils</span></div>
+      <div><b>${puissance(liste)}</b><span>puissance</span></div>
+    </div>`;
+  ent.querySelector("input").oninput = e => { S.nom = e.target.value; };
+  d.append(ent);
+
+  const fl = el("div", "filtres");
+  [["tout", "Toute la feuille"], ["arelever", "À affecter"],
+   ["gradateurs", "Circuits gradués"], ["appareils", "Circuits patchés"]].forEach(([k, t]) => {
+    const b = el("button", null, t);
+    b.setAttribute("aria-pressed", S.filtre === k);
+    b.onclick = () => { S.filtre = k; rendre(); };
+    fl.append(b);
+  });
+  fl.append(el("span", "sp"));
+  const bp = el("button", "lien", S.plan ? "Fermer le plan de feu" : "Plan de feu…");
+  bp.onclick = () => { S.plan = !S.plan; rendre(); };
+  fl.append(bp);
+  d.append(fl);
+
+  if(S.plan) d.append(planDeFeu());
+
+  const vus = f.filter(c =>
+    S.filtre === "tout" ? true :
+    S.filtre === "gradateurs" ? c.gradas.length :
+    S.filtre === "appareils" ? c.apps.length : false);
+
+  if(S.filtre !== "arelever"){
+    if(!vus.length) d.append(el("p", "note", "Aucun circuit dans ce filtre."));
+    vus.forEach(c => d.append(carteCircuit(c)));
+  }
+
+  /* Ce qui n'a pas encore de circuit : la seule saisie qui reste, et elle est
+     au même endroit pour un gradateur et pour un projecteur. */
+  if(S.filtre === "tout" || S.filtre === "arelever"){
+    if(libres.length) d.append(blocLibres("Gradateurs sans circuit", libres.map(n => {
+      const a = adrGrada(n, S.reg);
+      return { cle:"g" + n, ic:"G", tit:"Gradateur " + n,
+               sub:S.reg.proto + " · U" + a.u + " · canal " + a.canal,
+               dm:"U" + a.u + " · " + a.canal,
+               val:"", pose:v => { (S.grada[n] = S.grada[n] || { circuit:"", note:"" }).circuit = v; },
+               test:() => allumer([n]) };
+    }), libres.length + " sur " + S.reg.nb));
+    if(libresA.length) d.append(blocLibres("Appareils sans circuit", libresA.map(x => ({
+      cle:"a" + x.n, ic:"P", tit:court(x.app) + " n°" + x.n,
+      sub:x.mode + " · " + x.ch + " canaux",
+      dm:"U" + x.u + " · " + x.adr,
+      val:"", pose:v => { S.affect[x.n] = v; }, test:null
+    })), libresA.length + " sur " + liste.length));
+    if(!libres.length && !libresA.length)
+      d.append(el("p", "note", "Tout est affecté : la feuille est complète."));
+  }
+
+  const pdf = el("div", "pdf");
+  const p1 = el("button", null, "Exporter la feuille en PDF");
+  const p2 = el("button", "sec", "Exporter par gradateur");
+  p1.onclick = p2.onclick = () => alert(
+    "Maquette : l'application ouvre ici la boîte d'impression d'Android.\n\n" +
+    "Un seul document — circuit, gradateurs, appareils, adresses DMX, repères — " +
+    "au lieu des deux tableaux séparés d'aujourd'hui.");
+  pdf.append(p1, p2);
+  d.append(pdf);
+  d.append(el("p", "note",
+    "Le circuit n'est saisi qu'une fois. Un projecteur branché sur le circuit 101 " +
+    "sait donc quel gradateur l'alimente, et à quelle adresse DMX ce gradateur répond — " +
+    "ce que les deux outils actuels, chacun avec sa propre colonne « circuit », " +
+    "ne peuvent pas dire."));
+  return d;
+}
+
+function carteCircuit(c){
+  const allume = c.gradas.some(n => (S.niv[n] || 0) > 0);
+  const d = el("div", "circ" + (allume ? " on" : ""));
+  const t = el("div", "tete");
+  t.innerHTML = `<span class="no">${esc(c.circuit)}</span>
+    <input class="rep" placeholder="repère…"
+           value="${esc(S.reperes[c.circuit] || "")}" aria-label="Repère du circuit ${esc(c.circuit)}">
+    <span class="cpt">${c.gradas.length} gradateur${c.gradas.length > 1 ? "s" : ""}<br>${
+      c.apps.length} appareil${c.apps.length > 1 ? "s" : ""}</span>
+    <button class="test">${allume ? "Éteindre" : "Tester ▶"}</button>`;
+  t.querySelector(".rep").oninput = e => { S.reperes[c.circuit] = e.target.value; };
+  t.querySelector(".test").onclick = () => {
+    if(!c.gradas.length){ alert("Ce circuit n'a pas encore de gradateur."); return; }
+    if(allume){ c.gradas.forEach(n => S.niv[n] = 0); FLUX.poser(S.niv, S.reg); rendre(); }
+    else allumer(c.gradas);
+  };
+  d.append(t);
+
+  c.gradas.forEach(n => {
+    const a = adrGrada(n, S.reg);
+    const lv = S.niv[n] || 0;
+    const r = el("div", "el");
+    r.innerHTML = `<span class="ic">G</span>
+      <span class="tx"><b>Gradateur ${n}</b><span>${esc((S.grada[n] || {}).note || "—")}</span></span>
+      <span class="dm">${S.reg.proto}<br>U${a.u} · <b>${a.canal}</b></span>
+      <button class="go${lv > 0 ? " on" : ""}">${lv > 0 ? lv + " %" : "allumer"}</button>`;
+    r.querySelector("button").onclick = () => lv > 0
+      ? (S.niv[n] = 0, FLUX.poser(S.niv, S.reg), rendre())
+      : allumer([n]);
+    d.append(r);
+  });
+
+  c.apps.forEach(x => {
+    const r = el("div", "el");
+    r.innerHTML = `<span class="ic ap">P</span>
+      <span class="tx"><b>${esc(court(x.app))}</b><span>${esc(x.mode)} · ${x.ch} canaux</span></span>
+      <span class="dm">appareil ${x.n}<br>U${x.u} · <b>${x.adr}</b></span>
+      <button class="go">détacher</button>`;
+    r.querySelector("button").onclick = () => { delete S.affect[x.n]; rendre(); };
+    d.append(r);
+  });
+
+  if(!c.gradas.length) d.append(el("p", "vide", "Aucun gradateur sur ce circuit : rien à tester."));
+  if(!c.apps.length) d.append(el("p", "vide", "Aucun appareil branché sur ce circuit."));
+  return d;
+}
+
+function blocLibres(titre, items, compte){
+  const d = el("div", "bloc");
+  d.insertAdjacentHTML("beforeend", `<h3>${esc(titre)}<span>${esc(compte)}</span></h3>`);
+  items.forEach(it => {
+    const r = el("div", "aff");
+    r.innerHTML = `<span class="ic${it.ic === "P" ? " ap" : ""}">${it.ic}</span>
+      <span class="tx"><b>${esc(it.tit)}</b><span>${esc(it.sub)}</span></span>
+      <span class="dm" style="font:500 12px/1.3 var(--mono);color:var(--ink3);text-align:right">${esc(it.dm)}</span>
+      <input inputmode="numeric" placeholder="circuit" aria-label="Circuit de ${esc(it.tit)}">`;
+    const i = r.querySelector("input");
+    /* On ne réorganise la feuille qu'à la validation : réordonner sous les
+       doigts ferait sauter la ligne en cours de frappe. */
+    i.onchange = () => { if(i.value.trim()){ it.pose(i.value.trim()); rendre(); } };
+    i.onkeydown = e => {
+      if(e.key !== "Enter") return;
+      const suivant = r.nextElementSibling && r.nextElementSibling.querySelector("input");
+      if(i.value.trim()){ it.pose(i.value.trim()); rendre(); }
+      else if(suivant) suivant.focus();
+    };
+    if(it.test){
+      const b = el("button", "go");
+      b.textContent = "▶";
+      b.style.gridColumn = "4";
+      b.onclick = it.test;
+    }
+    d.append(r);
+  });
+  return d;
+}
+
+/* ------------------------------- plan de feu ----------------------------- */
+/* Le patch garde sa place, mais il devient un volet : une ligne par type
+   d'appareil, l'adressage en regard. Le circuit ne s'y saisit plus — il se
+   pose dans la feuille, avec celui des gradateurs. */
+function planDeFeu(){
+  const liste = adresser(S.lignes);
+  const ko = collisions(liste);
+  const d = el("div", "lignes");
+  S.lignes.forEach(l => {
+    const app = trouverApp(l.app);
+    const mes = liste.filter(x => x.ligne === l.id);
+    const r = el("div", "lg");
+    r.innerHTML = `<select class="sa">${MARQUES.map(m =>
+        `<optgroup label="${esc(m)}">${APPAREILS.filter(a => a.marque === m).map(a =>
+          `<option value="${esc(cleApp(a))}"${cleApp(a) === l.app ? " selected" : ""}>${esc(a.nom)}</option>`
+        ).join("")}</optgroup>`).join("")}</select>
+      <select class="sm">${app.modes.map(m =>
+        `<option value="${esc(m.nom)}"${m.nom === l.mode ? " selected" : ""}>${esc(m.nom)}</option>`
+      ).join("")}</select>
+      <input class="qn" inputmode="numeric" value="${l.nb}" aria-label="Quantité">
+      <span class="et">${l.suite ? "à la suite" : "départ imposé"}
+        <b>${mes.length ? `U${mes[0].u}·${mes[0].adr}→${mes[mes.length - 1].fin}` : "—"}</b></span>
+      <button class="x" aria-label="Retirer la ligne">✕</button>`;
+    r.querySelector(".sa").onchange = e => { l.app = e.target.value;
+      const a = trouverApp(l.app); l.mode = a.modes[0].nom; l.ch = a.modes[0].ch; rendre(); };
+    r.querySelector(".sm").onchange = e => { l.mode = e.target.value;
+      const m = app.modes.find(x => x.nom === l.mode); if(m) l.ch = m.ch; rendre(); };
+    r.querySelector(".qn").onchange = e => {
+      l.nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0); rendre(); };
+    r.querySelector(".et").onclick = () => { l.suite = !l.suite; rendre(); };
+    r.querySelector(".x").onclick = () => { S.lignes = S.lignes.filter(x => x.id !== l.id); rendre(); };
+    d.append(r);
+  });
+  const p = el("div", "pied");
+  const add = el("button", null, "+ Ligne");
+  add.onclick = () => {
+    const a = APPAREILS[0];
+    S.lignes.push({ id:"l" + Date.now().toString(36), app:cleApp(a), mode:a.modes[0].nom,
+                    ch:a.modes[0].ch, nb:4, suite:S.lignes.length > 0, u:1, adr:1 });
+    rendre();
+  };
+  p.append(add);
+  p.insertAdjacentHTML("beforeend",
+    `<span style="align-self:center;font:500 12px/1.3 var(--mono);color:${
+      ko.size ? "var(--ko)" : "var(--ink3)"}">${liste.length} appareils · ${
+      ko.size ? ko.size + " en chevauchement" : "aucun chevauchement"}</span>`);
+  d.append(p);
+  return d;
+}
+
+/* --------------------------------- rendu --------------------------------- */
+function rendre(){
+  const actif = document.activeElement;
+  const pos = actif && actif.selectionStart;
+  const marque = actif && actif.getAttribute && actif.getAttribute("aria-label");
+  $("#tele").replaceChildren(barre());
+  $("#corps").replaceChildren(corps());
+  if(marque){
+    const n = document.querySelector(`[aria-label="${marque.replace(/"/g, '\\"')}"]`);
+    if(n){ n.focus(); try { if(pos != null) n.setSelectionRange(pos, pos); } catch(e){} }
+  }
+}
+rendre();
+</script>
+</body>
+</html>

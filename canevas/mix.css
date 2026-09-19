@@ -1,0 +1,163 @@
+/* ---------------------------------------------------------------------------
+   Pièces communes aux canevas E, F et G — les deux morceaux retenus des
+   premières propositions, sortis de leur canevas d'origine pour être
+   assemblés autrement :
+
+   - l'éditeur de lignes du canevas D (`.pf`) : une ligne par type d'appareil,
+     l'étendue calculée en regard ;
+   - les rangées du canevas D (`.rg`) : badge, désignation, adresse DMX à
+     droite, une action — le même visuel pour un appareil et pour un gradateur ;
+   - le relevé plein écran du canevas B (`.fs`) : une question à la fois, en
+     très gros, sur fond de plateau.
+
+   Ce qui change d'un canevas à l'autre, c'est l'assemblage, pas ces pièces.
+--------------------------------------------------------------------------- */
+
+/* ------------------------------- rangées -------------------------------- */
+.rg{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:10px;align-items:center;
+    padding:9px 12px;border-top:1px solid var(--line);font-size:13.5px}
+.rg:first-child{border-top:0}
+.rg .bd{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;
+        font:700 10px/1 var(--mono);color:var(--bg);background:var(--tel)}
+.rg .bd.ap{background:var(--dmx)}
+.rg .tx{min-width:0}
+.rg .tx b{display:block;font:600 13.5px/1.25 var(--body);overflow:hidden;
+          text-overflow:ellipsis;white-space:nowrap}
+.rg .tx span{font-size:11.5px;color:var(--ink3)}
+.rg .dm{font:500 11.5px/1.3 var(--mono);color:var(--ink3);text-align:right;white-space:nowrap}
+.rg .dm b{display:block;font-size:13px;color:var(--ink)}
+.rg .ac{border:1.5px solid var(--line);background:var(--bg);border-radius:9px;padding:8px 10px;
+        font:600 11.5px/1 var(--body);color:var(--ink2);white-space:nowrap;min-width:62px}
+.rg .ac.on{background:var(--tel);border-color:var(--tel);color:#fff}
+.rg .ac.vide{border-style:dashed;color:var(--ink3)}
+.rg.on{background:color-mix(in srgb,var(--tel) 10%,transparent)}
+.rg.cliquable{cursor:pointer}
+.pile>h3 button{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;
+                padding:4px 9px;font:600 10px/1 var(--body);letter-spacing:.06em;
+                text-transform:uppercase;color:var(--ink2)}
+
+.pile{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;background:var(--sur);
+      margin-bottom:10px}
+.pile>h3{margin:0;padding:11px 12px;background:var(--sur2);font:700 10.5px/1 var(--body);
+         letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
+         display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pile>h3 span{font:500 11px/1 var(--mono);text-transform:none;letter-spacing:0}
+.pile .rien{padding:14px 12px;font-size:13px;color:var(--ink3);border-top:1px solid var(--line)}
+
+/* --------------------------- éditeur de lignes --------------------------- */
+.pf{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px;
+    background:var(--sur)}
+.pf .lg{display:grid;grid-template-columns:minmax(0,1fr) 104px 62px 96px 32px;gap:8px;
+        align-items:center;padding:9px 12px;border-top:1px solid var(--line)}
+.pf .lg:first-of-type{border-top:0}
+.pf select,.pf .lg input{background:var(--bg);border:1.5px solid var(--line);border-radius:9px;
+     padding:8px 9px;outline:none;width:100%;font:500 13px/1.2 var(--body);min-width:0}
+.pf .lg input{font-family:var(--mono);text-align:center}
+.pf .lg .et{font:500 11px/1.3 var(--mono);color:var(--ink3);text-align:right}
+.pf .lg .et b{display:block;color:var(--ink);font-size:12px}
+.pf .lg .et.ko b{color:var(--ko)}
+.pf .lg .x{border:0;background:none;color:var(--ink3);font-size:15px;padding:4px}
+.pf .pied{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;
+          background:var(--sur2);border-top:1px solid var(--line)}
+.pf .pied button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;
+     padding:9px 13px;font:600 12.5px/1 var(--body);color:var(--ink2)}
+.pf .pied .tot{margin-left:auto;font:500 11.5px/1.4 var(--mono);color:var(--ink3);text-align:right}
+.pf .pied .tot b{color:var(--ink)}
+.pf .pied .tot b.ko{color:var(--ko)}
+/* En étroit, la ligne se replie en trois rangs plutôt que de se tasser :
+   l'appareil, puis mode et quantité, puis l'étendue sur toute la largeur. */
+@media (max-width:620px){
+  .pf .lg{grid-template-columns:minmax(0,1fr) 68px 30px;gap:7px;
+          grid-template-areas:"app app x" "mode qte x" "et et et"}
+  .pf .lg .sa{grid-area:app}
+  .pf .lg .sm{grid-area:mode}
+  .pf .lg .qn{grid-area:qte}
+  .pf .lg .x{grid-area:x;align-self:start;padding-top:9px}
+  .pf .lg .et{grid-area:et;text-align:left;border:1px solid var(--line);background:var(--bg);
+              border-radius:9px;padding:7px 10px;display:flex;justify-content:space-between;
+              align-items:baseline;gap:10px}
+}
+
+/* --------------------------- barre télécommande -------------------------- */
+.tl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 12px;
+    background:var(--sur);border:1.5px solid var(--line);border-radius:13px;margin-bottom:12px}
+.tl .led{flex:none;width:9px;height:9px;border-radius:99px;background:var(--line)}
+.tl .led.on{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+.tl .ap{display:flex;align-items:baseline;gap:7px;min-width:110px}
+.tl .ap b{font:600 24px/1 var(--mono);color:var(--tel);font-variant-numeric:tabular-nums}
+.tl .ap span{font:500 11px/1.2 var(--mono);color:var(--ink3)}
+.tl input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;min-width:110px;height:30px;
+     background:none;margin:0}
+.tl input[type="range"]::-webkit-slider-runnable-track{height:30px;border-radius:10px;background:var(--sur2)}
+.tl input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:30px;
+     border-radius:9px;background:var(--tel);border:0}
+.tl input[type="range"]::-moz-range-track{height:30px;border-radius:10px;background:var(--sur2)}
+.tl input[type="range"]::-moz-range-thumb{width:26px;height:30px;border-radius:9px;background:var(--tel);border:0}
+.tl .niv{font:600 17px/1 var(--mono);min-width:50px;text-align:right;font-variant-numeric:tabular-nums}
+.tl button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;
+           font:600 12.5px/1 var(--body);color:var(--ink2);min-width:42px}
+.tl button.on{background:var(--tel);border-color:var(--tel);color:#fff}
+
+/* Touches resserrées : le bandeau tient sur une ligne et rend de la place
+   à la liste, qui est le vrai sujet de l'écran. */
+.tl.compact{gap:6px;padding:7px 10px}
+.tl.compact button{padding:6px 8px;font:600 11.5px/1 var(--body);min-width:34px;border-radius:9px}
+.tl.compact .ap{min-width:92px;gap:6px}
+.tl.compact .ap b{font-size:20px}
+.tl.compact .ap span{font-size:10.5px}
+.tl.compact .niv{font-size:15px;min-width:44px}
+.tl.compact input[type="range"]{height:26px;min-width:84px}
+.tl.compact input[type="range"]::-webkit-slider-runnable-track{height:26px}
+.tl.compact input[type="range"]::-webkit-slider-thumb{width:22px;height:26px}
+.tl.compact input[type="range"]::-moz-range-track{height:26px}
+.tl.compact input[type="range"]::-moz-range-thumb{width:22px;height:26px}
+.tl .chev{min-width:30px;padding:6px 7px;font-size:12px;border-style:dashed}
+
+/* Repliée : une seule ligne, l'essentiel et de quoi éteindre. */
+.tl.mini{flex-wrap:nowrap;padding:5px 10px;gap:8px}
+.tl.mini .ap{flex:1;min-width:0;align-items:baseline}
+.tl.mini .ap b{font-size:19px}
+.tl.mini .ap span{font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tl.mini .niv{font-size:14px;min-width:42px}
+
+/* ------------------------- relevé plein écran (B) ------------------------ */
+.fs{position:fixed;inset:0;z-index:100;background:#08090C;color:#EDEFF4;
+    display:flex;flex-direction:column;
+    --f-ink:#EDEFF4; --f-ink2:#A0A7B8; --f-ink3:#767E90; --f-sur:#15171E; --f-line:#2A2E3A}
+.fs .prog{flex:none;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 6px}
+.fs .prog .b{height:5px;border-radius:99px;background:var(--f-sur);overflow:hidden}
+.fs .prog .b i{display:block;height:100%;background:var(--c,#3FC7DC);transition:width .25s}
+.fs .prog .t{display:flex;justify-content:space-between;gap:12px;margin-top:7px;
+     font:600 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--f-ink3)}
+.fs .scene{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;
+     gap:13px;padding:6px 16px;text-align:center;touch-action:pan-y;overflow-y:auto}
+.fs .kick{font:700 12px/1.3 var(--body);letter-spacing:.17em;text-transform:uppercase;color:var(--f-ink3)}
+.fs .geant{font:600 clamp(64px,24vw,140px)/.9 var(--mono);letter-spacing:-.04em;
+     font-variant-numeric:tabular-nums;color:var(--c,#3FC7DC)}
+.fs .sous{font:500 14.5px/1.4 var(--mono);color:var(--f-ink2)}
+.fs .champ{width:100%;background:var(--f-sur);border:2px solid var(--f-line);border-radius:18px;
+     padding:16px;font:600 40px/1 var(--mono);text-align:center;outline:none;color:var(--f-ink);
+     font-variant-numeric:tabular-nums}
+.fs .champ:focus{border-color:var(--c,#3FC7DC)}
+.fs .champ::placeholder{color:var(--f-ink3);font-size:24px}
+.fs .note{width:100%;background:none;border:0;border-bottom:1.5px solid var(--f-line);
+     padding:10px 4px;font:500 16px/1 var(--body);text-align:center;outline:none;color:var(--f-ink2)}
+.fs .note::placeholder{color:var(--f-ink3);font-style:italic}
+.fs .jauge{display:flex;align-items:center;gap:12px;background:var(--f-sur);border-radius:16px;padding:10px 13px}
+.fs .jauge input{-webkit-appearance:none;appearance:none;flex:1;height:38px;background:none;margin:0}
+.fs .jauge input::-webkit-slider-runnable-track{height:38px;border-radius:12px;background:#1E212B}
+.fs .jauge input::-webkit-slider-thumb{-webkit-appearance:none;width:36px;height:38px;border-radius:11px;
+     background:var(--c,#3FC7DC);border:0}
+.fs .jauge input::-moz-range-track{height:38px;border-radius:12px;background:#1E212B}
+.fs .jauge input::-moz-range-thumb{width:36px;height:38px;border-radius:11px;background:var(--c,#3FC7DC);border:0}
+.fs .jauge b{font:600 21px/1 var(--mono);min-width:70px;text-align:right;font-variant-numeric:tabular-nums}
+.fs .gliss{font:500 12px/1.4 var(--body);color:var(--f-ink3);margin:0}
+.fs .pied{flex:none;padding:8px 16px calc(14px + env(safe-area-inset-bottom,0px));
+     display:flex;flex-direction:column;gap:9px}
+.fs .gros{border:0;border-radius:18px;padding:20px;font:700 18px/1 var(--body);
+     background:var(--c,#3FC7DC);color:#08090C;min-height:62px}
+.fs .rang{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.fs .rang.trois{grid-template-columns:1fr 1fr 1fr}
+.fs .mini{border:1.5px solid var(--f-line);background:none;border-radius:14px;padding:14px 8px;
+     font:600 13.5px/1 var(--body);color:var(--f-ink2);min-height:50px}
+.fs .mini.on{background:var(--c,#3FC7DC);border-color:var(--c,#3FC7DC);color:#08090C}

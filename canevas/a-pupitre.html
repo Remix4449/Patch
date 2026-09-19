@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Canevas A — Pupitre</title>
+<link rel="stylesheet" href="socle.css">
+<style>
+/* ---------------------------------------------------------------------------
+   Canevas A — « Pupitre »
+
+   Thèse : ce qui commande ne défile jamais.
+   L'écran est coupé en deux pour de bon — une liste qui défile en haut, un
+   dock de commande fixe en bas. Le pavé, le niveau et le champ de saisie
+   restent sous le pouce quoi qu'il arrive, et c'est la liste qui vient à eux :
+   elle se recentre toute seule sur la ligne en cours.
+
+   Conséquence : on ne saisit plus jamais dans la liste. Toucher une ligne la
+   charge dans le dock, où le champ est grand, unique, et à portée de pouce.
+--------------------------------------------------------------------------- */
+
+.app{display:flex;flex-direction:column;flex:1;min-height:0}
+
+/* ------------------------------- en-tête -------------------------------- */
+.top{display:flex;align-items:center;gap:8px;padding:10px 14px 8px;flex:none;
+     border-bottom:1px solid var(--line)}
+.seg{display:flex;background:var(--sur2);border-radius:11px;padding:3px;gap:3px}
+.seg button{border:0;background:none;border-radius:9px;padding:8px 14px;
+            font:700 13px/1 var(--body);color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--bg);color:var(--ink);
+            box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.flux{margin-left:auto;display:flex;align-items:center;gap:7px;font:600 11px/1 var(--mono);
+      color:var(--ink3);white-space:nowrap}
+.led{width:9px;height:9px;border-radius:99px;background:var(--line)}
+.led.on{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+
+/* ------------------------- liste défilante (haut) ------------------------ */
+.liste{flex:1;min-height:0;overflow-y:auto;padding:10px 14px 18px;
+       scroll-padding-block:96px}
+.sub{display:flex;gap:6px;margin-bottom:10px;position:sticky;top:0;background:var(--bg);
+     padding:4px 0 8px;z-index:2}
+.sub button{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;
+            padding:6px 12px;font:600 12.5px/1 var(--body);color:var(--ink2)}
+.sub button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.sub .cnt{margin-left:auto;align-self:center;font:500 11.5px/1 var(--mono);color:var(--ink3)}
+
+.gl{display:grid;grid-template-columns:46px 58px 1fr auto;gap:9px;align-items:center;
+    width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);
+    background:none;padding:9px 6px;border-radius:10px}
+.gl .n{font:600 16px/1 var(--mono);color:var(--ink2);text-align:center;
+       border:1.5px solid var(--line);border-radius:9px;padding:7px 0}
+.gl .a{font:500 11px/1.2 var(--mono);color:var(--ink3)}
+.gl .a b{display:block;font-size:13px;color:var(--ink)}
+.gl .c{min-width:0}
+.gl .c b{display:block;font:700 14.5px/1.2 var(--body)}
+.gl .c span{font-size:12px;color:var(--ink3)}
+.gl .c b.vide{color:var(--ink3);font-weight:500;font-style:italic}
+.gl .lv{font:600 13px/1 var(--mono);color:var(--tel);min-width:40px;text-align:right}
+.gl[aria-current="true"]{background:color-mix(in srgb,var(--tel) 13%,transparent);
+    border-bottom-color:transparent}
+.gl.on .n{background:var(--tel);border-color:var(--tel);color:#fff}
+
+.li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;width:100%;text-align:left;
+    background:var(--sur);border:1.5px solid transparent;border-radius:13px;
+    padding:12px 14px;margin-bottom:8px}
+.li b{font:700 15px/1.2 var(--body)}
+.li .m{font-size:12.5px;color:var(--ink2)}
+.li .r{font:500 12.5px/1.3 var(--mono);color:var(--ink2);text-align:right;white-space:nowrap}
+.li .r i{display:block;font-style:normal;font-size:11px;color:var(--ink3)}
+.li[aria-current="true"]{border-color:var(--dmx)}
+.li .bar{grid-column:1/-1;height:6px;border-radius:99px;background:var(--sur2);
+         margin-top:8px;overflow:hidden;display:flex}
+.li .bar i{height:100%;background:var(--dmx);opacity:.85;border-right:1px solid var(--sur)}
+
+.ad{display:grid;grid-template-columns:34px 1fr 74px 62px;gap:9px;align-items:center;
+    width:100%;text-align:left;border:0;background:none;padding:8px 6px;border-radius:10px;
+    border-bottom:1px solid var(--line)}
+.ad .n{font:500 12px/1 var(--mono);color:var(--ink3);text-align:right}
+.ad .t b{display:block;font:700 13.5px/1.2 var(--body);overflow:hidden;
+         text-overflow:ellipsis;white-space:nowrap}
+.ad .t span{font-size:11px;color:var(--ink3)}
+.ad .dm{font:500 11.5px/1.15 var(--mono);color:var(--ink3);text-align:right}
+.ad .dm b{font-size:13.5px;color:var(--ink);display:block}
+.ad .cir{font:600 13px/1 var(--mono);text-align:center;border:1.5px dashed var(--line);
+         border-radius:9px;padding:8px 2px;color:var(--ink3)}
+.ad .cir.plein{border-style:solid;border-color:var(--dmx);color:var(--ink)}
+.ad[aria-current="true"]{background:color-mix(in srgb,var(--dmx) 13%,transparent)}
+.ad.ko .dm b{color:var(--ko)}
+
+.vide{color:var(--ink3);font-size:13.5px;padding:22px 4px;text-align:center}
+.tot{display:flex;gap:16px;background:var(--sur);border-radius:13px;padding:12px 14px;
+     margin-bottom:10px}
+.tot div{flex:1}
+.tot b{display:block;font:600 19px/1 var(--mono)}
+.tot span{font:600 10px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+
+/* ---------------------------- dock fixe (bas) ---------------------------- */
+.dock{flex:none;border-top:1.5px solid var(--line);background:var(--sur);
+      padding:11px 14px calc(11px + env(safe-area-inset-bottom,0px));
+      box-shadow:0 -10px 26px rgba(0,0,0,.09)}
+
+.ec{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;
+    background:var(--bg);border:1.5px solid var(--line);border-radius:13px;
+    padding:9px 12px;margin-bottom:9px}
+.ec .num{font:600 38px/1 var(--mono);color:var(--tel);letter-spacing:-.02em;
+         font-variant-numeric:tabular-nums;min-width:74px}
+.ec .num.frappe{color:var(--dmx)}
+.ec .mid{min-width:0}
+.ec .mid input{width:100%;background:none;border:0;outline:none;font:700 17px/1.2 var(--body);
+               padding:0}
+.ec .mid input::placeholder{color:var(--ink3);font-weight:500;font-style:italic}
+.ec .mid span{display:block;font:500 11px/1.3 var(--mono);color:var(--ink3)}
+.ec .pct{font:600 26px/1 var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+
+.fad{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:none;margin:0 0 8px}
+.fad::-webkit-slider-runnable-track{height:30px;border-radius:11px;background:var(--sur2)}
+.fad::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:9px;
+     background:var(--tel);border:0;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.fad::-moz-range-track{height:30px;border-radius:11px;background:var(--sur2)}
+.fad::-moz-range-thumb{width:30px;height:30px;border-radius:9px;background:var(--tel);border:0}
+
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.kp button{border:0;border-radius:12px;padding:12px 0;background:var(--sur2);
+           font:600 20px/1 var(--mono)}
+.kp button:active{transform:scale(.97)}
+.kp button.s{font:700 13px/1 var(--body);background:var(--bg);
+             border:1.5px solid var(--line);color:var(--ink2)}
+.kp button.s.on{background:var(--tel);border-color:var(--tel);color:#fff}
+.kp button.acc{background:var(--tel);color:#fff}
+.kp button.sm{grid-column:span 2;font:700 13px/1 var(--body);background:var(--bg);
+              border:1.5px solid var(--line);color:var(--ink2);padding:12px 0}
+.nav3{display:grid;grid-template-columns:1fr 1fr 78px;gap:7px;margin-top:7px}
+.nav3 button{border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:11px 0;
+             font:700 13px/1 var(--body);color:var(--ink2)}
+.nav3 button.on{background:var(--tel);border-color:var(--tel);color:#fff}
+
+.dock .f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.dock .f label{font:700 10px/1 var(--body);letter-spacing:.13em;text-transform:uppercase;color:var(--ink3)}
+.dock .f select,.dock .f input{background:var(--bg);border:1.5px solid var(--line);
+     border-radius:11px;padding:10px 11px;outline:none;width:100%;font:500 15px/1.2 var(--body)}
+.dock .f input{font:500 16px/1 var(--mono)}
+.dock .gr2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.dock .gr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.stepper{display:grid;grid-template-columns:42px 1fr 42px;gap:6px;align-items:center}
+.stepper button{border:1.5px solid var(--line);background:var(--bg);border-radius:11px;
+                padding:10px 0;font:600 17px/1 var(--mono);color:var(--ink2)}
+.stepper input{text-align:center}
+.apercu{font:500 12px/1.35 var(--mono);color:var(--ink2);background:var(--bg);
+        border:1px dashed var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.apercu b{color:var(--dmx)}
+.act{display:grid;grid-template-columns:1fr auto;gap:8px}
+.act button{border:0;border-radius:12px;padding:13px;font:700 14px/1 var(--body);
+            background:var(--dmx);color:#fff}
+.act button.sec{background:var(--bg);border:1.5px solid var(--line);color:var(--ink2)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="seg" id="seg">
+      <button data-o="patch" aria-pressed="true">Patch</button>
+      <button data-o="tel" aria-pressed="false">Télécommande</button>
+    </div>
+    <div class="flux"><span class="led" id="led"></span><span id="fluxt">flux arrêté</span></div>
+  </div>
+  <div class="liste" id="liste"></div>
+  <div class="dock" id="dock"></div>
+</div>
+
+<script src="socle.js"></script>
+<script>
+bandeau("a");
+
+/* --------------------------------- état ---------------------------------- */
+const S = {
+  outil:"patch",            // patch | tel
+  vue:"lignes",             // patch : lignes | adresses
+  ligne:"l1",               // ligne chargée dans le dock
+  app:null,                 // appareil sélectionné dans la vue adresses
+  lignes:JSON.parse(JSON.stringify(DEMO_LIGNES)),
+  fiches:{},                // n° d'appareil -> { circuit, patch }
+  reg:{ ...REGLAGES_DEFAUT },
+  grada:JSON.parse(JSON.stringify(DEMO_CIRCUITS)),
+  niv:{}, sel:0, saisie:""
+};
+
+const fiche  = n => S.fiches[n] || (S.fiches[n] = { circuit:"", patch:"" });
+/* Ancre d'ouverture : #tel ouvre directement la télécommande — pratique pour
+   comparer les canevas entre eux sans repasser par le patch. */
+if(location.hash === "#tel") S.outil = "tel";
+
+const gfiche = n => S.grada[n]  || (S.grada[n]  = { circuit:"", note:"" });
+const court  = cle => trouverApp(cle).nom;
+
+/* --------------------------------- flux ---------------------------------- */
+function envoyer(){
+  FLUX.poser(S.niv, S.reg);
+  const on = Object.values(S.niv).filter(v => v > 0).length;
+  $("#led").classList.toggle("on", on > 0);
+  $("#fluxt").textContent = on
+    ? `${S.reg.proto} · U${FLUX.univers.join(", U")} · ${on} canal${on > 1 ? "x" : ""}`
+    : "flux au repos";
+}
+
+/* ------------------------------ télécommande ----------------------------- */
+/* Le dock porte tout : l'afficheur, le champ circuit du gradateur appelé, le
+   fader et le pavé. La feuille au-dessus ne sert plus qu'à lire et à pointer. */
+
+function choisir(n){
+  if(!n || n < S.reg.premier) return;
+  if(S.reg.solo) Object.keys(S.niv).forEach(k => { if(+k !== n) S.niv[k] = 0; });
+  S.sel = n; S.saisie = "";
+  if(!S.niv[n]) S.niv[n] = 100;
+  vibrer(12); envoyer(); rendre();
+  defiler($(`.gl[data-n="${n}"]`), "center");
+}
+function niveau(pct){
+  if(!S.sel) return;
+  S.niv[S.sel] = Math.max(0, Math.min(100, Math.round(pct)));
+  envoyer(); rendre();
+}
+
+function listeTel(){
+  const d = el("div");
+  const s = el("div", "sub");
+  s.innerHTML = `<button aria-pressed="true">Gradateurs</button>
+    <button aria-pressed="false">Par circuit</button>
+    <span class="cnt" id="avanc"></span>`;
+  const [bg, bc] = s.querySelectorAll("button");
+  const corps = el("div");
+  const majAvanc = () => {
+    let faits = 0;
+    for(let n = S.reg.premier; n < S.reg.premier + S.reg.nb; n++)
+      if((S.grada[n] || {}).circuit) faits++;
+    $("#avanc", s).textContent = `${faits} / ${S.reg.nb} relevés`;
+  };
+  bg.onclick = () => { bg.ariaPressed = "true"; bc.ariaPressed = "false"; corps.replaceChildren(gradas()); };
+  bc.onclick = () => { bg.ariaPressed = "false"; bc.ariaPressed = "true"; corps.replaceChildren(circuits()); };
+
+  function gradas(){
+    const z = el("div");
+    for(let n = S.reg.premier; n < S.reg.premier + S.reg.nb; n++){
+      const a = adrGrada(n, S.reg) || { u:"—", canal:"—" };
+      const f = S.grada[n] || {};
+      const lv = S.niv[n] || 0;
+      const b = el("button", "gl" + (lv > 0 ? " on" : ""));
+      b.dataset.n = n;
+      b.setAttribute("aria-current", n === S.sel);
+      b.innerHTML = `<span class="n">${n}</span>
+        <span class="a">U${a.u}<b>${a.canal}</b></span>
+        <span class="c"><b class="${f.circuit ? "" : "vide"}">${f.circuit ? "circuit " + esc(f.circuit) : "à relever"}</b>
+          <span>${esc(f.note || "")}</span></span>
+        <span class="lv">${lv ? lv + " %" : ""}</span>`;
+      b.onclick = () => choisir(n);
+      z.append(b);
+    }
+    return z;
+  }
+  function circuits(){
+    const m = new Map();
+    Object.keys(S.grada).forEach(k => {
+      const c = (S.grada[k].circuit || "").trim();
+      if(!c) return;
+      (m.get(c) || m.set(c, []).get(c)).push(+k);
+    });
+    const z = el("div");
+    if(!m.size){ z.append(el("p", "vide", "Aucun circuit relevé pour l'instant.")); return z; }
+    [...m.entries()].sort((a, b) => (parseInt(a[0]) || 0) - (parseInt(b[0]) || 0)).forEach(([c, g]) => {
+      const b = el("button", "li");
+      b.innerHTML = `<div><b>Circuit ${esc(c)}</b>
+        <div class="m">${g.map(x => "gradateur " + x).join(" · ")}</div></div>
+        <span class="r">${g.length}<i>gradateur${g.length > 1 ? "s" : ""}</i></span>`;
+      b.onclick = () => {
+        Object.keys(S.niv).forEach(k => S.niv[k] = 0);
+        g.sort((x, y) => x - y).forEach(x => S.niv[x] = 100);
+        S.sel = g[0]; S.saisie = ""; envoyer(); rendre();
+      };
+      z.append(b);
+    });
+    z.append(el("p", "vide", "Toucher un circuit allume tous ses gradateurs : le doublage se vérifie en une touche."));
+    return z;
+  }
+
+  corps.replaceChildren(gradas());
+  majAvanc();
+  d.append(s, corps);
+  return d;
+}
+
+function dockTel(){
+  const d = el("div");
+  const n = S.saisie || S.sel || 0;
+  const a = S.sel ? adrGrada(S.sel, S.reg) : null;
+  const f = S.sel ? gfiche(S.sel) : { circuit:"", note:"" };
+  const lv = S.sel ? (S.niv[S.sel] || 0) : 0;
+
+  const ec = el("div", "ec");
+  ec.innerHTML = `<span class="num${S.saisie ? " frappe" : ""}">${n || "—"}</span>
+    <span class="mid">
+      <input id="cir" inputmode="numeric" placeholder="circuit ?" value="${esc(f.circuit)}"
+             aria-label="Circuit du gradateur appelé"${S.sel ? "" : " disabled"}>
+      <span>${S.saisie ? "frappe en cours — ✓ pour appeler"
+             : a ? `U${a.u} · canal ${a.canal}${f.note ? " · " + esc(f.note) : ""}`
+                 : "aucun gradateur appelé"}</span>
+    </span>
+    <span class="pct">${lv} %</span>`;
+  d.append(ec);
+  const ci = $("#cir", ec);
+  if(ci) ci.oninput = () => { gfiche(S.sel).circuit = ci.value; majListeSeule(); };
+
+  const fad = el("input", "fad");
+  Object.assign(fad, { type:"range", min:0, max:100, step:1, value:lv, disabled:!S.sel });
+  fad.setAttribute("aria-label", "Niveau du gradateur appelé");
+  fad.oninput = e => niveauSeul(+e.target.value);
+  d.append(fad);
+
+  const kp = el("div", "kp");
+  const touches = [
+    ["1"], ["2"], ["3"], ["Full", "s"],
+    ["4"], ["5"], ["6"], ["+", "s"],
+    ["7"], ["8"], ["9"], ["−", "s"],
+    ["C"], ["0"], ["✓", "acc"], ["Noir", "s"]
+  ];
+  touches.forEach(([t, c]) => {
+    const b = el("button", c || null, t);
+    if(t === "Full" && lv === 100) b.classList.add("on");
+    if(t === "Noir" && S.sel && lv === 0) b.classList.add("on");
+    b.onclick = () => {
+      if(t === "C"){ S.saisie = ""; rendre(); return; }
+      if(t === "✓"){ if(S.saisie) choisir(parseInt(S.saisie, 10)); return; }
+      if(t === "Full"){ niveau(100); return; }
+      if(t === "Noir"){ niveau(0); return; }
+      if(t === "+"){ niveau(lv + S.reg.pas); return; }
+      if(t === "−"){ niveau(lv - S.reg.pas); return; }
+      if(S.saisie.length < 4) S.saisie += t;
+      vibrer(8); rendre();
+    };
+    kp.append(b);
+  });
+  d.append(kp);
+
+  /* Navigation et solo sur une seule rangée : le dock prend déjà la moitié
+     basse de l'écran, chaque ligne gagnée revient à la feuille. */
+  const nav = el("div", "nav3");
+  const prec = el("button", "s", "◀ précédent"), suiv = el("button", "s", "suivant ▶");
+  const solo = el("button", "s" + (S.reg.solo ? " on" : ""), S.reg.solo ? "Solo" : "Empiler");
+  solo.setAttribute("aria-pressed", S.reg.solo);
+  prec.onclick = () => choisir((S.sel || S.reg.premier + 1) - 1);
+  suiv.onclick = () => choisir((S.sel || S.reg.premier - 1) + 1);
+  solo.onclick = () => { S.reg.solo = !S.reg.solo; if(S.reg.solo && S.sel) choisir(S.sel); else rendre(); };
+  nav.append(prec, suiv, solo);
+  d.append(nav);
+  return d;
+}
+
+/* Deux rafraîchissements partiels : le dock ne se reconstruit pas pendant
+   qu'on tape dedans, sinon le curseur saute — c'est exactement ce que fait
+   l'application actuelle à chaque frappe. */
+function majListeSeule(){ $("#liste").replaceChildren(S.outil === "tel" ? listeTel() : listePatch()); }
+function niveauSeul(pct){
+  if(!S.sel) return;
+  S.niv[S.sel] = Math.max(0, Math.min(100, Math.round(pct)));
+  envoyer();
+  const p = $(".ec .pct"); if(p) p.textContent = S.niv[S.sel] + " %";
+  majListeSeule();
+}
+
+/* --------------------------------- patch --------------------------------- */
+/* Même geste : la liste montre, le dock saisit. Toucher une ligne la charge
+   dans le dock ; toucher un appareil charge sa fiche circuit / n° de patch. */
+
+function listePatch(){
+  const d = el("div");
+  const liste = adresser(S.lignes);
+  const ko = collisions(liste);
+  const univ = [...new Set(liste.map(x => x.u))];
+
+  const t = el("div", "tot");
+  t.innerHTML = `<div><b>${liste.length}</b><span>appareils</span></div>
+    <div><b>${univ.length}</b><span>univers</span></div>
+    <div><b>${liste.reduce((a, x) => a + x.ch, 0)}</b><span>canaux</span></div>
+    <div><b>${puissance(liste)}</b><span>puissance</span></div>`;
+  d.append(t);
+
+  const s = el("div", "sub");
+  s.innerHTML = `<button aria-pressed="${S.vue === "lignes"}">Lignes</button>
+    <button aria-pressed="${S.vue === "adresses"}">Adresses</button>
+    <span class="cnt">${ko.size ? `⚠ ${ko.size} chevauchements` : "aucun chevauchement"}</span>`;
+  const [bl, ba] = s.querySelectorAll("button");
+  bl.onclick = () => { S.vue = "lignes"; rendre(); };
+  ba.onclick = () => { S.vue = "adresses"; rendre(); };
+  d.append(s);
+
+  if(S.vue === "lignes"){
+    S.lignes.forEach((l, i) => {
+      const mes = liste.filter(x => x.ligne === l.id);
+      const b = el("button", "li");
+      b.setAttribute("aria-current", l.id === S.ligne);
+      const deb = mes[0], fin = mes[mes.length - 1];
+      b.innerHTML = `<div><b>${esc(court(l.app))} × ${l.nb}</b>
+          <div class="m">${esc(l.mode)} · ${l.ch} canaux${l.suite ? " · à la suite" : ""}</div></div>
+        <span class="r">${deb ? `U${deb.u} ${deb.adr}` : "—"}<i>${fin ? `→ U${fin.u} ${fin.fin}` : ""}</i></span>
+        <span class="bar">${mes.map(() => `<i style="flex:1"></i>`).join("")}</span>`;
+      b.onclick = () => { S.ligne = l.id; S.app = null; rendre(); };
+      d.append(b);
+    });
+    const plus = el("button", "li");
+    plus.style.borderStyle = "dashed";
+    plus.style.borderColor = "var(--line)";
+    plus.style.background = "none";
+    plus.innerHTML = `<div><b>+ Nouvelle ligne</b>
+      <div class="m">un type d'appareil, un mode, une quantité</div></div>`;
+    plus.onclick = () => {
+      const a = APPAREILS[0];
+      S.lignes.push({ id:"l" + Date.now().toString(36), app:cleApp(a), mode:a.modes[0].nom,
+                      ch:a.modes[0].ch, nb:1, suite:S.lignes.length > 0, u:1, adr:1 });
+      S.ligne = S.lignes[S.lignes.length - 1].id; S.app = null; rendre();
+    };
+    d.append(plus);
+  } else {
+    if(!liste.length) d.append(el("p", "vide", "Aucune ligne : le patch est vide."));
+    liste.forEach(x => {
+      const f = fiche(x.n);
+      const b = el("button", "ad" + (ko.has(x.n) ? " ko" : ""));
+      b.setAttribute("aria-current", S.app === x.n);
+      b.innerHTML = `<span class="n">${x.n}</span>
+        <span class="t"><b>${esc(court(x.app))}</b><span>${esc(x.mode)}</span></span>
+        <span class="dm">U${x.u}<b>${x.adr}</b></span>
+        <span class="cir${f.circuit ? " plein" : ""}">${f.circuit ? esc(f.circuit) : "circ"}</span>`;
+      b.onclick = () => { S.app = x.n; rendre(); };
+      d.append(b);
+    });
+  }
+
+  if(univ.length){
+    const c = el("div", "tot");
+    c.style.marginTop = "12px";
+    c.style.display = "block";
+    c.innerHTML = univ.map(u => {
+      const a = artnet(u), sa = sacn(u);
+      return `<div style="display:flex;justify-content:space-between;font:500 12.5px/1.9 var(--mono)">
+        <span style="color:var(--ink3)">U${u}</span><b>${a.net}.${a.sub}.${a.uni} · ${sa.ip}</b></div>`;
+    }).join("");
+    d.append(c);
+  }
+  return d;
+}
+
+function dockPatch(){
+  /* Deux docks selon ce qu'on manipule : une ligne, ou la fiche d'un appareil. */
+  if(S.vue === "adresses" && S.app) return dockFiche();
+
+  const l = S.lignes.find(x => x.id === S.ligne) || S.lignes[0];
+  const d = el("div");
+  if(!l){ d.append(el("p", "vide", "Ajouter une ligne pour commencer.")); return d; }
+  const app = trouverApp(l.app);
+
+  const g1 = el("div", "gr2");
+  g1.innerHTML = `<div class="f"><label>Appareil</label>
+      <select id="sa">${MARQUES.map(m => `<optgroup label="${esc(m)}">${
+        APPAREILS.filter(a => a.marque === m).map(a =>
+          `<option value="${esc(cleApp(a))}"${cleApp(a) === l.app ? " selected" : ""}>${esc(a.nom)}</option>`
+        ).join("")}</optgroup>`).join("")}</select></div>
+    <div class="f"><label>Mode</label>
+      <select id="sm">${app.modes.map(m =>
+        `<option value="${esc(m.nom)}"${m.nom === l.mode ? " selected" : ""}>${esc(m.nom)} — ${m.ch} ch</option>`
+      ).join("")}</select></div>`;
+  d.append(g1);
+
+  const g2 = el("div", "gr2");
+  g2.innerHTML = `<div class="f"><label>Quantité</label>
+      <div class="stepper"><button id="qm">−</button>
+        <input id="qn" inputmode="numeric" value="${l.nb}"><button id="qp">+</button></div></div>
+    <div class="f"><label>Départ</label>
+      ${l.suite
+        ? `<button id="dep" style="background:var(--bg);border:1.5px solid var(--line);
+             border-radius:11px;padding:11px;font:600 14px/1 var(--body);color:var(--ink2)">à la suite ↩</button>`
+        : `<div class="stepper" style="grid-template-columns:1fr 1fr 42px">
+             <input id="du" inputmode="numeric" value="${l.u}" aria-label="Univers">
+             <input id="da" inputmode="numeric" value="${l.adr}" aria-label="Adresse">
+             <button id="dep">↩</button></div>`}
+    </div>`;
+  d.append(g2);
+
+  const mes = adresser(S.lignes).filter(x => x.ligne === l.id);
+  const ap = el("div", "apercu");
+  ap.innerHTML = mes.length
+    ? `${mes.length} appareil${mes.length > 1 ? "s" : ""} · <b>U${mes[0].u} ${mes[0].adr}</b> → <b>U${mes[mes.length - 1].u} ${mes[mes.length - 1].fin}</b>
+       ${[...new Set(mes.map(x => x.u))].length > 1 ? " · passe à l'univers suivant" : ""}`
+    : "quantité à zéro";
+  d.append(ap);
+
+  const act = el("div", "act");
+  const ok = el("button", null, "Terminer la ligne");
+  const sup = el("button", "sec", "Retirer");
+  ok.onclick = () => { S.vue = "adresses"; rendre(); };
+  sup.onclick = () => {
+    S.lignes = S.lignes.filter(x => x.id !== l.id);
+    S.ligne = S.lignes.length ? S.lignes[0].id : null;
+    rendre();
+  };
+  act.append(ok, sup);
+  d.append(act);
+
+  /* Câblage : chaque changement recalcule sans reconstruire le dock, pour que
+     le champ en cours garde le curseur. */
+  const maj = () => { majListeSeule(); const a = $(".apercu");
+    const m2 = adresser(S.lignes).filter(x => x.ligne === l.id);
+    if(a) a.innerHTML = m2.length
+      ? `${m2.length} appareil${m2.length > 1 ? "s" : ""} · <b>U${m2[0].u} ${m2[0].adr}</b> → <b>U${m2[m2.length - 1].u} ${m2[m2.length - 1].fin}</b>`
+      : "quantité à zéro";
+  };
+  $("#sa", d).onchange = e => {
+    l.app = e.target.value;
+    const a = trouverApp(l.app);
+    l.mode = a.modes[0].nom; l.ch = a.modes[0].ch;
+    rendre();
+  };
+  $("#sm", d).onchange = e => {
+    l.mode = e.target.value;
+    const m = app.modes.find(x => x.nom === l.mode);
+    if(m) l.ch = m.ch;
+    rendre();
+  };
+  const qn = $("#qn", d);
+  qn.oninput = () => { l.nb = Math.min(500, +qn.value.replace(/\D/g, "") || 0); maj(); };
+  $("#qm", d).onclick = () => { l.nb = Math.max(0, l.nb - 1); qn.value = l.nb; maj(); };
+  $("#qp", d).onclick = () => { l.nb = Math.min(500, l.nb + 1); qn.value = l.nb; maj(); };
+  $("#dep", d).onclick = () => { l.suite = !l.suite; rendre(); };
+  if($("#du", d)) $("#du", d).oninput = e => { l.u = +e.target.value.replace(/\D/g, "") || 1; maj(); };
+  if($("#da", d)) $("#da", d).oninput = e => { l.adr = +e.target.value.replace(/\D/g, "") || 1; maj(); };
+  return d;
+}
+
+function dockFiche(){
+  /* La fiche d'un appareil : deux champs, grands, et de quoi passer au
+     suivant sans revenir à la liste. C'est la saisie de circuits en marchant. */
+  const liste = adresser(S.lignes);
+  const x = liste.find(y => y.n === S.app) || liste[0];
+  const d = el("div");
+  if(!x){ d.append(el("p", "vide", "Rien à saisir.")); return d; }
+  const f = fiche(x.n);
+
+  const ec = el("div", "ec");
+  ec.innerHTML = `<span class="num" style="color:var(--dmx)">${x.n}</span>
+    <span class="mid"><input id="fc" inputmode="numeric" placeholder="circuit ?" value="${esc(f.circuit)}"
+        aria-label="Circuit de l'appareil ${x.n}">
+      <span>${esc(court(x.app))} · ${esc(x.mode)} · U${x.u} ${x.adr}→${x.fin}</span></span>`;
+  d.append(ec);
+
+  const g = el("div", "gr2");
+  g.innerHTML = `<div class="f"><label>N° de patch</label>
+      <input id="fp" inputmode="numeric" value="${esc(f.patch)}" placeholder="—"></div>
+    <div class="f"><label>Adresse</label>
+      <input value="U${x.u} · ${x.adr}" disabled></div>`;
+  d.append(g);
+
+  const nav = el("div", "kp");
+  const prec = el("button", "sm", "◀ appareil"), suiv = el("button", "sm", "appareil ▶");
+  prec.onclick = () => { S.app = Math.max(1, x.n - 1); rendre(); };
+  suiv.onclick = () => { S.app = Math.min(liste.length, x.n + 1); rendre(); };
+  nav.append(prec, suiv);
+  d.append(nav);
+
+  const act = el("div", "act");
+  act.style.marginTop = "8px";
+  const ok = el("button", null, "Valider et passer au suivant");
+  const fin = el("button", "sec", "Fermer");
+  ok.onclick = () => { S.app = Math.min(liste.length, x.n + 1); vibrer(12); rendre(); };
+  fin.onclick = () => { S.app = null; rendre(); };
+  act.append(ok, fin);
+  d.append(act);
+
+  $("#fc", d).oninput = e => { f.circuit = e.target.value; majListeSeule(); };
+  $("#fp", d).oninput = e => { f.patch = e.target.value; majListeSeule(); };
+  setTimeout(() => { const n = $("#fc", d); if(n) n.focus(); });
+  return d;
+}
+
+/* --------------------------------- rendu --------------------------------- */
+function rendre(){
+  $("#liste").replaceChildren(S.outil === "tel" ? listeTel() : listePatch());
+  $("#dock").replaceChildren(S.outil === "tel" ? dockTel() : dockPatch());
+  $$("#seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.o === S.outil));
+}
+$$("#seg button").forEach(b => b.onclick = () => {
+  S.outil = b.dataset.o;
+  if(S.outil !== "tel"){ S.niv = {}; S.sel = 0; FLUX.arret(); envoyer(); }
+  rendre();
+});
+
+/* Le pavé du dock a son doublon au clavier physique : utile en salle avec un
+   clavier Bluetooth, et sur l'écran de mise au point. */
+addEventListener("keydown", e => {
+  if(S.outil !== "tel" || /input|select/i.test(document.activeElement.tagName)) return;
+  if(/^\d$/.test(e.key)){ if(S.saisie.length < 4) S.saisie += e.key; rendre(); }
+  else if(e.key === "Enter"){ if(S.saisie) choisir(parseInt(S.saisie, 10)); }
+  else if(e.key === "Escape"){ S.saisie = ""; rendre(); }
+  else if(e.key === "ArrowUp") niveau((S.niv[S.sel] || 0) + S.reg.pas);
+  else if(e.key === "ArrowDown") niveau((S.niv[S.sel] || 0) - S.reg.pas);
+  else if(e.key === "ArrowRight") choisir((S.sel || S.reg.premier - 1) + 1);
+  else if(e.key === "ArrowLeft") choisir((S.sel || S.reg.premier + 1) - 1);
+});
+
+envoyer();
+rendre();
+</script>
+</body>
+</html>

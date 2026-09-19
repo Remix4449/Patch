@@ -1,0 +1,58 @@
+/* ---------------------------------------------------------------------------
+   Socle visuel commun aux quatre canevas : jetons de couleur, typographie,
+   remise à zéro. Chaque canevas pose ensuite sa propre mise en page — c'est
+   justement ce qu'il s'agit de comparer.
+
+   Les polices de l'application (Bricolage Grotesque, Chivo, Chivo Mono) ne
+   sont pas embarquées ici : ces pages sont des maquettes, pas l'application.
+   La pile système garde les mêmes proportions.
+--------------------------------------------------------------------------- */
+
+:root{
+  --bg:#FFFFFF; --sur:#F3F4F7; --sur2:#E8EAF0; --line:#DDE0E8;
+  --ink:#0F1116; --ink2:#5A6070; --ink3:#8990A0;
+  --dmx:#E2761C; --tel:#0F7C8C; --proj:#2F4BFF;
+  --ok:#128A45; --ko:#D22B2B; --warn:#E2761C;
+  --disp:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,"Cascadia Mono",monospace;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0C10; --sur:#15171E; --sur2:#1E212B; --line:#2A2E3A;
+    --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
+    --dmx:#FFA34D; --tel:#3FC7DC; --proj:#7B90FF;
+    --ok:#45C47B; --ko:#FF6B63; --warn:#FFA34D;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0C10; --sur:#15171E; --sur2:#1E212B; --line:#2A2E3A;
+  --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
+  --dmx:#FFA34D; --tel:#3FC7DC; --proj:#7B90FF;
+  --ok:#45C47B; --ko:#FF6B63; --warn:#FFA34D;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+/* Le bandeau de maquette occupe le haut, le canevas prend le reste : les
+   pages qui se veulent plein écran mesurent donc `flex:1`, pas `100dvh`. */
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);
+     -webkit-font-smoothing:antialiased;overscroll-behavior:none;
+     display:flex;flex-direction:column;min-height:100dvh}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--proj);outline-offset:2px}
+
+/* Bandeau de maquette : rappelle qu'on regarde une proposition, et permet de
+   sauter d'un canevas à l'autre sans repasser par l'index. */
+.maq{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--sur2);
+     border-bottom:1px solid var(--line);font:600 10.5px/1 var(--body);
+     letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);
+     flex:none;overflow-x:auto;scrollbar-width:none}
+.maq::-webkit-scrollbar{display:none}
+.maq a{flex:none;color:var(--ink2);text-decoration:none;border:1px solid var(--line);
+       border-radius:99px;padding:4px 8px;background:var(--bg);white-space:nowrap}
+.maq a[aria-current="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.maq .sp{flex:1 0 8px}
