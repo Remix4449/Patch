@@ -613,7 +613,9 @@ function majVoletRelever(){
 }
 
 /* Pavé numérique : taper le numéro du gradateur à appeler. Un numéro au-delà
-   de la plage l'allonge, un numéro supprimé le fait revenir. */
+   de la plage l'allonge, un numéro supprimé le fait revenir. La touche C
+   reprend le dernier chiffre seulement : sur un numéro à trois chiffres, une
+   faute de frappe ne doit pas coûter toute la frappe. */
 function paveNumerique(){
   const d = el("div", "pave");
   d.innerHTML = `<div class="saisie${pave ? "" : " vide"}">${
@@ -621,8 +623,9 @@ function paveNumerique(){
   const t = d.querySelector(".touches");
   ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "✓"].forEach(x => {
     const b = el("button", x === "✓" ? "acc" : null, x);
+    if(x === "C") b.setAttribute("aria-label", "Effacer le dernier chiffre");
     b.onclick = () => {
-      if(x === "C"){ pave = ""; majVoletRelever(); return; }
+      if(x === "C"){ pave = pave.slice(0, -1); majVoletRelever(); return; }
       if(x === "✓"){ validerPave(); return; }
       if(pave.length < 4) pave += x;
       vibrer(8); majVoletRelever();
@@ -646,10 +649,17 @@ function validerPave(){
   allerA(gradas().indexOf(vise));
 }
 
+/* « Noté » avance, toujours : le prochain gradateur sans circuit devant, sinon
+   celui d'après, sinon on repart du début sur ceux qu'on a sautés. Appeler le
+   dernier gradateur au pavé mettait fin au relevé alors que rien n'était
+   relevé ; le volet ne se referme plus que lorsqu'il ne reste plus rien. */
 function suivant(){
+  const l = gradas();
   const k = prochainVide(indice + 1);
   if(k != null){ allerA(k); return; }
-  if(indice + 1 < gradas().length){ allerA(indice + 1); return; }
+  if(indice + 1 < l.length){ allerA(indice + 1); return; }
+  const reprise = prochainVide(0);
+  if(reprise != null && reprise !== indice){ allerA(reprise); return; }
   toutEteindre(E); fermer();
 }
 
