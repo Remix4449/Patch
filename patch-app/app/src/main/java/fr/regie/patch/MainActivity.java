@@ -53,6 +53,18 @@ public class MainActivity extends Activity {
         setContentView(web);
     }
 
+    /**
+     * Le geste de retour d'Android fermait l'application depuis n'importe quel
+     * écran, y compris en plein patch : la page n'empilait rien et la coque ne
+     * surchargeait rien. La page pose désormais une entrée par écran ; on rend
+     * la main à Android seulement quand il n'en reste plus.
+     */
+    @Override
+    public void onBackPressed() {
+        if (web != null && web.canGoBack()) web.goBack();
+        else super.onBackPressed();
+    }
+
     /** Ouvre la boîte d'impression du système, qui sait enregistrer en PDF. */
     public void imprimerHtml(final String html, final String nom) {
         runOnUiThread(new Runnable() {

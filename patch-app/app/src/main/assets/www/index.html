@@ -18,8 +18,10 @@
     --ink:#0F1116; --ink2:#5A6070; --ink3:#8990A0;
     --proj:#2F4BFF; --mach:#00998D; --haut:#E0218A; --mdg:#7A3FF2;
     --dmx:#E2761C; --gel:#C2185B; --ndi:#0E7BC4; --net:#128A45; --art:#5B3FD6;
-    --tel:#0F7C8C; --maj:#3D4757;
-    --ok:#128A45; --ko:#D22B2B;
+    --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757;
+    /* Assombris : en petites capitales sur une surface claire, ils passaient
+       sous le seuil lisible — ici et partout où ils servent de texte. */
+    --ok:#0C6E36; --ko:#B01F1A;
     --disp:"Bricolage Grotesque",system-ui,sans-serif;
     --body:"Chivo",system-ui,sans-serif;
     --mono:"Chivo Mono",ui-monospace,Menlo,monospace;
@@ -31,7 +33,7 @@
       --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
       --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-      --tel:#3FC7DC; --maj:#9AA6BC;
+      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC;
       --ok:#45C47B; --ko:#FF6B63;
     }
   }
@@ -40,7 +42,7 @@
     --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
     --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-    --tel:#3FC7DC; --maj:#9AA6BC;
+    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC;
     --ok:#45C47B; --ko:#FF6B63;
   }
   *{box-sizing:border-box}
@@ -56,9 +58,18 @@
   .head{padding:18px 0 10px;display:flex;align-items:center;gap:11px}
   .head>div{flex:1;min-width:0}
   .head h1{font:800 27px/1 var(--disp);letter-spacing:-.025em;margin:0}
+  /* L'état du réseau : c'est ce qu'on vient vérifier d'un coup d'œil avant
+     d'envoyer du sACN, donc il porte sa couleur, et il s'ouvre sur l'outil
+     Réseau. Hauteur 44 px : c'est une cible, pas une étiquette. */
   .head .badge{margin-left:auto;font:700 10px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;
-       background:var(--sur2);color:var(--ink2);padding:5px 8px;border-radius:99px;white-space:nowrap}
+       background:var(--sur2);color:var(--ink2);border:1.5px solid transparent;padding:0 13px;
+       min-height:44px;display:inline-flex;align-items:center;border-radius:99px;white-space:nowrap;
+       cursor:pointer;flex:none}
+  .head .badge.ok{color:var(--ok);border-color:var(--ok)}
+  .head .badge.ko{color:var(--ko);border-color:var(--ko)}
+  .head .badge:active{transform:scale(.97)}
   .head p{margin:0;color:var(--ink2);font-size:13.5px}
+  .head p b{font-weight:700;color:var(--ink)}
 
   .sbar{display:flex;align-items:center;gap:9px;background:var(--sur);border:1.5px solid var(--line);
         border-radius:14px;padding:12px 14px;margin:6px 0 18px}
@@ -66,25 +77,73 @@
   .sbar input::placeholder{color:var(--ink3)}
 
   .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .tile{border:0;border-radius:18px;padding:16px;cursor:pointer;text-align:left;color:#fff;
+
+  /* En thème sombre, le blanc sur ces couleurs éclaircies tombait à 2:1 — et
+     douze pavés saturés dans une salle éteinte, c'est l'écran qui éclaire la
+     régie. La tuile devient donc une surface sombre, la couleur passe sur le
+     pictogramme et un filet, et le texte reprend l'encre du thème.
+     Ces jetons vivent sur la tuile et non sur `:root` : ils lisent `--c`, la
+     couleur de famille, qui n'est posée que sur l'élément — déclarés plus haut
+     ils se résoudraient contre un `--c` inexistant, et la tuile n'aurait plus
+     de fond du tout. */
+  .tile{--t-fond:var(--c); --t-ink:#fff; --t-ink2:rgba(255,255,255,.9);
+        --t-n:rgba(255,255,255,.55); --t-filet:transparent; --t-ico:currentColor}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .tile{--t-fond:var(--sur); --t-ink:var(--ink);
+      --t-ink2:var(--ink2); --t-n:var(--ink3); --t-filet:var(--c); --t-ico:var(--c)}
+  }
+  :root[data-theme="dark"] .tile{--t-fond:var(--sur); --t-ink:var(--ink);
+    --t-ink2:var(--ink2); --t-n:var(--ink3); --t-filet:var(--c); --t-ico:var(--c)}
+
+  .tile{border:0;border-radius:18px;padding:16px;cursor:pointer;text-align:left;
+        color:var(--t-ink);box-shadow:inset 3px 0 0 var(--t-filet);
         min-height:104px;display:flex;flex-direction:column;justify-content:space-between;
-        background:var(--c);position:relative;overflow:hidden}
+        background:var(--t-fond);position:relative;overflow:hidden}
   .tile:active{transform:scale(.985)}
-  .tile b{font:800 19px/1.1 var(--disp);letter-spacing:-.02em}
-  .tile span{font:500 12.5px/1.25 var(--body);opacity:.9}
-  .tile .n{position:absolute;right:12px;top:10px;font:600 13px/1 var(--mono);opacity:.55}
+  .tile b{font:800 19px/1.1 var(--disp);letter-spacing:-.02em;color:var(--t-ink)}
+  .tile span{font:500 12.5px/1.25 var(--body);color:var(--t-ink2)}
+  .tile .n{position:absolute;right:12px;top:10px;font:600 13px/1 var(--mono);color:var(--t-n)}
+  .tile .n.mot{font:700 9.5px/1 var(--body);letter-spacing:.13em;text-transform:uppercase}
   .tile.wide{grid-column:1/-1;min-height:78px;flex-direction:row;align-items:center;gap:12px}
   .tile.wide b{font-size:17px}
   .tile.sm{min-height:84px;border-radius:16px;padding:13px}
   .tile.sm b{font-size:16px}
 
-  h2.sec{font:700 11px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);
+  /* La mise à jour n'est pas un outil de plateau : une ligne sous la grille,
+     avec une pastille quand une version attend, plutôt qu'une tuile pleine. */
+  .appli{display:flex;align-items:center;gap:11px;background:var(--sur);border:0;width:100%;
+         border-radius:14px;padding:13px 15px;margin-top:10px;cursor:pointer;text-align:left;
+         min-height:52px;color:inherit}
+  .appli .ic{width:20px;height:20px;color:var(--maj);flex:none}
+  .appli .g{flex:1;min-width:0}
+  .appli b{display:block;font:700 14px/1.25 var(--body)}
+  .appli span{font-size:12.5px;color:var(--ink2)}
+  .appli .pt{width:9px;height:9px;border-radius:99px;background:var(--dmx);flex:none}
+
+  /* Une recherche qui n'affiche que les huit premiers doit dire où sont les
+     autres, et y emmener avec le même mot. */
+  .voir{border:1.5px dashed var(--line);background:none;border-radius:14px;padding:12px 14px;
+        width:100%;cursor:pointer;text-align:left;color:var(--ink2);font:600 13.5px/1 var(--body);
+        min-height:48px}
+  .voir:active{border-color:var(--ink3)}
+
+  /* Choix du thème : l'application suivait le réglage d'Android, impossible à
+     forcer en sombre le temps d'un service. */
+  .tri{display:flex;gap:7px;margin-bottom:12px}
+  .tri button{flex:1;border:1.5px solid var(--line);background:var(--bg);border-radius:12px;
+              padding:13px 8px;font:600 13.5px/1 var(--body);cursor:pointer;color:var(--ink2);
+              min-height:48px}
+  .tri button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+
+  h2.sec{font:700 11px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--ink2);
          margin:24px 0 10px}
 
   .bar{display:flex;align-items:center;gap:10px;padding:14px 0 12px;position:sticky;
        top:env(safe-area-inset-top,0px);background:var(--bg);z-index:4;border-bottom:1px solid var(--line);
        margin-bottom:14px}
-  .bk{border:0;background:var(--sur);border-radius:99px;width:34px;height:34px;cursor:pointer;
+  /* 44 px : c'est le retour de secours quand le geste d'Android ne suffit pas,
+     et il était sous le minimum touchable. */
+  .bk{border:0;background:var(--sur);border-radius:99px;width:44px;height:44px;cursor:pointer;
       display:grid;place-items:center;flex:none;font-size:17px;line-height:1}
   .bar h2{font:800 20px/1.1 var(--disp);letter-spacing:-.02em;margin:0;flex:1;min-width:0}
   .bar .cnt{font:500 12px/1 var(--mono);color:var(--ink3)}
@@ -196,7 +255,7 @@
     padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));z-index:10}
   .tabbar .in{display:flex;gap:4px;width:100%;max-width:560px;padding:0 16px}
   .tb{flex:1;border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;
-      gap:4px;padding:6px 0;color:var(--ink3);font:600 10.5px/1 var(--body);letter-spacing:.04em}
+      gap:4px;padding:6px 0;color:var(--ink2);font:600 10.5px/1 var(--body);letter-spacing:.04em}
   .tb[aria-current="true"]{color:var(--ink)}
   .tb .ic{width:23px;height:23px;opacity:.55}
   .tb[aria-current="true"] .ic{opacity:1}
@@ -208,7 +267,7 @@
   .mark{width:36px;height:36px;border-radius:12px;flex:none;display:grid;place-items:center;color:#fff;
         background:linear-gradient(140deg,var(--proj),var(--haut))}
   .mark .ic{width:21px;height:21px;stroke-width:1.6}
-  .tile .ic{width:27px;height:27px;opacity:.92;stroke-width:1.6}
+  .tile .ic{width:27px;height:27px;opacity:.92;stroke-width:1.6;color:var(--t-ico)}
   .tile.sm .ic{width:23px;height:23px}
   .tile .tx{display:flex;flex-direction:column;gap:3px;min-width:0}
   .tile.wide .tx{flex:1}
@@ -224,8 +283,8 @@
   .pecr .p-haut{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;
        background:var(--bg);padding:8px 0 2px;margin:0 -2px}
   .pecr .p-entete{display:flex;align-items:center;gap:10px;padding:2px 0 8px}
-  .pecr .p-entete .bk{width:32px;height:32px;font-size:16px}
-  .pecr .p-entete .bk .ic{width:17px;height:17px}
+  .pecr .p-entete .bk{width:44px;height:44px;font-size:16px}
+  .pecr .p-entete .bk .ic{width:18px;height:18px}
   .pecr .p-titre{display:flex;align-items:center;gap:8px;flex:1;min-width:0;border:0;
        background:none;padding:4px 2px;text-align:left;color:inherit;cursor:pointer}
   .pecr .p-titre b{font:800 17px/1.15 var(--disp);letter-spacing:-.02em;overflow:hidden;
@@ -532,6 +591,7 @@
   <symbol id="i-reseau" viewBox="0 0 24 24"><circle cx="12" cy="4.6" r="2.4"/><circle cx="4.8" cy="19.4" r="2.4"/><circle cx="19.2" cy="19.4" r="2.4"/><path d="M12 7v3.6M4.8 17v-2.8h14.4V17M12 10.6v3.6"/></symbol>
   <symbol id="i-artnet" viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="19" height="17" rx="2.4"/><path d="M6.5 17v-4.5M10.2 17V8M13.8 17v-2.5M17.5 17v-6.5" stroke-width="2"/></symbol>
   <symbol id="i-remote" viewBox="0 0 24 24"><rect x="5.5" y="2" width="13" height="20" rx="3"/><path d="M8.5 6h7"/><circle cx="9.5" cy="11" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r="1.05" fill="currentColor" stroke="none"/><circle cx="9.5" cy="14.8" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.5" cy="14.8" r="1.05" fill="currentColor" stroke="none"/><circle cx="9.5" cy="18.6" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.5" cy="18.6" r="1.05" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-fader" viewBox="0 0 24 24"><path d="M12 3v18"/><rect x="8.2" y="9.2" width="7.6" height="3.6" rx="1.4" fill="currentColor" stroke="none"/><path d="M17.8 5.5h3M17.8 12h3M17.8 18.5h3" stroke-width="1.4" opacity=".55"/></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.2L12 4l9 7.2"/><path d="M5.8 10v9.5h12.4V10"/></symbol>
   <symbol id="i-parc" viewBox="0 0 24 24"><rect x="2.5" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="13" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="7.8" y="3.5" width="8.5" height="8" rx="1.4"/></symbol>
   <symbol id="i-outils" viewBox="0 0 24 24"><path d="M6 3v18M12 3v18M18 3v18"/><rect x="3.8" y="7" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="9.8" y="13" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="15.8" y="5.5" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/></symbol>
@@ -581,78 +641,205 @@ const CATS = [
   { k:"proj", t:"Projecteurs", s:"Parc lumière", c:"var(--proj)", n:() => PROJECTEURS.length, i:"lyre" },
   { k:"mach", t:"Machinerie", s:"Structure & textile", c:"var(--mach)", n:() => MACHINERIE.length, i:"structure" },
   { k:"haut", t:"Hauteurs", s:"Passerelles & PEMP", c:"var(--haut)", n:() => HAUTEURS.length, i:"passerelle" },
-  { k:"mdg", t:"MDG", s:"Procédure brume", c:"var(--mdg)", n:null, i:"mdg" }
+  /* MDG n'est pas un inventaire : le coin resterait vide et se lirait comme un
+     compteur en panne, donc il porte un mot à la place d'un nombre. */
+  { k:"mdg", t:"MDG", s:"Procédure brume", c:"var(--mdg)", n:null, mot:"procédure", i:"mdg" }
 ];
+/* Le patch prend la tuile large : c'est l'outil qu'on ouvre le plus, et ça met
+   les deux télécommandes côte à côte sur la rangée suivante, où on les compare.
+   Elles portaient la même couleur et le même pictogramme, et leurs noms ne
+   différaient que par un suffixe. */
 const TOOLS = [
-  { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx" },
-  { k:"tel", t:"Télécommande", s:"Gradateurs sACN", c:"var(--tel)", i:"remote" },
-  { k:"tcd", t:"Télécommande DMX", s:"Canal par canal", c:"var(--tel)", i:"remote" },
+  { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx", large:true },
+  { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
+  { k:"tcd", t:"Canal DMX", s:"Un canal à la main", c:"var(--tcd)", i:"fader" },
   { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)", i:"gel" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
-  { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" },
-  { k:"maj", t:"Mise à jour", s:"Version de l'application", c:"var(--maj)", i:"maj" }
+  { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" }
 ];
-const go = r => { S.route = r; window.scrollTo(0, 0); render(); };
+/* Tout ce que l'accueil sait ouvrir, y compris les outils : taper « réseau »
+   ou « patch » répondait « rien pour… » alors que la tuile était juste dessous. */
+const DESTINATIONS = () => [...CATS, ...TOOLS,
+  { k:"maj", t:"Application", s:"Version & thème", c:"var(--maj)", i:"maj" }];
+
+/* --------------------------- aller et revenir ---------------------------- */
+/* Le geste de retour d'Android fermait l'application depuis n'importe quel
+   écran, y compris en plein patch : il n'y avait d'historique ni dans la page
+   ni dans la coque. Chaque changement d'écran empile donc une entrée, que
+   `popstate` dépile ; la coque rend la main à Android quand la pile est vide. */
+const PILE = [];
+const VUES_PATCH = ["dmx", "tel", "tcd"];
+const memeRoute = (a, b) => a.v === b.v && a.k === b.k && a.i === b.i && a.p === b.p;
+
+/* Quitter l'écran du patch relâche tous les circuits — c'est voulu, mais rien
+   ne le disait : on tenait un gradateur à 50 %, on touchait « Accueil » pour
+   vérifier une gélatine, et tout retombait sans un mot. */
+function peutQuitterPatch(v){
+  if(!VUES_PATCH.includes(S.route.v) || VUES_PATCH.includes(v)) return true;
+  let actif = false;
+  try { actif = !!(NET.emissionEtat() || {}).actif; } catch(e){ }
+  return !actif || confirm("Une émission DMX tourne. Quitter l'écran relâche "
+    + "tous les circuits. Quitter quand même ?");
+}
+
+const go = r => {
+  if(memeRoute(S.route, r)){ window.scrollTo(0, 0); render(); return; }
+  if(!peutQuitterPatch(r.v)) return;
+  PILE.push({ r:S.route, y:window.scrollY });
+  try { history.pushState({ n:PILE.length }, ""); } catch(e){ }
+  S.route = r; window.scrollTo(0, 0); render();
+};
+
+/* Le chevron prend le même chemin que le geste, au lieu d'empiler un retour de
+   plus : deux allers et deux retours ramènent d'où l'on vient. */
+const retour = defaut => { if(PILE.length) history.back(); else go(defaut || { v:"home" }); };
+
+window.addEventListener("popstate", () => {
+  const p = PILE[PILE.length - 1];
+  if(!p) return;                    // pile vide : la coque laisse Android fermer
+  if(!peutQuitterPatch(p.r.v)){     // refusé : on repose l'entrée qu'Android vient de retirer
+    try { history.pushState({ n:PILE.length }, ""); } catch(e){ }
+    return;
+  }
+  PILE.pop();
+  S.route = p.r;
+  render();
+  /* Le contenu neuf n'est pas encore mesuré : sans cette lecture, le navigateur
+     rabat le défilement à zéro faute de savoir jusqu'où il va. */
+  void document.body.offsetHeight;
+  window.scrollTo(0, p.y || 0);
+});
 
 /* -------------------------------- écrans -------------------------------- */
+/* Dans le noir, avec un gant, un appui se sent mieux qu'il ne se voit. */
+function toucher(){ try { if(navigator.vibrate) navigator.vibrate(8); } catch(e){ } }
+
+function tuile(c, petite){
+  const b = el("button", "tile" + (c.large ? " wide" : petite ? " sm" : ""));
+  b.style.setProperty("--c", c.c);
+  const coin = c.n ? `<span class="n">${c.n()}</span>`
+             : c.mot ? `<span class="n mot">${esc(c.mot)}</span>` : "";
+  b.innerHTML = `${coin}${ic(c.i)}<span class="tx"><b>${esc(c.t)}</b><span>${esc(c.s)}</span></span>`;
+  b.onclick = () => { toucher(); go({ v:c.k }); };
+  return b;
+}
+function grille(liste, petite){
+  const g = el("div", "tiles");
+  liste.forEach(c => g.append(tuile(c, petite)));
+  return g;
+}
+
+/* L'état du réseau : lu au plus une fois toutes les deux secondes — chaque
+   frappe de recherche rendait la page entière et repassait par le pont — et
+   repeint tout seul, pour qu'un Wi-Fi tombé se voie sans changer d'écran. */
+const RESEAU = { t:0, v:null };
+function etatReseau(){
+  const m = Date.now();
+  if(m - RESEAU.t > 2000){ RESEAU.t = m; try { RESEAU.v = NET.wifi(); } catch(e){ RESEAU.v = null; } }
+  return RESEAU.v;
+}
+function peindreReseau(){
+  const b = $("#etat-res");
+  if(!b) return;
+  if(!NET.natif){ b.textContent = "démo"; b.className = "badge"; return; }
+  const w = etatReseau(), ok = !!(w && w.ip);
+  b.textContent = ok ? w.ip : "hors réseau";
+  b.className = "badge " + (ok ? "ok" : "ko");
+  b.setAttribute("aria-label", (ok ? "Réseau " + w.ip : "Hors réseau") + ", ouvrir l'outil Réseau");
+}
+setInterval(peindreReseau, 3000);
+
+/* La mise à jour est un réglage, pas un outil de plateau : une ligne sous la
+   grille, avec une pastille quand une version attend. */
+function ligneAppli(){
+  const e = MAJ.e || {};
+  const attend = ["disponible", "telechargement", "pret", "autorisation"].includes(e.phase);
+  const dit = attend ? nomVer(e) + (e.phase === "pret" ? " prête à installer"
+                                  : e.phase === "telechargement" ? " en téléchargement" : " disponible")
+                     : e.nomInstalle ? "Version " + e.nomInstalle : "Version & thème";
+  const b = el("button", "appli");
+  b.innerHTML = `${ic("maj")}<span class="g"><b>Application</b><span>${esc(dit)}</span></span>
+    ${attend ? `<span class="pt"></span>` : ""}`;
+  b.onclick = () => { toucher(); go({ v:"maj" }); };
+  return b;
+}
+function zoneAppli(){
+  const z = el("div");
+  z.id = "appli-zone";
+  z.append(ligneAppli());
+  return z;
+}
+
 function home(){
   const d = el("div");
+  const nb = adresser(P.lignes).length;
+  /* L'accroche de vitrine passait à deux ou trois lignes sur un téléphone pour
+     ne rien dire : à sa place, le patch ouvert, qui est ce qu'on vient voir. */
   d.innerHTML = `<div class="head"><span class="mark">${ic("dmx")}</span>
-      <div><h1>Patch</h1><p>Tout le matériel du plateau, en deux touches.</p></div>
-      <span class="badge" id="etat-res">hors réseau</span></div>
+      <div><h1>Patch</h1><p><b>${esc(P.nom || "Sans titre")}</b> · ${nb} appareil${nb > 1 ? "s" : ""}</p></div>
+      <button class="badge" id="etat-res" aria-label="État du réseau">hors réseau</button></div>
     <label class="sbar">${ic("search")}
-      <input id="q" value="${esc(S.q)}" placeholder="Ghibli, moteur, passerelle, L201…" autocomplete="off"></label>
+      <input id="q" value="${esc(S.q)}" placeholder="Ghibli, moteur, passerelle, L201, réseau…" autocomplete="off"></label>
     <div id="maj-zone"></div>`;
-  setTimeout(() => {
-    const b = $("#etat-res"), w = NET.wifi();
-    if(b) b.textContent = NET.natif ? (w && w.ip ? w.ip : "hors réseau") : "démo";
-  });
+  const badge = d.querySelector("#etat-res");
+  if(badge) badge.onclick = () => { toucher(); go({ v:"net" }); };
   if(S.q.trim()) { d.append(resultats()); return d; }
   d.insertAdjacentHTML("beforeend", `<h2 class="sec">Inventaire</h2>`);
-  const g = el("div", "tiles");
-  CATS.forEach(c => {
-    const b = el("button", "tile");
-    b.style.setProperty("--c", c.c);
-    b.innerHTML = `${c.n ? `<span class="n">${c.n()}</span>` : ""}${ic(c.i)}
-      <span class="tx"><b>${c.t}</b><span>${c.s}</span></span>`;
-    b.onclick = () => go({ v:c.k });
-    g.append(b);
-  });
-  d.append(g);
+  d.append(grille(CATS));
   d.insertAdjacentHTML("beforeend", `<h2 class="sec">Outils</h2>`);
-  const g2 = el("div", "tiles");
-  TOOLS.forEach((c, i) => {
-    const b = el("button", "tile sm" + (i === TOOLS.length - 1 && TOOLS.length % 2 ? " wide" : ""));
-    b.style.setProperty("--c", c.c);
-    b.innerHTML = `${ic(c.i)}<span class="tx"><b>${c.t}</b><span>${c.s}</span></span>`;
-    b.onclick = () => go({ v:c.k });
-    g2.append(b);
-  });
-  d.append(g2);
+  d.append(grille(TOOLS, true), zoneAppli());
   return d;
 }
 
-function resultats(){
-  const q = S.q.toLowerCase();
+/* Les deux onglets du bas tombaient sur le premier élément de leur famille —
+   « Outils » ouvrait le patch — et n'avaient donc aucun écran où ramener. */
+function vParc(){
   const d = el("div");
-  const proj = PROJECTEURS.filter(p => (p.nom + " " + p.marque + " " + p.fam).toLowerCase().includes(q));
-  const mach = MACHINERIE.filter(m => (m.nom + " " + m.type).toLowerCase().includes(q));
-  const haut = HAUTEURS.filter(h => h.nom.toLowerCase().includes(q));
-  const gel = LEE.filter(g => (g.ref + " " + g.nom).toLowerCase().includes(q));
-  const bloc = (titre, items, fn) => {
+  d.append(bar("Parc"), grille(CATS));
+  return d;
+}
+function vOutils(){
+  const d = el("div");
+  d.append(bar("Outils"), grille(TOOLS, true), zoneAppli());
+  return d;
+}
+
+/* « reseau » doit trouver « Réseau » : sur un clavier de téléphone, à une main,
+   l'accent est la première chose qu'on laisse tomber. */
+const plat = s => String(s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+function resultats(){
+  const q = plat(S.q);
+  const d = el("div");
+  const ecr = DESTINATIONS().filter(x => plat(x.t + " " + x.s).includes(q));
+  const proj = PROJECTEURS.filter(p => plat(p.nom + " " + p.marque + " " + p.fam).includes(q));
+  const mach = MACHINERIE.filter(m => plat(m.nom + " " + m.type).includes(q));
+  const haut = HAUTEURS.filter(h => plat(h.nom).includes(q));
+  const gel = LEE.filter(g => plat(g.ref + " " + g.nom).includes(q));
+  /* Le titre annonçait le compte complet et la liste n'en posait que huit,
+     sans rien qui dise où étaient les autres : la dernière ligne y emmène,
+     avec le même mot déjà tapé. */
+  const bloc = (titre, items, fn, tout) => {
     if(!items.length) return;
     d.insertAdjacentHTML("beforeend", `<h2 class="sec">${titre} · ${items.length}</h2>`);
     const l = el("div", "rowlist");
     items.slice(0, 8).forEach(x => l.append(fn(x)));
+    if(tout && items.length > 8){
+      const b = el("button", "voir", `Voir les ${items.length} ${titre.toLowerCase()}`);
+      b.onclick = () => { toucher(); tout(); };
+      l.append(b);
+    }
     d.append(l);
   };
-  bloc("Projecteurs", proj, p => rowProj(p));
-  bloc("Machinerie", mach, m => rowMach(m));
-  bloc("Hauteurs", haut, h => rowHaut(h));
+  bloc("Écrans", ecr, x => { const r = rowSimple(x.t, x.s, "", "", x.c, x.i);
+    r.onclick = () => { toucher(); go({ v:x.k }); }; return r; });
+  bloc("Projecteurs", proj, p => rowProj(p), () => { S.qs.proj = S.q; go({ v:"proj" }); });
+  bloc("Machinerie", mach, m => rowMach(m), () => { S.qs.mach = S.q; go({ v:"mach" }); });
+  bloc("Hauteurs", haut, h => rowHaut(h), () => { S.qs.haut = S.q; go({ v:"haut" }); });
   bloc("Gélatines", gel, g => { const r = rowSimple(g.ref, g.nom, "", "", g.hex, "gel");
     r.onclick = () => { S.gel = g; go({ v:"gel" }); }; return r; });
-  if(!proj.length && !mach.length && !haut.length && !gel.length)
+  if(!ecr.length && !proj.length && !mach.length && !haut.length && !gel.length)
     d.insertAdjacentHTML("beforeend", `<p class="muted" style="margin-top:20px">Rien pour « ${esc(S.q)} ».</p>`);
   return d;
 }
@@ -688,7 +875,7 @@ function bar(titre, cnt, back){
   const d = el("div", "bar");
   const b = el("button", "bk", ic("back"));
   b.setAttribute("aria-label", "Retour");
-  b.onclick = back || (() => go({ v:"home" }));
+  b.onclick = back || (() => retour());
   d.append(b, el("h2", null, esc(titre)));
   if(cnt) d.append(el("span", "cnt", cnt));
   return d;
@@ -711,7 +898,7 @@ function vProj(){
 
 function vFiche(p){
   const d = el("div");
-  d.append(bar(p.marque, null, () => go({ v:"proj" })));
+  d.append(bar(p.marque, null, () => retour({ v:"proj" })));
   const h = el("div", "hero");
   h.style.setProperty("--c", "var(--proj)");
   h.innerHTML = `<div class="kick">${esc(p.fam)}</div><h3>${esc(p.nom)}</h3>
@@ -897,6 +1084,19 @@ function lireLocal(cle, defaut){
 function ecrireLocal(cle, val){
   try { localStorage.setItem(cle, JSON.stringify(val)); } catch(e){ }
 }
+
+/* Le CSS savait déjà lire `data-theme`, mais rien ne le posait : le thème
+   suivait Android, et on ne pouvait pas le tenir en sombre le temps d'un
+   service. */
+const CLE_THEME = "theme.v1";
+function appliquerTheme(v){
+  const r = document.documentElement;
+  if(v === "clair") r.setAttribute("data-theme", "light");
+  else if(v === "sombre") r.setAttribute("data-theme", "dark");
+  else r.removeAttribute("data-theme");
+}
+let THEME = lireLocal(CLE_THEME, "auto");
+appliquerTheme(THEME);
 
 const cleApp = p => p.marque + " " + p.nom;
 
@@ -1487,8 +1687,8 @@ function peindre(){
      pictogramme ouvrait le menu des patchs. */
   const rang = el("div", "p-entete");
   const bk = el("button", "bk", ic("back"));
-  bk.setAttribute("aria-label", "Retour à l'accueil");
-  bk.onclick = () => go({ v:"home" });
+  bk.setAttribute("aria-label", "Retour");
+  bk.onclick = () => retour();
   const t = el("button", "p-titre");
   t.innerHTML = `<b>${esc(P.nom || "Sans titre")}</b><span class="ch">▾</span>
     <span class="n">${PATCHS.length} patch${PATCHS.length > 1 ? "s" : ""}</span>`;
@@ -2843,7 +3043,10 @@ function testeur(){
    magasin n'a le droit de sauter. Deux endroits affichent le même état — le
    bandeau d'accueil et cet écran — et aucun des deux n'est forcément là. */
 const MAJ = { e:null };
-const PHASES_BANDEAU = ["disponible", "telechargement", "pret", "autorisation"];
+/* Le bandeau ne garde que les phases qui demandent un geste : « disponible » et
+   « téléchargement » poussaient la grille d'une rangée entière pour ne rien
+   faire faire. Elles se disent maintenant sur la ligne Application. */
+const PHASES_BANDEAU = ["pret", "autorisation"];
 
 function ko(o){ return o >= 1048576 ? (o / 1048576).toFixed(1).replace(".", ",") + " Mo"
                                     : Math.round(o / 1024) + " ko"; }
@@ -2929,20 +3132,45 @@ function peindreMaj(){
   }
   const ecran = $("#maj-ecran");
   if(ecran && e){ ecran.innerHTML = ecranMaj(e); cablerMaj(ecran); }
+  /* Le suivi repasse toutes les secondes : on ne refait le bouton que si ce
+     qu'il dit a changé, sinon il se reconstruit sous le doigt. */
+  const ligne = $("#appli-zone");
+  if(ligne){
+    const neuf = ligneAppli();
+    if(ligne.textContent !== neuf.textContent) ligne.replaceChildren(neuf);
+  }
+}
+
+function carteTheme(){
+  const c = el("div", "card");
+  c.innerHTML = `<h4>Thème</h4>`;
+  const t = el("div", "tri");
+  [["auto", "Automatique"], ["clair", "Clair"], ["sombre", "Sombre"]].forEach(([k, lab]) => {
+    const b = el("button", null, lab);
+    b.setAttribute("aria-pressed", THEME === k ? "true" : "false");
+    b.onclick = () => { THEME = k; ecrireLocal(CLE_THEME, k); appliquerTheme(k); toucher(); render(); };
+    t.append(b);
+  });
+  c.append(t);
+  c.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0">« Automatique » suit le
+    réglage d'Android. En salle, le sombre tient l'écran discret : le forcer évite qu'il
+    repasse en clair au lever du jour.</p>`);
+  return c;
 }
 
 function vMaj(){
   const d = el("div");
   const ecran = el("div");
   ecran.id = "maj-ecran";
-  d.append(bar("Mise à jour"), ecran);
+  d.append(bar("Application"), ecran, carteTheme());
   NET.maj.verifier();          // sans effet si une vérification tourne déjà
   setTimeout(peindreMaj);
   return d;
 }
 
 /* -------------------------------- moteur -------------------------------- */
-const VIEWS = { home, proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
+const VIEWS = { home, parc:vParc, outils:vOutils,
+                proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 tcd:vPatch, gel:vGel, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
@@ -2991,14 +3219,18 @@ function render(){
     q.addEventListener("input", e => { S.q = e.target.value; const pos = e.target.selectionStart; render();
       const n = $("#q"); if(n){ n.focus({ preventScroll:true }); n.setSelectionRange(pos, pos); } });
   }
-  const t = ["proj", "mach", "haut", "mdg", "fiche", "edit"].includes(r.v) ? "parc"
+  const t = ["parc", "proj", "mach", "haut", "mdg", "fiche", "edit"].includes(r.v) ? "parc"
           : r.v === "home" ? "home" : "tools";
   document.querySelectorAll(".tb").forEach(b => b.setAttribute("aria-current", b.dataset.t === t ? "true" : "false"));
   peindreMaj();          // le rendu a jeté le bandeau : on le repose s'il a lieu d'être
+  peindreReseau();
 }
+/* Chaque onglet ouvre sa famille, pas son premier élément : « Outils » tombait
+   sur l'écran du patch, et restait allumé sur des écrans où il ne ramenait pas. */
 document.querySelectorAll(".tb").forEach(b => b.onclick = () => {
   S.q = "";
-  go({ v:b.dataset.t === "home" ? "home" : b.dataset.t === "parc" ? "proj" : "dmx" });
+  toucher();
+  go({ v:b.dataset.t === "home" ? "home" : b.dataset.t === "parc" ? "parc" : "outils" });
 });
 /* Un seul suivi pour toute l'application : le bandeau et l'écran s'y branchent
    quand ils existent. Il ne passe pas par poser(), qui est remis à zéro à
