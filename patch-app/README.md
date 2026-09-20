@@ -126,18 +126,33 @@ d'un canal qui n'en fait pas partie — une lyre, un nœud à vérifier, un circ
 pas encore relevé. Le volet **Télécommande DMX** émet en clair : un univers, un
 canal, une valeur de 0 à 255.
 
-**Le clavier est là en permanence**, et se lit comme une frappe de pupitre :
-« 137 @ 50 ✓ » pose le canal 137 à 50 %. Les chiffres vont à ce qui est
-encadré en haut de l'écran — le canal par défaut, l'univers après « U », le
-niveau après « @ » —, « ✓ » les pose et rend la main au canal, « C » reprend
-le dernier chiffre. « Full » et « Noir » sont sur le pavé, sous la main. Le
-niveau se tape en pourcentage ; la jauge, elle, va de 0 à 255 comme la ligne
-DMX. Pas de clavier d'Android : il recouvrirait le volet, et un numéro de
-canal se tape, il ne se cherche pas.
+**La frappe est celle d'un Eos.** Une ligne de commande se remplit et se
+termine : `1/137 Thru 1/150 At 50 Enter` pose les adresses 137 à 150 de
+l'univers 1 à 50 %. C'est ce qu'a dans les doigts qui tient un pupitre ETC, et
+ça dit en quelques touches ce que des boutons demanderaient en dix.
 
-L'écran dit ce que la feuille a posé à cette adresse — « Gradateur 12 ·
-circuit 5 », « PC 1000 n° 3 · canal 1 sur 6 », ou rien. Les canaux tenus se
-rappellent d'une pastille, « Canaux à zéro » les relâche tous, et quitter
+| Touche | Ce qu'elle fait |
+| --- | --- |
+| `1` … `0` | Une adresse, ou un niveau après `At` |
+| `/` | Sépare l'univers de l'adresse — `2/17`. Sans lui, l'univers est celui en cours |
+| `Thru` | Une plage, qui traverse les univers — `1/511 Thru 2/2` fait quatre adresses |
+| `+` `−` | Ajoutent ou retirent de la sélection ; une ligne qui commence par l'un des deux reprend la sélection en place |
+| `At` | Attend un pourcentage. Un seul chiffre vaut des dizaines, comme là-bas : `At 5` fait 50 %, `At 05` fait 5 % |
+| `Full` `Out` | À fond, à zéro — elles terminent la ligne d'elles-mêmes |
+| `Clear` | Reprend un cran : le dernier chiffre, puis le dernier terme, puis la sélection |
+| `Sneak` | Relâche la sélection, qui retombe et sort de la liste |
+| `Enter` | Pose la ligne |
+| `− 10 %` `+ 10 %` | Le coup de pouce d'un pupitre, sur la sélection |
+
+Ce qui manque par rapport au vrai tient à ce qu'on adresse ici : des sorties
+DMX, sans bibliothèque derrière — donc ni circuits, ni groupes, ni palettes. Le
+niveau se tape en pourcentage ; la jauge, elle, va de 0 à 255 comme la ligne
+DMX. Pas de clavier d'Android : il recouvrirait le volet, et une adresse se
+tape, elle ne se cherche pas.
+
+L'écran dit ce que la feuille a posé à l'adresse courante — « Gradateur 12 ·
+circuit 5 », « PC 1000 n° 3 · canal 1 sur 6 », ou rien. Les adresses tenues se
+reprennent d'une pastille, « Tout relâcher » les lâche toutes, et quitter
 l'écran relâche aussi. Là où un canal croise un gradateur de la
 feuille, c'est le plus haut des deux niveaux qui sort, comme sur un pupitre. Le
 protocole, la priorité et la destination sont ceux du patch.
