@@ -124,11 +124,21 @@ il s'allume tant qu'elle tient un canal.
 numéro de gradateur et passe par la plage du patch : elle ne sait donc rien dire
 d'un canal qui n'en fait pas partie — une lyre, un nœud à vérifier, un circuit
 pas encore relevé. Le volet **Télécommande DMX** émet en clair : un univers, un
-canal, une valeur de 0 à 255. L'univers et le canal se tapent au pavé, le
-niveau se tient, et l'écran dit ce que la feuille a posé à cette adresse —
-« Gradateur 12 · circuit 5 », « PC 1000 n° 3 · canal 1 sur 6 », ou rien. Les
-canaux tenus se rappellent d'une pastille, « Canaux à zéro » les relâche tous,
-et quitter l'écran relâche aussi. Là où un canal croise un gradateur de la
+canal, une valeur de 0 à 255.
+
+**Le clavier est là en permanence**, et se lit comme une frappe de pupitre :
+« 137 @ 50 ✓ » pose le canal 137 à 50 %. Les chiffres vont à ce qui est
+encadré en haut de l'écran — le canal par défaut, l'univers après « U », le
+niveau après « @ » —, « ✓ » les pose et rend la main au canal, « C » reprend
+le dernier chiffre. « Full » et « Noir » sont sur le pavé, sous la main. Le
+niveau se tape en pourcentage ; la jauge, elle, va de 0 à 255 comme la ligne
+DMX. Pas de clavier d'Android : il recouvrirait le volet, et un numéro de
+canal se tape, il ne se cherche pas.
+
+L'écran dit ce que la feuille a posé à cette adresse — « Gradateur 12 ·
+circuit 5 », « PC 1000 n° 3 · canal 1 sur 6 », ou rien. Les canaux tenus se
+rappellent d'une pastille, « Canaux à zéro » les relâche tous, et quitter
+l'écran relâche aussi. Là où un canal croise un gradateur de la
 feuille, c'est le plus haut des deux niveaux qui sort, comme sur un pupitre. Le
 protocole, la priorité et la destination sont ceux du patch.
 

@@ -415,7 +415,24 @@
       text-transform:uppercase;color:var(--ink3)}
   .tcd .ecr .oc{grid-column:1/-1;font:500 12.5px/1.4 var(--body);color:var(--ink2)}
   .tcd .ecr .ad{grid-column:1/-1;font:500 11px/1.4 var(--mono);color:var(--ink3)}
+  .tcd .ecr .n.vise{box-shadow:inset 0 0 0 2.5px var(--tel)}
   .tcd .brut{font:500 11.5px/1 var(--mono);color:var(--ink3);text-align:right;margin:0 0 10px}
+  /* La ligne de commande : la frappe en cours, et ce qu'elle deviendra. */
+  .tcd .cmd{display:flex;align-items:baseline;gap:10px;background:var(--sur2);border-radius:12px;
+      padding:9px 14px;margin-bottom:8px}
+  .tcd .cmd span{font:700 10px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;
+      color:var(--ink3)}
+  .tcd .cmd b{margin-left:auto;font:600 26px/1 var(--mono);color:var(--tel);
+      font-variant-numeric:tabular-nums}
+  .tcd .cmd i{font:600 13px/1 var(--mono);color:var(--ink3);font-style:normal}
+  /* Le clavier : trois colonnes de chiffres, une de fonctions, comme un pupitre. */
+  .tcd .clav{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .tcd .clav button{border:0;border-radius:12px;padding:13px 0;background:var(--sur2);
+      font:600 20px/1 var(--mono);color:var(--ink);cursor:pointer}
+  .tcd .clav button.fn{background:var(--bg);border:1.5px solid var(--line);
+      font:600 13px/1 var(--body);color:var(--ink2)}
+  .tcd .clav button.acc{background:var(--tel);border-color:var(--tel);color:#fff;font-size:17px}
+  .tcd .clav button:active{transform:scale(.97)}
   .tcd .tenus{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
   .tcd .tenus button{border:1.5px solid var(--tel);border-radius:99px;padding:7px 11px;
       background:color-mix(in srgb,var(--tel) 12%,transparent);color:var(--tel);cursor:pointer;
@@ -1458,7 +1475,7 @@ let POINTE = null;       // gradateur repéré dans la liste
 let PAVE = null;         // frappe du pavé numérique ; null = pavé fermé
 let TU = 0;              // univers appelé par la télécommande DMX ; 0 = pas encore ouverte
 let TC = 1;              // canal appelé par la télécommande DMX
-let TPAVE = null;        // frappe de son pavé : { quoi:"u"|"c", frappe } ; null = fermé
+let TSAI = { cible:"c", frappe:"" };   // sa ligne de commande : ce qu'on tape, et pour quoi
 let INDICE = 0;          // rang du gradateur en cours de relevé
 let fond = null, volet = null;
 
@@ -1718,7 +1735,7 @@ function evidence(x){
 function ouvrirVolet(quoi, arg){
   if(VOLET === quoi && arg == null){ fermerVolet(); return; }
   fermerVolet(true);
-  VOLET = quoi; PAVE = null; TPAVE = null;
+  VOLET = quoi; PAVE = null; TSAI = { cible:"c", frappe:"" };
   if(quoi === "relever") INDICE = arg != null ? arg : (prochainVide() ?? 0);
   /* La télécommande DMX s'ouvre là où on en était : sur le gradateur appelé la
      première fois, sur l'univers du patch à défaut. */
@@ -1751,7 +1768,8 @@ function fermerVolet(sansPeindre){
   const f = fond, v = volet;
   f.classList.remove("on"); v.classList.remove("on");
   setTimeout(() => { f.remove(); v.remove(); }, 200);
-  fond = volet = null; VOLET = null; POINTE = null; CIBLE = null; PAVE = null; TPAVE = null;
+  fond = volet = null; VOLET = null; POINTE = null; CIBLE = null; PAVE = null;
+  TSAI = { cible:"c", frappe:"" };
   if(!sansPeindre) peindre();
 }
 
@@ -1919,13 +1937,14 @@ function majVoletDmx(){
   volet.querySelector(".tete .cpt").textContent = tenus.length
     ? `${tenus.length} cana${tenus.length > 1 ? "ux tenus" : "l tenu"}` : "plateau noir";
   const c = volet.querySelector(".corps");
-  if(TPAVE !== null){ c.replaceChildren(paveDmx()); return; }
 
   const an = artnet(TU), sa = sacn(TU);
   const d = el("div");
   d.innerHTML = `<div class="ecr">
-      <button class="n" data-p="u" aria-label="Appeler un autre univers">U${TU}<small>univers</small></button>
-      <button class="n" data-p="c" aria-label="Appeler un autre canal">${TC}<small>canal</small></button>
+      <button class="n${TSAI.cible === "u" ? " vise" : ""}" data-p="u"
+        aria-label="Taper un univers">U${TU}<small>univers</small></button>
+      <button class="n${TSAI.cible === "c" ? " vise" : ""}" data-p="c"
+        aria-label="Taper un canal">${TC}<small>canal</small></button>
       <span class="oc">${esc(quiEstLa(TU, TC))}</span>
       <span class="ad">${esc(P.reg.proto)} · Art-Net ${an.net}.${an.sub}.${an.uni} · sACN ${esc(sa.ip)}</span>
     </div>
@@ -1933,10 +1952,9 @@ function majVoletDmx(){
       aria-label="Valeur du canal ${TC}"><b>${pcent(v)} %</b></div>
     <p class="brut">valeur ${v} sur 255</p>`;
 
-  /* L'univers et le canal se tapent : sur un téléphone, le clavier recouvrirait
-     le volet, et 137 ne se cherche pas à la molette. */
+  /* Toucher l'univers ou le canal, c'est dire au clavier où va la frappe. */
   d.querySelectorAll(".ecr .n").forEach(b => b.onclick = () => {
-    TPAVE = { quoi:b.dataset.p, frappe:"" }; majVoletDmx(); });
+    TSAI = { cible:b.dataset.p === "u" ? "u" : "c", frappe:"" }; majVoletDmx(); });
 
   const poserNiveau = n => {
     DMX[cle] = Math.max(0, Math.min(255, Math.round(n)));
@@ -1952,13 +1970,7 @@ function majVoletDmx(){
   /* Le glissement fini, le volet se refait : les canaux tenus ont changé. */
   j.onchange = () => majVoletDmx();
 
-  const r1 = el("div", "rang");
-  [["Noir", 0], ["50 %", 128], ["Full", 255]].forEach(([lib, n]) => {
-    const b = el("button", "mini" + (v === n ? " on" : ""), lib);
-    b.onclick = () => poserNiveau(n);
-    r1.append(b);
-  });
-  d.append(r1);
+  d.append(ligneCommande(), clavierDmx(poserNiveau));
 
   const r2 = el("div", "rang");
   const cp = el("button", "mini", "◀ canal");
@@ -1999,12 +2011,15 @@ function majVoletDmx(){
 
   const etat = NET.emissionEtat();
   d.append(el("p", "route", esc(routeEmission(etat))));
-  d.append(el("p", "aide", "Les valeurs vont de 0 à 255, comme sur la ligne DMX — "
-    + "les pourcentages sont là pour lire. Un canal reste tenu tant qu'on ne l'a pas "
-    + "remis à zéro : « Canaux à zéro » relâche tout d'un coup, et quitter l'écran relâche "
-    + "aussi. Là où un canal croise un gradateur de la feuille, c'est le plus haut des deux "
-    + "niveaux qui sort. Le protocole, la priorité et la destination sont ceux du patch, "
-    + "dans le menu du haut."));
+  d.append(el("p", "aide", "Le clavier se lit comme une frappe de pupitre : "
+    + "« 137 @ 50 ✓ » pose le canal 137 à 50 %. Les chiffres vont à ce qui est encadré "
+    + "en haut — le canal par défaut, l'univers après « U », le niveau après « @ » — et "
+    + "« ✓ » les pose. Le niveau se tape en pourcentage ; la jauge, elle, va de 0 à 255 "
+    + "comme la ligne DMX. Un canal reste tenu tant qu'on ne l'a pas remis à zéro : "
+    + "« Canaux à zéro » relâche tout d'un coup, et quitter l'écran relâche aussi. Là où "
+    + "un canal croise un gradateur de la feuille, c'est le plus haut des deux niveaux qui "
+    + "sort. Le protocole, la priorité et la destination sont ceux du patch, dans le menu "
+    + "du haut."));
   const fin = el("button", "act", "Terminer");
   fin.onclick = () => fermerVolet();
   d.append(fin);
@@ -2014,38 +2029,61 @@ function majVoletDmx(){
 
 const pcent = v => Math.round((v | 0) / 255 * 100);
 
-/* Le pavé du relevé, appliqué à l'univers et au canal. */
-function paveDmx(){
-  const quoi = TPAVE.quoi;
-  const d = el("div", "pave");
-  d.innerHTML = `<div class="saisie${TPAVE.frappe ? "" : " vide"}">${
-    TPAVE.frappe || (quoi === "u" ? "n° d'univers" : "n° de canal")}</div>
-    <div class="touches"></div>`;
-  const t = d.querySelector(".touches");
-  const valider = () => {
-    const n = parseInt(TPAVE.frappe, 10);
-    if(!isNaN(n)){
-      if(quoi === "u") TU = Math.max(1, Math.min(63999, n));
-      else TC = Math.max(1, Math.min(512, n));
-    }
-    TPAVE = null;
-    majVoletDmx();
+/* La ligne de commande : ce qui est tapé, et ce que ça deviendra. Sans elle, le
+   clavier poserait des chiffres sans dire où ils vont. */
+function ligneCommande(){
+  const lib = { c:"canal", u:"univers", n:"niveau" }[TSAI.cible];
+  const d = el("div", "cmd");
+  d.innerHTML = `<span>${lib}</span><b>${esc(TSAI.frappe || "—")}</b>${
+    TSAI.cible === "n" ? "<i>%</i>" : ""}`;
+  d.setAttribute("aria-live", "polite");
+  d.setAttribute("aria-label", `${lib} ${TSAI.frappe || "à taper"}`);
+  return d;
+}
+
+/* Le clavier, toujours là. C'est la frappe d'un pupitre portée au téléphone :
+   137 @ 50 ✓. Les chiffres vont à la cible encadrée en haut, « @ » passe au
+   niveau en posant au passage le canal tapé, « ✓ » valide et rend la main au
+   canal — la main reste sur le pavé d'un appel au suivant. */
+function clavierDmx(poserNiveau){
+  const poserFrappe = () => {
+    const n = parseInt(TSAI.frappe, 10);
+    TSAI.frappe = "";
+    if(isNaN(n)) return;
+    if(TSAI.cible === "u") TU = Math.max(1, Math.min(63999, n));
+    else if(TSAI.cible === "c") TC = Math.max(1, Math.min(512, n));
+    else poserNiveau(Math.max(0, Math.min(100, n)) * 255 / 100);
   };
-  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "✓"].forEach(x => {
-    const b = el("button", x === "✓" ? "acc" : null, x);
-    if(x === "C") b.setAttribute("aria-label", "Effacer le dernier chiffre");
-    b.onclick = () => {
-      if(x === "C"){ TPAVE.frappe = TPAVE.frappe.slice(0, -1); majVoletDmx(); return; }
-      if(x === "✓"){ valider(); return; }
-      if(TPAVE.frappe.length < 5) TPAVE.frappe += x;
-      majVoletDmx();
-    };
-    t.append(b);
+  const actes = {
+    "@":() => {
+      /* « 137 @ » : le canal tapé se pose avant que la frappe ne devienne un
+         niveau, sinon le @ perdrait le numéro qui le précède. */
+      if(TSAI.cible !== "n") poserFrappe();
+      TSAI.cible = "n"; TSAI.frappe = ""; majVoletDmx();
+    },
+    U:() => { TSAI.cible = "u"; TSAI.frappe = ""; majVoletDmx(); },
+    C:() => { TSAI.frappe = TSAI.frappe.slice(0, -1); majVoletDmx(); },
+    "✓":() => { poserFrappe(); TSAI.cible = "c"; majVoletDmx(); majBarre(); },
+    Full:() => { TSAI.frappe = ""; poserNiveau(255); },
+    Noir:() => { TSAI.frappe = ""; poserNiveau(0); }
+  };
+  const aides = {
+    "@":"Taper un niveau", U:"Taper un univers", C:"Effacer le dernier chiffre",
+    "✓":"Poser ce qui est tapé", Full:"Ce canal à fond", Noir:"Ce canal à zéro"
+  };
+  const d = el("div", "clav");
+  d.setAttribute("role", "group");
+  d.setAttribute("aria-label", "Clavier de la télécommande DMX");
+  ["1", "2", "3", "@", "4", "5", "6", "U", "7", "8", "9", "C",
+   "0", "Full", "Noir", "✓"].forEach(x => {
+    const chiffre = /^\d$/.test(x);
+    const b = el("button", chiffre ? null : x === "✓" ? "fn acc" : "fn", x === "@" ? "@ %" : x);
+    if(aides[x]) b.setAttribute("aria-label", aides[x]);
+    b.onclick = chiffre
+      ? () => { if(TSAI.frappe.length < 5) TSAI.frappe += x; majVoletDmx(); }
+      : actes[x];
+    d.append(b);
   });
-  const retour = el("button", "sec", "Retour");
-  retour.style.gridColumn = "1 / -1";
-  retour.onclick = () => { TPAVE = null; majVoletDmx(); };
-  t.append(retour);
   return d;
 }
 
