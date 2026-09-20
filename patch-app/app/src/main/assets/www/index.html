@@ -421,6 +421,7 @@
       padding:11px 14px;margin-bottom:8px;min-height:44px;overflow-x:auto;white-space:nowrap;
       font:600 17px/1.2 var(--mono);color:var(--tel)}
   .tcd .cmd.vide{font:500 12.5px/1.2 var(--body);color:var(--ink3)}
+  .tcd .msg{font:500 11.5px/1.4 var(--mono);color:var(--ink3);margin:-3px 4px 8px}
   .tcd .cmd .cur{flex:none;width:9px;height:19px;border-radius:2px;background:var(--tel);
       animation:clign 1.1s steps(2,start) infinite}
   @keyframes clign{50%{opacity:0}}
@@ -1478,6 +1479,7 @@ let TC = 1;              // canal de l'adresse courante
 let DSEL = [];           // sélection de la télécommande DMX : des clés « u:c »
 let DCMD = [];           // sa ligne de commande, en jetons : ["1","/","137","At","50"]
 let DOUV = false;        // le dernier jeton est un nombre encore ouvert à la frappe
+let DMSG = "";           // ce qu'a donné la dernière ligne posée, quand ça mérite un mot
 let INDICE = 0;          // rang du gradateur en cours de relevé
 let fond = null, volet = null;
 
@@ -1737,7 +1739,7 @@ function evidence(x){
 function ouvrirVolet(quoi, arg){
   if(VOLET === quoi && arg == null){ fermerVolet(); return; }
   fermerVolet(true);
-  VOLET = quoi; PAVE = null; DCMD = []; DOUV = false;
+  VOLET = quoi; PAVE = null; DCMD = []; DOUV = false; DMSG = "";
   if(quoi === "relever") INDICE = arg != null ? arg : (prochainVide() ?? 0);
   /* La télécommande DMX s'ouvre là où on en était : sur le gradateur appelé la
      première fois, sur l'univers du patch à défaut. */
@@ -1774,7 +1776,7 @@ function fermerVolet(sansPeindre){
   f.classList.remove("on"); v.classList.remove("on");
   setTimeout(() => { f.remove(); v.remove(); }, 200);
   fond = volet = null; VOLET = null; POINTE = null; CIBLE = null; PAVE = null;
-  DCMD = []; DOUV = false;
+  DCMD = []; DOUV = false; DMSG = "";
   if(!sansPeindre) peindre();
 }
 
@@ -1953,20 +1955,50 @@ const MAX_PLAGE = 512;       // une plage d'un coup : un univers, pas plus
 
 const jetonNombre = x => /^\d+$/.test(x || "");
 
+/* Les adresses qu'un circuit occupe sur la feuille : celles de ses gradateurs,
+   et, pour les appareils qui y sont branchés, leur canal d'intensité — le
+   premier, ce qui suffit à la plupart —, ou toute leur empreinte si la fiche
+   demande « tous les canaux ». C'est la règle de la mise en évidence, appliquée
+   à l'appel d'un circuit : les deux allument la même chose.
+
+   Un circuit se saisit en clair sur la feuille — « 12 », mais aussi « 12b » ou
+   « face ». Le clavier n'a que des chiffres : seuls les circuits entièrement
+   numériques s'appellent, les autres se touchent dans la liste. */
+function adressesCircuit(de, a){
+  const dans = c => /^\d+$/.test(c) && +c >= de && +c <= a;
+  const cles = [];
+  let ng = 0, na = 0;
+  const poser = (u, c) => { const k = cleAdr(u, c); if(!cles.includes(k)) cles.push(k); };
+  gradas().forEach(n => {
+    if(!dans(circuitGrada(n))) return;
+    const ad = adrGrada(n);
+    if(ad){ poser(ad.u, ad.canal); ng++; }
+  });
+  appareils().forEach(x => {
+    if(!dans(circuitApp(x.n))) return;
+    const fin = P.reg.hlTout ? x.fin : x.adr;
+    for(let c = x.adr; c <= fin && c <= 512; c++) poser(x.u, c);
+    na++;
+  });
+  return { cles, ng, na };
+}
+
 /* La frappe. Un nombre reste ouvert tant qu'une autre touche ne l'a pas fermé :
    c'est ce qui permet de taper 137 chiffre à chiffre sans le voir se découper. */
 function tapeChiffre(x){
+  DMSG = "";
   const der = DCMD[DCMD.length - 1];
   if(DOUV && jetonNombre(der)){ if(der.length < 5) DCMD[DCMD.length - 1] = der + x; }
   else { DCMD.push(x); DOUV = true; }
   majVoletDmx();
 }
-function tapeJeton(x){ DCMD.push(x); DOUV = false; majVoletDmx(); }
+function tapeJeton(x){ DMSG = ""; DCMD.push(x); DOUV = false; majVoletDmx(); }
 
 /* « Clear » reprend un cran : le dernier chiffre d'un nombre en cours, sinon le
    dernier jeton, sinon la sélection elle-même. Sur un numéro à trois chiffres,
    une faute de frappe ne doit pas coûter toute la ligne. */
 function effacerCommande(){
+  DMSG = "";
   const der = DCMD[DCMD.length - 1];
   if(DOUV && jetonNombre(der) && der.length > 1) DCMD[DCMD.length - 1] = der.slice(0, -1);
   else if(DCMD.length){ DCMD.pop(); DOUV = false; }
@@ -1990,11 +2022,25 @@ function lireCommande(jetons){
     return { u, c:Math.max(1, Math.min(512, c)) };
   };
 
+  /* « Circ » fait basculer la ligne du côté des circuits de la feuille : ce qui
+     suit se lit en numéros de circuit, et non plus en adresses. Une adresse
+     écrite avec son univers — « 1/5 » — reste lue comme une adresse : c'est le
+     « / » qui la distingue, et ça suffit à mélanger les deux dans une ligne. */
   const morceaux = [];
-  let plus = true;
+  let plus = true, circuits = false;
   while(i < jetons.length && jetons[i] !== "At"){
     const x = jetons[i];
+    if(x === "Circ"){ circuits = true; i++; continue; }
     if(x === "+" || x === "-"){ plus = x === "+"; i++; continue; }
+    if(circuits && jetons[i + 1] !== "/"){
+      if(!jetonNombre(x)){ i++; continue; }
+      const de = parseInt(jetons[i++], 10);
+      let a = de;
+      if(jetons[i] === "Thru"){ i++; a = jetonNombre(jetons[i]) ? parseInt(jetons[i++], 10) : de; }
+      morceaux.push({ plus, circ:[Math.min(de, a), Math.max(de, a)] });
+      plus = true;
+      continue;
+    }
     const de = lireAdresse();
     if(!de){ i++; continue; }
     let a = null;
@@ -2007,14 +2053,24 @@ function lireCommande(jetons){
      comme sur un pupitre ; une ligne qui commence par une adresse la remplace. */
   const enchaine = jetons[0] === "+" || jetons[0] === "-";
   let sel = (!morceaux.length || enchaine) ? DSEL.slice() : [];
+  let bilan = null;
   morceaux.forEach(m => {
-    const x = absAdr(m.de.u, m.de.c), y = m.a ? absAdr(m.a.u, m.a.c) : x;
-    const d = Math.min(x, y), f = Math.min(Math.max(x, y), Math.min(x, y) + MAX_PLAGE - 1);
-    for(let n = d; n <= f; n++){
-      const t = deAbs(n), k = cleAdr(t.u, t.c);
+    let clefs;
+    if(m.circ){
+      const r = adressesCircuit(m.circ[0], m.circ[1]);
+      clefs = r.cles;
+      bilan = bilan || { ng:0, na:0 };
+      bilan.ng += r.ng; bilan.na += r.na;
+    } else {
+      clefs = [];
+      const x = absAdr(m.de.u, m.de.c), y = m.a ? absAdr(m.a.u, m.a.c) : x;
+      const d = Math.min(x, y), f = Math.min(Math.max(x, y), Math.min(x, y) + MAX_PLAGE - 1);
+      for(let n = d; n <= f; n++){ const t = deAbs(n); clefs.push(cleAdr(t.u, t.c)); }
+    }
+    clefs.forEach(k => {
       if(m.plus){ if(!sel.includes(k)) sel.push(k); }
       else sel = sel.filter(z => z !== k);
-    }
+    });
   });
 
   /* Le niveau se tape en pourcentage. Un seul chiffre vaut des dizaines, comme
@@ -2029,13 +2085,24 @@ function lireCommande(jetons){
       niveau = Math.round(Math.max(0, Math.min(100, pc)) * 255 / 100);
     }
   }
-  return { sel, niveau };
+  return { sel, niveau, bilan };
+}
+
+/* Un appel de circuit qui ne trouve rien n'a l'air de rien : la ligne s'efface
+   et l'écran ne bouge pas. Autant le dire. */
+function motBilan(b){
+  if(!b) return "";
+  if(!b.ng && !b.na) return "rien de relevé sur ce circuit";
+  const g = b.ng ? `${b.ng} gradateur${b.ng > 1 ? "s" : ""}` : "";
+  const a = b.na ? `${b.na} appareil${b.na > 1 ? "s" : ""}` : "";
+  return [g, a].filter(Boolean).join(" · ");
 }
 
 /* « Enter » : la ligne se lit, se pose, et s'efface. */
 function poserCommande(){
   const r = lireCommande(DCMD);
   DCMD = []; DOUV = false;
+  DMSG = motBilan(r.bilan);
   if(r.sel.length){
     DSEL = r.sel.slice().sort((a, b) => absCle(a) - absCle(b));
     const t = deAbs(absCle(DSEL[0]));
@@ -2084,27 +2151,32 @@ function majVoletDmx(){
   /* Le glissement fini, le volet se refait : les adresses tenues ont changé. */
   j.onchange = () => majVoletDmx();
 
-  d.append(ligneCommande(), clavierEos());
+  d.append(ligneCommande());
+  if(DMSG) d.append(el("p", "msg", esc(DMSG)));
+  d.append(clavierEos());
 
   const r1 = el("div", "rang");
   const moins = el("button", "mini", `− ${PAS_POURCENT} %`);
   const plus = el("button", "mini", `+ ${PAS_POURCENT} %`);
-  const tout = el("button", "mini", "Tout relâcher");
+  const sn = el("button", "mini", "Sneak");
   moins.onclick = () => bousculer(-1);
   plus.onclick = () => bousculer(1);
+  sn.setAttribute("aria-label", "Relâcher la sélection");
+  sn.onclick = sneak;
+  r1.append(moins, plus, sn);
+  d.append(r1);
+
+  const r2 = el("div", "rang");
+  const prec = el("button", "mini", "◀ adresse");
+  const suiv = el("button", "mini", "adresse ▶");
+  const tout = el("button", "mini", "Tout relâcher");
+  prec.onclick = () => allerAdresse(-1);
+  suiv.onclick = () => allerAdresse(1);
   tout.onclick = () => {
     Object.keys(DMX).forEach(k => DMX[k] = 0);
     envoyer(); majVoletDmx(); majBarre();
   };
-  r1.append(moins, plus, tout);
-  d.append(r1);
-
-  const r2 = el("div", "rang2");
-  const prec = el("button", "mini", "◀ adresse");
-  const suiv = el("button", "mini", "adresse ▶");
-  prec.onclick = () => allerAdresse(-1);
-  suiv.onclick = () => allerAdresse(1);
-  r2.append(prec, suiv);
+  r2.append(prec, suiv, tout);
   d.append(r2);
 
   if(tenus.length){
@@ -2127,7 +2199,12 @@ function majVoletDmx(){
     + "« 1/137 At 50 Enter » pose l'adresse 137 de l'univers 1 à 50 %. Un nombre seul est "
     + "une adresse de l'univers en cours, « / » désigne l'univers, « Thru » une plage — "
     + "elle traverse les univers —, « + » et « − » ajoutent ou retirent de la sélection, et "
-    + "une ligne qui commence par l'un des deux reprend la sélection en place. « At » attend "
+    + "une ligne qui commence par l'un des deux reprend la sélection en place. « Circ » "
+    + "appelle un circuit de la feuille plutôt qu'une adresse : « Circ 12 At Full » allume "
+    + "les gradateurs relevés sur le circuit 12 et les appareils qui y sont branchés — pour "
+    + "ceux-là, leur canal d'intensité, ou toute leur empreinte si leur fiche demande « tous "
+    + "les canaux ». Un circuit écrit autrement qu'en chiffres, « 12b » ou « face », se "
+    + "touche dans la liste : le clavier n'a que des chiffres. « At » attend "
     + "un pourcentage, un seul chiffre valant des dizaines : « At 5 » fait 50 %, « At 05 » "
     + "fait 5 %. « Full » et « Out » terminent la ligne tout seuls, « Clear » reprend un "
     + "cran, « Sneak » relâche la sélection. Ce qui manque par rapport au vrai pupitre tient "
@@ -2140,6 +2217,14 @@ function majVoletDmx(){
   d.append(fin);
 
   c.replaceChildren(d);
+}
+
+/* « Sneak » rend la main : sur un pupitre il relâche le contrôle manuel, ici il
+   relâche les adresses tenues — elles retombent et sortent de la liste. */
+function sneak(){
+  if(DCMD.length) poserCommande();
+  DSEL.forEach(k => DMX[k] = 0);
+  envoyer(); majVoletDmx(); majBarre();
 }
 
 /* Le coup de pouce d'un Eos : dix pour cent par appui, sur la sélection. */
@@ -2182,31 +2267,25 @@ function clavierEos(){
     DCMD.push(niveau); DOUV = false;
     poserCommande();
   };
-  /* « Sneak » rend la main : sur un pupitre il relâche le contrôle manuel, ici
-     il relâche les adresses tenues — elles retombent et sortent de la liste. */
-  const sneak = () => {
-    if(DCMD.length) poserCommande();
-    DSEL.forEach(k => DMX[k] = 0);
-    envoyer(); majVoletDmx(); majBarre();
-  };
   const actes = {
-    Thru:() => tapeJeton("Thru"), At:() => tapeJeton("At"),
+    Thru:() => tapeJeton("Thru"), At:() => tapeJeton("At"), Circ:() => tapeJeton("Circ"),
     "+":() => tapeJeton("+"), "−":() => tapeJeton("-"), "/":() => tapeJeton("/"),
     Clear:effacerCommande, Out:() => terminer("Out"), Full:() => terminer("Full"),
-    Sneak:sneak, Enter:poserCommande
+    Enter:poserCommande
   };
   const aides = {
-    Thru:"Thru, une plage d'adresses", At:"At, poser un niveau",
+    Thru:"Thru, une plage", At:"At, poser un niveau",
+    Circ:"Circ, appeler un circuit de la feuille",
     "+":"Ajouter à la sélection", "−":"Retirer de la sélection",
     "/":"Séparer l'univers de l'adresse", Clear:"Reprendre un cran",
-    Out:"À zéro", Full:"À fond", Sneak:"Relâcher la sélection",
-    Enter:"Poser la ligne"
+    Out:"À zéro", Full:"À fond", Enter:"Poser la ligne"
   };
   const d = el("div", "clav");
   d.setAttribute("role", "group");
   d.setAttribute("aria-label", "Clavier de la télécommande DMX");
+  /* « Circ » prend la place du « Chan » d'un Eos, en bas à gauche du pavé. */
   ["1", "2", "3", "Thru", "4", "5", "6", "At", "7", "8", "9", "+",
-   "/", "0", "Clear", "−", "Out", "Full", "Sneak", "Enter"].forEach(x => {
+   "Circ", "0", "/", "−", "Clear", "Out", "Full", "Enter"].forEach(x => {
     const chiffre = /^\d$/.test(x);
     const b = el("button", chiffre ? null : x === "Enter" ? "fn acc" : "fn", x);
     if(aides[x]) b.setAttribute("aria-label", aides[x]);
