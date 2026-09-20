@@ -65,7 +65,7 @@ Quelques détails qui ont leur importance :
 | --- | --- |
 | Projecteurs, machinerie, hauteurs | Recherche, filtres, et l'inventaire se modifie depuis l'application |
 | MDG | Procédure embarquée, hors ligne |
-| Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé et l'ajout d'appareils en volets, l'impression |
+| Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé, l'ajout d'appareils et la télécommande DMX en volets, l'impression |
 | Gélatines | Lee → RGBWA, teintes approchées à recaler |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
@@ -116,7 +116,21 @@ visibles le temps d'une vérification.
 **La télécommande tient en une barre**, au-dessus de la liste : le gradateur
 appelé, son adresse, son circuit, le niveau au doigt, Noir, Full, précédent,
 suivant, Zéro. Un chevron la replie sur une seule ligne — le gradateur, son
-niveau, et de quoi éteindre — quand c'est la liste qui compte.
+niveau, et de quoi éteindre — quand c'est la liste qui compte. **Le petit logo
+télécommande** qui ouvre la barre, replié ou non, mène à la télécommande DMX ;
+il s'allume tant qu'elle tient un canal.
+
+**La télécommande DMX**, elle, ne parle pas gradateurs. La barre appelle un
+numéro de gradateur et passe par la plage du patch : elle ne sait donc rien dire
+d'un canal qui n'en fait pas partie — une lyre, un nœud à vérifier, un circuit
+pas encore relevé. Le volet **Télécommande DMX** émet en clair : un univers, un
+canal, une valeur de 0 à 255. L'univers et le canal se tapent au pavé, le
+niveau se tient, et l'écran dit ce que la feuille a posé à cette adresse —
+« Gradateur 12 · circuit 5 », « PC 1000 n° 3 · canal 1 sur 6 », ou rien. Les
+canaux tenus se rappellent d'une pastille, « Canaux à zéro » les relâche tous,
+et quitter l'écran relâche aussi. Là où un canal croise un gradateur de la
+feuille, c'est le plus haut des deux niveaux qui sort, comme sur un pupitre. Le
+protocole, la priorité et la destination sont ceux du patch.
 
 **Deux volets** s'ouvrent depuis le bas et recouvrent la liste à moitié, sans
 la remplacer : on voit la rangée se remplir pendant qu'on écrit.
@@ -128,17 +142,21 @@ la remplacer : on voit la rangée se remplir pendant qu'on écrit.
   au-delà de la plage l'allonge. « + un gradateur » et « Supprimer » sont là
   aussi.
 - **Ajouter** : une ligne par type d'appareil — l'appareil, son mode ou son
-  empreinte, la quantité, chaque champ sous son libellé — avec l'étendue
-  calculée en regard. Un appui sur l'étendue bascule entre « à la suite » et
-  départ imposé. Une ligne neuve arrive d'emblée sur la **première adresse
-  libre** : la première plage assez large qui ne croise ni un appareil déjà
-  posé, ni un gradateur de la feuille. Les chevauchements sont comptés, la
-  ligne fautive signalée, et « adresse libre » la repose ailleurs d'une touche.
+  empreinte, la quantité, **l'univers et la première adresse**, chaque champ
+  sous son libellé — avec l'étendue calculée en regard. Écrire un univers ou une
+  adresse impose le départ de la ligne ; l'appui sur l'étendue bascule entre
+  « à la suite » et départ imposé. Une ligne neuve arrive d'emblée sur la
+  **première adresse libre** : la première plage assez large qui ne croise ni un
+  appareil déjà posé, ni un gradateur de la feuille. Les chevauchements sont
+  comptés, la ligne fautive signalée, et « adresse libre » la repose ailleurs
+  d'une touche.
 
 Toucher une rangée ouvre sa **fiche**. Celle d'un appareil porte son circuit,
-son **type** et son **mode** — qui se changent là, appareil par appareil : la
-ligne se scinde toute seule pour que les autres exemplaires gardent le leur et
-leur adresse. Comme la nouvelle empreinte peut être plus large que l'ancienne,
+son **type**, son **mode** et son **adresse** — univers et canal de départ, qui
+se changent là, appareil par appareil : la ligne se scinde toute seule pour que
+les autres exemplaires gardent le leur et leur adresse. Celle d'un gradateur ne
+porte pas d'adresse à écrire — elle se déduit de la plage, univers et première
+adresse en tête — mais mène d'une touche aux réglages où cette plage se règle. Comme la nouvelle empreinte peut être plus large que l'ancienne,
 la fiche dit alors en clair quels appareils sont chevauchés, et propose de
 décaler celui-ci à la première adresse libre.
 

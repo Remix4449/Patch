@@ -267,6 +267,13 @@
   .tl.mini{flex-wrap:nowrap;padding:5px 10px;gap:8px}
   .tl.mini .ap{flex:1;min-width:0}
   .tl.mini .ap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* Le logo télécommande, en tête de la barre : il ouvre la télécommande DMX,
+     celle qui parle en canaux là où la barre parle en gradateurs. */
+  .tl .lgo{flex:none;min-width:30px;padding:5px 6px;display:grid;place-items:center;
+      border-color:var(--tel);color:var(--tel);background:var(--bg)}
+  .tl .lgo .ic{width:17px;height:17px}
+  .tl .lgo.on{background:var(--tel);color:#fff}
+  .tl.mini .lgo{padding:4px 6px}
 
   /* Les rangées : un appareil et un gradateur se lisent pareil. */
   .pile{background:var(--sur);border-radius:16px;overflow:hidden;margin-bottom:10px}
@@ -375,12 +382,18 @@
   .rel .ecr .cir:focus{border-color:var(--tel)}
   .rel .note{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;
       padding:10px 12px;font:500 14px/1 var(--body);outline:none;margin-bottom:10px}
-  .rel .jauge{display:flex;align-items:center;gap:11px;margin-bottom:10px}
-  .rel .jauge input{-webkit-appearance:none;appearance:none;flex:1;height:34px;background:none;margin:0}
-  .rel .jauge input::-webkit-slider-runnable-track{height:34px;border-radius:11px;background:var(--sur2)}
-  .rel .jauge input::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:34px;
+  /* `.jauge` sert aussi de barre de progression, haute de 5 pixels et rognée :
+     la jauge de niveau, elle, est une rangée — sans quoi le curseur est coupé. */
+  .rel .jauge,.tcd .jauge{display:flex;align-items:center;gap:11px;margin-bottom:10px;
+      height:auto;overflow:visible;background:none;border-radius:0}
+  .rel .jauge input,.tcd .jauge input{-webkit-appearance:none;appearance:none;flex:1;height:34px;
+      background:none;margin:0}
+  .rel .jauge input::-webkit-slider-runnable-track,
+  .tcd .jauge input::-webkit-slider-runnable-track{height:34px;border-radius:11px;background:var(--sur2)}
+  .rel .jauge input::-webkit-slider-thumb,
+  .tcd .jauge input::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:34px;
       border-radius:10px;background:var(--tel);border:0}
-  .rel .jauge b{font:600 17px/1 var(--mono);min-width:54px;text-align:right;
+  .rel .jauge b,.tcd .jauge b{font:600 17px/1 var(--mono);min-width:54px;text-align:right;
       font-variant-numeric:tabular-nums}
   .pave .saisie{background:var(--sur2);border-radius:14px;padding:14px;margin-bottom:10px;
       font:600 40px/1 var(--mono);text-align:center;color:var(--tel);font-variant-numeric:tabular-nums}
@@ -392,11 +405,28 @@
   .pave .touches button.sec{background:var(--bg);border:1.5px solid var(--line);
       font:600 14px/1 var(--body);color:var(--ink2)}
 
+  /* La télécommande DMX : l'univers et le canal se tapent au pavé, le niveau se
+     tient, et l'écran dit ce que la feuille a posé à cette adresse. */
+  .tcd .ecr{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;background:var(--sur2);
+      border-radius:14px;padding:12px 14px;margin-bottom:10px}
+  .tcd .ecr .n{font:600 32px/1 var(--mono);color:var(--tel);border:0;background:var(--bg);
+      border-radius:11px;padding:9px 2px;cursor:pointer;font-variant-numeric:tabular-nums}
+  .tcd .ecr .n small{display:block;font:600 9px/1.6 var(--body);letter-spacing:.1em;
+      text-transform:uppercase;color:var(--ink3)}
+  .tcd .ecr .oc{grid-column:1/-1;font:500 12.5px/1.4 var(--body);color:var(--ink2)}
+  .tcd .ecr .ad{grid-column:1/-1;font:500 11px/1.4 var(--mono);color:var(--ink3)}
+  .tcd .brut{font:500 11.5px/1 var(--mono);color:var(--ink3);text-align:right;margin:0 0 10px}
+  .tcd .tenus{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
+  .tcd .tenus button{border:1.5px solid var(--tel);border-radius:99px;padding:7px 11px;
+      background:color-mix(in srgb,var(--tel) 12%,transparent);color:var(--tel);cursor:pointer;
+      font:600 11px/1 var(--mono);font-variant-numeric:tabular-nums}
+  .tcd .tenus button.ici{background:var(--tel);color:#fff}
+
   /* Le tableau d'ajout de lignes. */
   .pf{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px;
       background:var(--bg)}
   .pf .lg{display:grid;grid-template-columns:minmax(0,1fr) 84px 30px;gap:7px;
-      grid-template-areas:"app app x" "mode qte x" "et et et";
+      grid-template-areas:"app app x" "mode qte x" "ua ua x" "et et et";
       padding:9px 12px;border-top:1px solid var(--line)}
   .pf .lg:first-of-type{border-top:0}
   .pf select,.pf .lg input{background:var(--sur);border:1.5px solid var(--line);border-radius:9px;
@@ -411,6 +441,9 @@
   .pf .lg .c-app{grid-area:app}
   .pf .lg .c-mode{grid-area:mode}
   .pf .lg .c-qte{grid-area:qte}
+  /* L'univers et la première adresse s'écrivent : basculer « à la suite » ne
+     laissait pas le choix de l'endroit. */
+  .pf .lg .c-ua{grid-area:ua;display:grid;grid-template-columns:1fr 1fr;gap:7px;min-width:0}
   .pf .lg .x{grid-area:x;align-self:center;border:0;background:none;color:var(--ink3);
       font-size:15px;padding:8px 2px;cursor:pointer}
   .pf .lg .rg{grid-area:et;display:flex;gap:7px;align-items:stretch}
@@ -553,6 +586,7 @@ const CATS = [
 const TOOLS = [
   { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx" },
   { k:"tel", t:"Télécommande", s:"Gradateurs sACN", c:"var(--tel)", i:"remote" },
+  { k:"tcd", t:"Télécommande DMX", s:"Canal par canal", c:"var(--tel)", i:"remote" },
   { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)", i:"gel" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
@@ -1252,6 +1286,16 @@ function changerAppareil(x, maj){
   l.ch = Math.min(512, Math.max(1, maj.ch || 1));
 }
 
+/* Poser cet appareil à l'adresse demandée, sans emmener ses voisins : sa ligne
+   se scinde, celles qui suivent restent où elles sont. */
+function placerAppareil(x, u, adr){
+  const l = isolerAppareil(x);
+  if(!l) return;
+  l.suite = false;
+  l.u = Math.max(1, Math.min(63999, u || 1));
+  l.adr = Math.max(1, Math.min(512, adr || 1));
+}
+
 /* Poser cet appareil à la première adresse qui ne gêne personne. */
 function placerAppareilLibre(x){
   const l = isolerAppareil(x);
@@ -1322,6 +1366,12 @@ function puissanceTotale(liste){
 let NIV = {};        // n° de gradateur → niveau en %, le temps de la session
 let SEL = 0;         // gradateur tenu par la télécommande
 let HL = null;       // appareil en évidence : { n, u, adr, fin, ch, nom }
+/* La télécommande DMX tient des canaux, pas des gradateurs : « univers:canal »
+   → niveau de 0 à 255. Un canal relâché reste dans la table à zéro, sinon son
+   univers sortirait de la trame et le récepteur garderait la dernière valeur
+   reçue. */
+let DMX = {};
+const canauxTenus = () => Object.keys(DMX).filter(k => DMX[k] > 0);
 
 function envoyer(){
   const t = {};
@@ -1341,6 +1391,16 @@ function envoyer(){
     const fin = P.reg.hlTout ? HL.fin : HL.adr;
     for(let c = HL.adr; c <= fin && c <= 512; c++) trame[c - 1] = 255;
   }
+  /* La télécommande DMX écrit dans l'univers en clair. Là où elle croise un
+     gradateur de la feuille, c'est le plus haut des deux qui sort — un pupitre
+     ne fait pas autrement. Un canal à zéro pose quand même son univers : c'est
+     ce qui le fait retomber. */
+  Object.keys(DMX).forEach(k => {
+    const [u, canal] = k.split(":").map(Number);
+    const trame = poser512(u);
+    const v = DMX[k] | 0;
+    if(canal >= 1 && canal <= 512 && v > trame[canal - 1]) trame[canal - 1] = v;
+  });
   /* L'univers du gradateur appelé part même à zéro : il faut bien qu'il
      retombe quand on l'éteint. */
   const a = SEL ? adrGrada(SEL) : null;
@@ -1354,7 +1414,29 @@ function allumerSeuls(ns, pct = 100){
   SEL = ns[0] || 0;
   envoyer();
 }
-function toutEteindre(){ NIV = {}; SEL = 0; HL = null; NET.emission({}, P.reg.proto); }
+function toutEteindre(){
+  NIV = {}; SEL = 0; HL = null;
+  Object.keys(DMX).forEach(k => DMX[k] = 0);
+  NET.emission({}, P.reg.proto);
+}
+
+/* Ce que la feuille a posé à cette adresse. C'est tout l'intérêt d'avoir le
+   patch et la télécommande au même endroit : le canal 137 n'est pas un numéro,
+   c'est un gradateur ou un projecteur. */
+function quiEstLa(u, canal){
+  const g = gradas().find(n => { const a = adrGrada(n); return a && a.u === u && a.canal === canal; });
+  if(g != null){
+    const c = circuitGrada(g);
+    return `Gradateur ${g} · ${c ? "circuit " + c : "circuit à relever"}`;
+  }
+  const x = appareils().find(y => y.u === u && y.adr <= canal && y.fin >= canal);
+  if(x){
+    const c = circuitApp(x.n);
+    return `${courtNom(x.app)} n° ${x.n} · canal ${canal - x.adr + 1} sur ${x.ch}${
+      c ? " · circuit " + c : ""}`;
+  }
+  return "rien de patché à cette adresse";
+}
 
 /* Où part vraiment le flux. Un compteur d'envois qui monte ne prouve rien : le
    sACN a besoin d'une interface à viser, et sans Wi-Fi il n'en a aucune. */
@@ -1370,10 +1452,13 @@ function routeEmission(etat){
 let ONGLET = "tout";     // tout | app | grada — l'onglet survit aux rendus
 let MASQUE = true;       // n'afficher que les gradateurs qui portent un circuit
 let REPLIEE = false;     // télécommande réduite à une ligne
-let VOLET = null;        // null | relever | ajouter | fiche | patchs
+let VOLET = null;        // null | relever | dmx | ajouter | fiche | patchs
 let CIBLE = null;        // élément ouvert dans la fiche : { t:"g"|"a", n }
 let POINTE = null;       // gradateur repéré dans la liste
 let PAVE = null;         // frappe du pavé numérique ; null = pavé fermé
+let TU = 0;              // univers appelé par la télécommande DMX ; 0 = pas encore ouverte
+let TC = 1;              // canal appelé par la télécommande DMX
+let TPAVE = null;        // frappe de son pavé : { quoi:"u"|"c", frappe } ; null = fermé
 let INDICE = 0;          // rang du gradateur en cours de relevé
 let fond = null, volet = null;
 
@@ -1383,10 +1468,12 @@ function vPatch(){
     <div class="p-bas"><div class="in" id="p-bas"></div></div>`;
   /* Quitter l'écran relâche le flux et referme ce qui traîne : on ne laisse
      pas un gradateur allumé derrière soi. */
-  poser(() => { fermerVolet(true); NET.emissionArret(); NIV = {}; SEL = 0; HL = null; });
+  poser(() => { fermerVolet(true); NET.emissionArret();
+                NIV = {}; SEL = 0; HL = null; DMX = {}; });
   setTimeout(() => {
     peindre();
     if(S.route.v === "tel" && !VOLET) ouvrirVolet("relever");
+    if(S.route.v === "tcd" && !VOLET) ouvrirVolet("dmx");
   });
   return d;
 }
@@ -1443,6 +1530,7 @@ function peindre(){
   $("#p-bas").replaceChildren(bg, ba, bp);
 
   if(VOLET === "relever") majVoletRelever();
+  if(VOLET === "dmx") majVoletDmx();
   if(VOLET === "ajouter") majVoletAjouter();
   if(VOLET === "fiche") majVoletFiche();
   if(VOLET === "patchs") majVoletPatchs();
@@ -1463,6 +1551,8 @@ function majListe(){
 function barreTele(){
   const d = el("div", "tl compact" + (REPLIEE ? " mini" : ""));
   const on = Object.keys(NIV).filter(k => NIV[k] > 0);
+  const tenus = canauxTenus();
+  const vivant = on.length || HL || tenus.length;
   const lv = SEL ? (NIV[SEL] || 0) : 0;
   const a = SEL ? adrGrada(SEL) : null;
   const cir = SEL ? circuitGrada(SEL) : "";
@@ -1473,11 +1563,11 @@ function barreTele(){
     >${REPLIEE ? "⌃" : "⌄"}</button>`;
 
   d.innerHTML = REPLIEE
-    ? `<span class="led${on.length || HL ? " on" : ""}"></span>
+    ? `<span class="led${vivant ? " on" : ""}"></span>
        <span class="ap"><b>${SEL || "—"}</b><span>${etat}</span></span>
        <span class="niv">${lv} %</span>
        <button data-a="noir">Noir</button>${chev}`
-    : `<span class="led${on.length || HL ? " on" : ""}"></span>
+    : `<span class="led${vivant ? " on" : ""}"></span>
        <span class="ap"><b>${SEL || "—"}</b><span>${etat}</span></span>
        <input type="range" min="0" max="100" value="${lv}" aria-label="Niveau"${
          SEL ? "" : " disabled"}>
@@ -1486,6 +1576,17 @@ function barreTele(){
        <button data-a="prec" aria-label="Gradateur précédent">◀</button>
        <button data-a="suiv" aria-label="Gradateur suivant">▶</button>
        <button data-a="zero">Zéro</button>${chev}`;
+
+  /* Le petit logo télécommande, en tête de la barre : il ouvre la vraie
+     télécommande DMX. La barre appelle des gradateurs, elle passe par la plage
+     du patch ; le logo mène à ce qui parle en univers et en canaux. */
+  const lgo = el("button", "lgo" + (tenus.length ? " on" : ""), ic("remote"));
+  lgo.dataset.a = "tcd";
+  lgo.setAttribute("aria-label", tenus.length
+    ? `Télécommande DMX — ${tenus.length} cana${tenus.length > 1 ? "ux tenus" : "l tenu"}`
+    : "Ouvrir la télécommande DMX");
+  lgo.title = "Télécommande DMX";
+  d.prepend(lgo);
 
   const niveau = pct => {
     if(!SEL) return;
@@ -1501,6 +1602,7 @@ function barreTele(){
     suiv:() => { allumerSeuls([Math.min(P.reg.premier + P.reg.nb - 1,
                                         (SEL || P.reg.premier - 1) + 1)]); peindre(); },
     zero:() => { toutEteindre(); peindre(); },
+    tcd:() => ouvrirVolet("dmx"),
     plier:() => { REPLIEE = !REPLIEE; peindre(); }
   };
   d.querySelectorAll("button").forEach(b => {
@@ -1616,12 +1718,18 @@ function evidence(x){
 function ouvrirVolet(quoi, arg){
   if(VOLET === quoi && arg == null){ fermerVolet(); return; }
   fermerVolet(true);
-  VOLET = quoi; PAVE = null;
+  VOLET = quoi; PAVE = null; TPAVE = null;
   if(quoi === "relever") INDICE = arg != null ? arg : (prochainVide() ?? 0);
+  /* La télécommande DMX s'ouvre là où on en était : sur le gradateur appelé la
+     première fois, sur l'univers du patch à défaut. */
+  if(quoi === "dmx" && !TU){
+    const a = SEL ? adrGrada(SEL) : null;
+    TU = a ? a.u : P.reg.u; TC = a ? a.canal : 1;
+  }
   if(quoi === "fiche") CIBLE = arg;
   fond = el("div", "p-fond");
   fond.onclick = () => fermerVolet();
-  const classe = { relever:"rel", ajouter:"add", fiche:"fic", patchs:"pat" }[quoi];
+  const classe = { relever:"rel", dmx:"tcd", ajouter:"add", fiche:"fic", patchs:"pat" }[quoi];
   volet = el("div", "p-volet " + classe);
   volet.setAttribute("role", "dialog");
   volet.innerHTML = `<div class="poignee"><span class="barre"></span></div>
@@ -1643,7 +1751,7 @@ function fermerVolet(sansPeindre){
   const f = fond, v = volet;
   f.classList.remove("on"); v.classList.remove("on");
   setTimeout(() => { f.remove(); v.remove(); }, 200);
-  fond = volet = null; VOLET = null; POINTE = null; CIBLE = null; PAVE = null;
+  fond = volet = null; VOLET = null; POINTE = null; CIBLE = null; PAVE = null; TPAVE = null;
   if(!sansPeindre) peindre();
 }
 
@@ -1797,6 +1905,150 @@ function suivantARelever(){
   toutEteindre(); fermerVolet();
 }
 
+/* ------------------ volet : la télécommande DMX --------------------------- */
+/* La barre du haut appelle des gradateurs : elle passe par la plage du patch et
+   ne sait donc rien dire d'un canal qui n'en fait pas partie. Celle-ci parle le
+   DMX tout court — un univers, un canal, une valeur de 0 à 255 — et tient ce
+   qu'on lui pose, comme un pupitre. De quoi allumer une lyre au canal près,
+   vérifier un nœud, ou pousser un circuit qui n'est pas encore relevé. */
+function majVoletDmx(){
+  const cle = TU + ":" + TC;
+  const v = DMX[cle] | 0;
+  const tenus = canauxTenus();
+  volet.querySelector(".tete h3").textContent = "Télécommande DMX";
+  volet.querySelector(".tete .cpt").textContent = tenus.length
+    ? `${tenus.length} cana${tenus.length > 1 ? "ux tenus" : "l tenu"}` : "plateau noir";
+  const c = volet.querySelector(".corps");
+  if(TPAVE !== null){ c.replaceChildren(paveDmx()); return; }
+
+  const an = artnet(TU), sa = sacn(TU);
+  const d = el("div");
+  d.innerHTML = `<div class="ecr">
+      <button class="n" data-p="u" aria-label="Appeler un autre univers">U${TU}<small>univers</small></button>
+      <button class="n" data-p="c" aria-label="Appeler un autre canal">${TC}<small>canal</small></button>
+      <span class="oc">${esc(quiEstLa(TU, TC))}</span>
+      <span class="ad">${esc(P.reg.proto)} · Art-Net ${an.net}.${an.sub}.${an.uni} · sACN ${esc(sa.ip)}</span>
+    </div>
+    <div class="jauge"><input type="range" min="0" max="255" value="${v}"
+      aria-label="Valeur du canal ${TC}"><b>${pcent(v)} %</b></div>
+    <p class="brut">valeur ${v} sur 255</p>`;
+
+  /* L'univers et le canal se tapent : sur un téléphone, le clavier recouvrirait
+     le volet, et 137 ne se cherche pas à la molette. */
+  d.querySelectorAll(".ecr .n").forEach(b => b.onclick = () => {
+    TPAVE = { quoi:b.dataset.p, frappe:"" }; majVoletDmx(); });
+
+  const poserNiveau = n => {
+    DMX[cle] = Math.max(0, Math.min(255, Math.round(n)));
+    envoyer(); majVoletDmx(); majBarre();
+  };
+  const j = d.querySelector(".jauge input");
+  j.oninput = e => {
+    DMX[cle] = +e.target.value; envoyer();
+    d.querySelector(".jauge b").textContent = pcent(DMX[cle]) + " %";
+    d.querySelector(".brut").textContent = `valeur ${DMX[cle]} sur 255`;
+    majBarre();
+  };
+  /* Le glissement fini, le volet se refait : les canaux tenus ont changé. */
+  j.onchange = () => majVoletDmx();
+
+  const r1 = el("div", "rang");
+  [["Noir", 0], ["50 %", 128], ["Full", 255]].forEach(([lib, n]) => {
+    const b = el("button", "mini" + (v === n ? " on" : ""), lib);
+    b.onclick = () => poserNiveau(n);
+    r1.append(b);
+  });
+  d.append(r1);
+
+  const r2 = el("div", "rang");
+  const cp = el("button", "mini", "◀ canal");
+  const cs = el("button", "mini", "canal ▶");
+  const z = el("button", "mini", "Canaux à zéro");
+  cp.onclick = () => { TC = Math.max(1, TC - 1); majVoletDmx(); };
+  cs.onclick = () => { TC = Math.min(512, TC + 1); majVoletDmx(); };
+  z.onclick = () => {
+    Object.keys(DMX).forEach(k => DMX[k] = 0);
+    envoyer(); majVoletDmx(); majBarre();
+  };
+  r2.append(cp, cs, z);
+  d.append(r2);
+
+  const r3 = el("div", "rang2");
+  const up = el("button", "mini", "− univers");
+  const us = el("button", "mini", "+ univers");
+  up.onclick = () => { TU = Math.max(1, TU - 1); majVoletDmx(); };
+  us.onclick = () => { TU = Math.min(63999, TU + 1); majVoletDmx(); };
+  r3.append(up, us);
+  d.append(r3);
+
+  if(tenus.length){
+    d.append(el("h5", null, "Canaux tenus"));
+    const liste = el("div", "tenus");
+    tenus.map(k => k.split(":").map(Number))
+         .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+         .forEach(([u, canal]) => {
+      const k = u + ":" + canal;
+      const b = el("button", k === cle ? "ici" : null,
+                   `U${u}·${canal} · ${pcent(DMX[k])} %`);
+      b.setAttribute("aria-label", `Reprendre le canal ${canal} de l'univers ${u}`);
+      b.onclick = () => { TU = u; TC = canal; majVoletDmx(); };
+      liste.append(b);
+    });
+    d.append(liste);
+  }
+
+  const etat = NET.emissionEtat();
+  d.append(el("p", "route", esc(routeEmission(etat))));
+  d.append(el("p", "aide", "Les valeurs vont de 0 à 255, comme sur la ligne DMX — "
+    + "les pourcentages sont là pour lire. Un canal reste tenu tant qu'on ne l'a pas "
+    + "remis à zéro : « Canaux à zéro » relâche tout d'un coup, et quitter l'écran relâche "
+    + "aussi. Là où un canal croise un gradateur de la feuille, c'est le plus haut des deux "
+    + "niveaux qui sort. Le protocole, la priorité et la destination sont ceux du patch, "
+    + "dans le menu du haut."));
+  const fin = el("button", "act", "Terminer");
+  fin.onclick = () => fermerVolet();
+  d.append(fin);
+
+  c.replaceChildren(d);
+}
+
+const pcent = v => Math.round((v | 0) / 255 * 100);
+
+/* Le pavé du relevé, appliqué à l'univers et au canal. */
+function paveDmx(){
+  const quoi = TPAVE.quoi;
+  const d = el("div", "pave");
+  d.innerHTML = `<div class="saisie${TPAVE.frappe ? "" : " vide"}">${
+    TPAVE.frappe || (quoi === "u" ? "n° d'univers" : "n° de canal")}</div>
+    <div class="touches"></div>`;
+  const t = d.querySelector(".touches");
+  const valider = () => {
+    const n = parseInt(TPAVE.frappe, 10);
+    if(!isNaN(n)){
+      if(quoi === "u") TU = Math.max(1, Math.min(63999, n));
+      else TC = Math.max(1, Math.min(512, n));
+    }
+    TPAVE = null;
+    majVoletDmx();
+  };
+  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "✓"].forEach(x => {
+    const b = el("button", x === "✓" ? "acc" : null, x);
+    if(x === "C") b.setAttribute("aria-label", "Effacer le dernier chiffre");
+    b.onclick = () => {
+      if(x === "C"){ TPAVE.frappe = TPAVE.frappe.slice(0, -1); majVoletDmx(); return; }
+      if(x === "✓"){ valider(); return; }
+      if(TPAVE.frappe.length < 5) TPAVE.frappe += x;
+      majVoletDmx();
+    };
+    t.append(b);
+  });
+  const retour = el("button", "sec", "Retour");
+  retour.style.gridColumn = "1 / -1";
+  retour.onclick = () => { TPAVE = null; majVoletDmx(); };
+  t.append(retour);
+  return d;
+}
+
 /* --------------------------- volet : la fiche ----------------------------- */
 /* Changer un numéro de circuit, corriger un repère, ou retirer l'élément de la
    feuille — pour un gradateur comme pour un appareil. */
@@ -1834,6 +2086,16 @@ function majVoletFiche(){
     r.append(all, fin);
     d.append(r);
 
+    /* L'adresse d'un gradateur ne s'écrit pas ici : elle se déduit de la plage.
+       Autant mener au bon endroit plutôt que de laisser chercher. */
+    const reg = el("button", "act sec", "Univers et 1re adresse de la plage…");
+    reg.onclick = () => ouvrirVolet("patchs");
+    d.append(reg);
+    d.append(el("p", "aide", "L'adresse d'un gradateur se déduit de la plage — univers, "
+      + "première adresse et premier numéro — qui se règlent dans le menu du patch. "
+      + "Pour envoyer sur un canal quelconque, sans passer par la plage, le logo "
+      + "télécommande en haut de l'écran ouvre la télécommande DMX."));
+
     const sup = el("button", "act sup", "Supprimer ce gradateur");
     sup.onclick = () => supprimerGrada(n);
     d.append(sup);
@@ -1858,8 +2120,13 @@ function majVoletFiche(){
               esc(m.nom)} · ${m.ch} ch</option>`).join("")}</select>`
         : `<input class="sm" inputmode="numeric" value="${x.ch}"
                   aria-label="Empreinte en canaux de l'appareil ${x.n}">`}</div>
-      <div class="kv"><span>Empreinte</span><b>${x.ch} canaux</b></div>
-      <div class="kv"><span>Adresse</span><b>U${x.u} · ${x.adr} → ${x.fin}</b></div>
+      <div class="ff"><div class="f"><label>Univers</label>
+          <input class="au" inputmode="numeric" value="${x.u}"
+                 aria-label="Univers de l'appareil ${x.n}"></div>
+        <div class="f"><label>Adresse DMX</label>
+          <input class="aa" inputmode="numeric" value="${x.adr}"
+                 aria-label="Adresse DMX de l'appareil ${x.n}"></div></div>
+      <div class="kv"><span>Empreinte</span><b>${x.ch} canaux · U${x.u}·${x.adr} → ${x.fin}</b></div>
       <div class="kv"><span>Mise en évidence sur tous les canaux</span>
         <input type="checkbox" class="hltout"${P.reg.hlTout ? " checked" : ""}
                aria-label="Mettre en évidence sur tous les canaux"></div>`;
@@ -1867,6 +2134,14 @@ function majVoletFiche(){
       P.fiches[x.n] = e.target.value; majListe(); majCompteurs(); };
     d.querySelector(".hltout").onchange = e => {
       P.reg.hlTout = e.target.checked; envoyer(); sauverPatchs(); };
+
+    /* L'adresse se choisit ici, appareil par appareil : la ligne se scinde comme
+       pour un changement de mode, et les autres exemplaires gardent la leur. */
+    const placer = (u, adr) => { placerAppareil(x, u, adr); peindre(); };
+    d.querySelector(".au").onchange = e =>
+      placer(+e.target.value.replace(/\D/g, "") || 1, x.adr);
+    d.querySelector(".aa").onchange = e =>
+      placer(x.u, +e.target.value.replace(/\D/g, "") || 1);
 
     /* Le type et le mode se changent ici, appareil par appareil : la ligne se
        scinde toute seule pour que les autres exemplaires restent ce qu'ils
@@ -1973,6 +2248,10 @@ function majVoletAjouter(){
     const modes = BIB[l.app] || [];
     const mes = liste.filter(x => x.ligne === l.id);
     const enKo = mes.some(x => ko.has(x.n));
+    /* Le départ affiché est celui que la ligne occupe vraiment — le sien si elle
+       est imposée, celui que le chaînage lui a donné sinon. */
+    const dep = mes.length ? { u:mes[0].u, adr:mes[0].adr }
+              : { u:Math.max(1, l.u || 1), adr:Math.min(512, Math.max(1, l.adr || 1)) };
     const r = el("div", "lg");
     r.innerHTML = `<span class="cf c-app"><i>type d'appareil</i>
         <select class="sa" aria-label="Type d'appareil">${marques().map(m =>
@@ -1988,6 +2267,13 @@ function majVoletAjouter(){
       <span class="cf c-qte"><i>quantité</i>
         <input class="qn" data-focus="${l.id}-nb" inputmode="numeric" value="${l.nb}"
                aria-label="Quantité d'appareils"></span>
+      <span class="c-ua">
+        <span class="cf"><i>univers</i>
+          <input class="qu" data-focus="${l.id}-u" inputmode="numeric" value="${dep.u}"
+                 aria-label="Univers de départ de la ligne"></span>
+        <span class="cf"><i>1re adresse</i>
+          <input class="qa" data-focus="${l.id}-adr" inputmode="numeric" value="${dep.adr}"
+                 aria-label="Première adresse DMX de la ligne"></span></span>
       <button class="x" aria-label="Retirer la ligne">✕</button>
       <div class="rg"><button class="et${enKo ? " ko" : ""}" title="Basculer le départ">${
         l.suite ? "à la suite" : "départ imposé"}
@@ -2010,6 +2296,20 @@ function majVoletAjouter(){
     else sm.onchange = e => { l.ch = Math.max(1, +e.target.value.replace(/\D/g, "") || 1); peindre(); };
     r.querySelector(".qn").onchange = e => {
       l.nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0); peindre(); };
+    /* Écrire un univers ou une adresse impose le départ de la ligne : c'était
+       jusqu'ici le seul réglage qu'on ne pouvait pas choisir — la ligne se posait
+       où l'application voulait bien. */
+    const imposer = (u, adr) => {
+      figerSuivante(l, liste);
+      l.suite = false;
+      l.u = Math.max(1, Math.min(63999, u || 1));
+      l.adr = Math.max(1, Math.min(512, adr || 1));
+      peindre();
+    };
+    r.querySelector(".qu").onchange = e =>
+      imposer(+e.target.value.replace(/\D/g, "") || 1, dep.adr);
+    r.querySelector(".qa").onchange = e =>
+      imposer(dep.u, +e.target.value.replace(/\D/g, "") || 1);
     r.querySelector(".et").onclick = () => {
       if(l.suite){ const p = liste.find(x => x.ligne === l.id);
                    if(p){ l.u = p.u; l.adr = p.adr; } l.suite = false; }
@@ -2643,7 +2943,7 @@ function vMaj(){
 
 /* -------------------------------- moteur -------------------------------- */
 const VIEWS = { home, proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
-                gel:vGel, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
+                tcd:vPatch, gel:vGel, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
   if(STOP){ STOP(); STOP = null; }
