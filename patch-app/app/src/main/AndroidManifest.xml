@@ -13,6 +13,10 @@
          seule fois, d'autoriser cette application à en installer d'autres. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- Retour au doigt : une courte vibration confirme l'appui sur une tuile,
+         dans le noir et avec un gant. Accordée à l'installation. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
