@@ -2285,7 +2285,10 @@ function lireCommande(jetons){
       niveau = Math.round(Math.max(0, Math.min(100, pc)) * 255 / 100);
     }
   }
-  return { sel, niveau, bilan };
+  /* « vise » dit que la ligne a nommé des adresses ou des circuits. Une ligne qui
+     en nomme et n'en trouve aucune ne doit rien poser : sans ça, « Circ 20 Full »
+     sur un circuit vide enverrait à fond la sélection d'avant. */
+  return { sel, niveau, bilan, vise:morceaux.length > 0 };
 }
 
 /* Un appel de circuit qui ne trouve rien n'a l'air de rien : la ligne s'efface
@@ -2307,6 +2310,12 @@ function poserCommande(){
     DSEL = r.sel.slice().sort((a, b) => absCle(a) - absCle(b));
     const t = deAbs(absCle(DSEL[0]));
     TU = t.u; TC = t.c;
+  } else if(r.vise){
+    /* La ligne désignait quelque chose qui n'existe pas : la sélection en place
+       n'est pas celle qu'on appelle, elle ne doit pas bouger d'un point. */
+    if(!DMSG) DMSG = "cette ligne ne désigne aucune adresse";
+    envoyer(); majVoletDmx(); majBarre();
+    return;
   }
   if(r.niveau != null) DSEL.forEach(k => DMX[k] = r.niveau);
   envoyer(); majVoletDmx(); majBarre();
@@ -2408,7 +2417,8 @@ function majVoletDmx(){
     + "un pourcentage, un seul chiffre valant des dizaines : « At 5 » fait 50 %, « At 05 » "
     + "fait 5 %. « Full » et « Out » terminent la ligne tout seuls, « Clear » reprend un "
     + "cran, « Sneak » relâche la sélection. Ce qui manque par rapport au vrai pupitre tient "
-    + "à ce qu'on adresse ici : des sorties DMX, donc ni circuits, ni groupes. Une adresse "
+    + "à ce qu'on adresse ici : des sorties DMX, sans bibliothèque derrière — ni groupes, ni "
+    + "palettes, ni mémoires. Une adresse "
     + "reste tenue tant qu'elle n'est pas relâchée, et quitter l'écran relâche tout. Là où "
     + "une adresse croise un gradateur de la feuille, c'est le plus haut des deux niveaux "
     + "qui sort. Le protocole, la priorité et la destination sont ceux du patch."));
