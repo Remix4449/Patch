@@ -85,4 +85,5 @@ Le workflow `apk.yml` se déclenche sur toute modification de `patch-app/` ou du
 workflow lui-même, et peut aussi être lancé à la main depuis l'onglet Actions.
 Il installe Java 17 et les composants Android, construit l'APK en `debug`, le
 dépose comme artefact pour 90 jours, et met à jour la release fixe `apk` pour
-qu'un téléphone puisse la télécharger directement.
+qu'un téléphone puisse la télécharger directement. Seul `main` publie dans `apk` ;
+une branche de travail publie dans `apk-essai`, que l'application ne regarde pas.

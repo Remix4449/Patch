@@ -6,6 +6,11 @@ name: APK Patch
 # Le numéro de construction sert de numéro de version : il avance à chaque
 # passage, et la fiche version.json déposée à côté de l'APK dit à l'application
 # déjà installée qu'une version plus récente l'attend.
+#
+# Seul `main` publie dans la release « apk », celle que l'application installée
+# surveille. Une branche de travail publie dans « apk-essai », que l'application
+# ne regarde pas : on peut y prendre l'APK à la main pour l'essayer, sans qu'il
+# remplace la version de tous les jours ni retire ce que main vient d'ajouter.
 
 on:
   push:
@@ -16,6 +21,12 @@ on:
 
 permissions:
   contents: write
+
+# Deux constructions de la même branche ne publient pas en même temps : l'APK
+# de l'une et la fiche de l'autre finiraient côte à côte dans la release.
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   apk:
@@ -83,18 +94,32 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          NOTE="Application Patch — inventaire régie, version 1.0.${{ github.run_number }}.
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            TAG=apk
+            TITRE="Patch — dernière version"
+            NOTE="Application Patch — inventaire régie, version 1.0.${{ github.run_number }}.
           Une application déjà installée se met à jour toute seule : elle regarde
           cette release à chaque lancement, rapatrie l'APK, et propose l'installation.
           Première installation : télécharger patch-regie.apk depuis ce téléphone,
           puis l'ouvrir. Android demandera d'autoriser l'installation depuis cette source.
           Construit depuis ${GITHUB_SHA::7} (${GITHUB_REF_NAME})."
-          if gh release view apk --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            gh release edit apk --repo "$GITHUB_REPOSITORY" --notes "$NOTE"
           else
-            gh release create apk --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" --title "Patch — dernière version" --notes "$NOTE"
+            TAG=apk-essai
+            TITRE="Patch — version d'essai"
+            NOTE="Version d'essai 1.0.${{ github.run_number }}, construite depuis la branche
+          ${GITHUB_REF_NAME} (${GITHUB_SHA::7}), pas encore fusionnée dans main.
+          L'application installée ne la propose pas : la télécharger à la main pour
+          l'essayer. La version suivante de main la remplacera toute seule."
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes "$NOTE"
+          elif [ "$TAG" = apk ]; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "$TITRE" --notes "$NOTE"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease \
+              --target "$GITHUB_SHA" --title "$TITRE" --notes "$NOTE"
           fi
           # L'APK d'abord : version.json annonce une version, elle doit déjà être là.
-          gh release upload apk sortie/patch-regie.apk --repo "$GITHUB_REPOSITORY" --clobber
-          gh release upload apk sortie/version.json --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload "$TAG" sortie/patch-regie.apk --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload "$TAG" sortie/version.json --repo "$GITHUB_REPOSITORY" --clobber
