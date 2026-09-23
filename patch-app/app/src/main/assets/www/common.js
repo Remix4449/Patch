@@ -1,7 +1,8 @@
 /* ---------------------------------------------------------------------------
    Régie — socle commun aux 3 canevas
    Données : extraites des bases Notion (Projecteurs, Machinerie,
-   Hauteurs de Passerelles & Plateformes Élévatrices, MDG).
+   Hauteurs de Passerelles & Plateformes Élévatrices). La procédure MDG
+   est devenue une fiche de la bibliothèque : voir `manuels/`.
    Les blocs marqués DEMO sont des jeux de démonstration : réseau, NDI,
    Art-Net/sACN ne peuvent pas être lus depuis une page web seule.
 --------------------------------------------------------------------------- */
@@ -96,65 +97,6 @@ const HAUTEURS = [
   { nom:"Genie + FT", type:"Plateforme élévatrice", pos:"Plateau", h:8.24, charge:136 }
 ];
 
-const MDG = {
-  titre:"MDG — machine à brume",
-  allumage:[
-    "Bouteille : manomètre à 3,5 bar",
-    "Unit sur ON",
-    "Haze sur ON",
-    "Régler la pression suivant la quantité de fumée souhaitée"
-  ],
-  extinction:[
-    "Unit sur OFF",
-    "Haze sur OFF",
-    "Pression à zéro",
-    "Vérifier sur les statuts que la purge est terminée"
-  ],
-  alertes:[ "Écran qui clignote = bouteille vide" ]
-};
-
-/* Gélatines Lee — teintes approchées (rendu écran), à recaler sur mesure.
-   Sert de point de départ au calage RGBWA, pas de référence colorimétrique. */
-const LEE = [
-  { ref:"L007", nom:"Pale Yellow", hex:"#FDF0A8" },
-  { ref:"L010", nom:"Medium Yellow", hex:"#FDE23B" },
-  { ref:"L015", nom:"Deep Straw", hex:"#F9B233" },
-  { ref:"L019", nom:"Fire", hex:"#F14A1B" },
-  { ref:"L021", nom:"Gold Amber", hex:"#F58A22" },
-  { ref:"L022", nom:"Dark Amber", hex:"#E4571B" },
-  { ref:"L026", nom:"Bright Red", hex:"#D9241F" },
-  { ref:"L027", nom:"Medium Red", hex:"#C81C24" },
-  { ref:"L036", nom:"Medium Pink", hex:"#F2A0B4" },
-  { ref:"L048", nom:"Rose Purple", hex:"#B9469B" },
-  { ref:"L058", nom:"Lavender", hex:"#BBA8D6" },
-  { ref:"L071", nom:"Tokyo Blue", hex:"#12266E" },
-  { ref:"L079", nom:"Just Blue", hex:"#0C4EA2" },
-  { ref:"L088", nom:"Lime Green", hex:"#B9D437" },
-  { ref:"L089", nom:"Moss Green", hex:"#7FB04A" },
-  { ref:"L101", nom:"Yellow", hex:"#FBE22B" },
-  { ref:"L104", nom:"Deep Amber", hex:"#F5901E" },
-  { ref:"L105", nom:"Orange", hex:"#F2701B" },
-  { ref:"L106", nom:"Primary Red", hex:"#C8102E" },
-  { ref:"L111", nom:"Dark Pink", hex:"#D64E8E" },
-  { ref:"L113", nom:"Magenta", hex:"#B02A8F" },
-  { ref:"L116", nom:"Medium Blue Green", hex:"#3FA89B" },
-  { ref:"L119", nom:"Dark Blue", hex:"#123E8C" },
-  { ref:"L124", nom:"Dark Green", hex:"#1C8A4B" },
-  { ref:"L126", nom:"Mauve", hex:"#7A3E93" },
-  { ref:"L132", nom:"Medium Blue", hex:"#1462A8" },
-  { ref:"L139", nom:"Primary Green", hex:"#00A14B" },
-  { ref:"L152", nom:"Pale Gold", hex:"#F6D9A3" },
-  { ref:"L156", nom:"Chocolate", hex:"#D9A46B" },
-  { ref:"L161", nom:"Slate Blue", hex:"#6E9BC4" },
-  { ref:"L181", nom:"Congo Blue", hex:"#2B1470" },
-  { ref:"L195", nom:"Zenith Blue", hex:"#1B4FA0" },
-  { ref:"L201", nom:"Full CT Blue", hex:"#BFD9F2" },
-  { ref:"L202", nom:"Half CT Blue", hex:"#D6E6F5" },
-  { ref:"L203", nom:"Quarter CT Blue", hex:"#E6F0F9" },
-  { ref:"L204", nom:"Full CT Orange", hex:"#F5C489" },
-  { ref:"L205", nom:"Half CT Orange", hex:"#F7D7AE" },
-  { ref:"L206", nom:"Quarter CT Orange", hex:"#F9E5CB" }
-];
 
 /* ---------------------------- Calculs DMX ------------------------------- */
 
@@ -181,6 +123,26 @@ function toRGBWA(hex){
     pct:{ r:pct(R), g:pct(G), b:pct(B), w:pct(w), a:pct(a) },
     dmx:{ r:dmx(R), g:dmx(G), b:dmx(B), w:dmx(w), a:dmx(a) }
   };
+}
+
+/* Les autres mélanges proposés à l'écran Gélatines, pour les projecteurs qui
+   n'ont pas d'ambre, ni de blanc, ou qui soustraient la couleur (lyres CMY).
+   RGBW : blanc = composante commune, comme en RGBWA mais sans ambre.
+   CMY : chaque drapeau retire son primaire ; 0 = faisceau blanc ouvert. */
+const MELANGES = {
+  RGBWA:["r", "g", "b", "w", "a"], RGBW:["r", "g", "b", "w"],
+  RGB:["r", "g", "b"], CMY:["c", "m", "y"]
+};
+function toMelange(hex, mode){
+  if(mode === "RGBWA") return toRGBWA(hex);
+  const { r, g, b } = hexToRgb(hex);
+  let v;
+  if(mode === "CMY") v = { c:255 - r, m:255 - g, y:255 - b };
+  else if(mode === "RGBW"){ const w = Math.min(r, g, b); v = { r:r - w, g:g - w, b:b - w, w }; }
+  else v = { r, g, b };
+  const pct = {}, dmx = {};
+  for(const k in v){ pct[k] = Math.round(v[k] / 255 * 100); dmx[k] = v[k]; }
+  return { pct, dmx };
 }
 
 /* Adresse absolue (1 = U1/C1) -> univers + canal */
