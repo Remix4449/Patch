@@ -70,6 +70,7 @@ Quelques détails qui ont leur importance :
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
+| Onduleur | Capacité d'UPS (VA) et de batterie (VAh) d'après la puissance, le facteur de puissance, le rendement et l'autonomie voulue |
 | Testeur d'adresse | Émission d'une trame Art-Net sur un canal, sans console |
 
 ## L'inventaire se tient depuis l'application

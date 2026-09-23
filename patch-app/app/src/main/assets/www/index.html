@@ -108,6 +108,7 @@
   .tile.wide b{font-size:17px}
   .tile.sm{min-height:84px;border-radius:16px;padding:13px}
   .tile.sm b{font-size:16px}
+  .tile.sm.wide{min-height:78px}
 
   /* La mise à jour n'est pas un outil de plateau : une ligne sous la grille,
      avec une pastille quand une version attend, plutôt qu'une tuile pleine. */
@@ -232,6 +233,26 @@
 
   .u512{display:grid;grid-template-columns:repeat(32,1fr);gap:1.5px;margin-top:10px}
   .c512{aspect-ratio:1;background:var(--sur2);border-radius:1px}
+
+  /* ------------------------------ onduleur ----------------------------- */
+  /* La couleur vit avec l'écran plutôt qu'avec la palette du haut : elle ne
+     sert qu'ici et sur la tuile. */
+  :root{--ups:#935D00}
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){--ups:#F2B84B} }
+  :root[data-theme="dark"]{--ups:#F2B84B}
+  /* La réponse en tête, comme la section de câble : rouvert en régie, l'écran
+     redonne le calibre sans qu'on descende sous les réglages. */
+  .ups .res{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px;
+       box-shadow:inset 3px 0 0 var(--ups)}
+  .ups .res .kick{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3)}
+  .ups .res .big{display:flex;align-items:baseline;gap:8px;margin:10px 0 4px}
+  .ups .res .big b{font:600 44px/1 var(--mono);color:var(--ups);font-variant-numeric:tabular-nums}
+  .ups .res .big span{font:600 16px/1 var(--mono);color:var(--ink2)}
+  .ups .res>p{margin:0 0 6px;font-size:13.5px;color:var(--ink2)}
+  .ups .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
+  .ups .f input:focus{border-color:var(--ups)}
+  .ups .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
 
   /* ------------------------------ mise à jour -------------------------- */
   .maj{display:flex;align-items:center;gap:12px;background:var(--sur);
@@ -591,6 +612,7 @@
   <symbol id="i-fumee" viewBox="0 0 24 24"><rect x="2.5" y="12.5" width="11" height="7.5" rx="1.6"/><path d="M13.5 16h2"/><path d="M16 15.5c2-1.8 3.5.4 5.2-1.6M15.5 11.2c2-1.8 3.5.4 5.2-1.6M16.5 6.8c2-1.8 3.5.4 5.2-1.6"/><circle cx="5.5" cy="16.3" r="1.1" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-poursuite" viewBox="0 0 24 24"><rect x="2.5" y="8.5" width="7" height="6" rx="1.4"/><path d="M6 14.5v4.5M3.5 21h5"/><path d="M9.5 9.5l11-4v13l-11-4z"/></symbol>
   <symbol id="i-power" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M13.2 8l-3.4 4.6h3.6L11 16.6"/></symbol>
+  <symbol id="i-ups" viewBox="0 0 24 24"><rect x="2" y="7" width="17.5" height="10" rx="2.2"/><path d="M22 10.5v3"/><path d="M11.6 9l-2.4 3.2h3.2L10 15.4"/></symbol>
   <symbol id="i-moteur" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="6.5" rx="1.5"/><path d="M12 9v2.5M12 12.5v2.5"/><path d="M9.8 17.8a2.4 2.4 0 1 0 4.4-1.3V15"/></symbol>
   <symbol id="i-structure" viewBox="0 0 24 24"><path d="M2 6.5h20M2 17.5h20"/><path d="M5 17.5L8.5 6.5 12 17.5l3.5-11L19 17.5"/></symbol>
   <symbol id="i-collier" viewBox="0 0 24 24"><path d="M15.5 6.5a6 6 0 1 0 0 11"/><path d="M15.5 6.5h3.2M15.5 17.5h3.2M18.7 9.5v5"/><circle cx="11.5" cy="12" r="2.6"/></symbol>
@@ -670,6 +692,7 @@ const TOOLS = [
   { k:"tcd", t:"Canal DMX", s:"Un canal à la main", c:"var(--tcd)", i:"fader" },
   { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)", i:"gel" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
+  { k:"ups", t:"Onduleur", s:"Capacité UPS, VA", c:"var(--ups)", i:"ups" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
   { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" }
 ];
@@ -742,6 +765,10 @@ function tuile(c, petite){
 function grille(liste, petite){
   const g = el("div", "tiles");
   liste.forEach(c => g.append(tuile(c, petite)));
+  /* Une petite tuile seule sur sa rangée laissait un trou dans la grille :
+     elle prend la largeur. */
+  const seules = [...g.children].filter(t => !t.classList.contains("wide"));
+  if(petite && seules.length % 2) seules[seules.length - 1].classList.add("wide");
   return g;
 }
 
@@ -3140,6 +3167,91 @@ function testeur(){
   return c;
 }
 
+/* ------------------------------- onduleur -------------------------------- */
+/* D'après calculsimple.com (UPS power requirement) :
+     puissance apparente (VA) = puissance (W) / facteur de puissance
+     capacité de l'onduleur (VA) = puissance apparente / (rendement / 100)
+     capacité de la batterie (VAh) = capacité de l'onduleur × autonomie (min) / 60
+   Les valeurs par défaut sont celles de la page : 0,8 et 90 %. */
+const CLE_UPS = "onduleur.v1";
+const UPS = Object.assign({ w:"", fp:"0,8", rdt:"90", min:"" }, lireLocal(CLE_UPS, {}));
+
+/* Sur un clavier de téléphone français, la virgule vient avant le point. */
+const nbUps = v => parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", "."));
+/* Au-delà de 10 kVA, le chiffre à l'unité n'apprend plus rien. */
+const vaUps = (v, u) => v >= 10000 ? vg(Number((v / 1000).toFixed(1))) + " k" + u
+                                   : Math.round(v).toLocaleString("fr-FR") + " " + u;
+
+function calculUps(c){
+  const w = nbUps(c.w), fp = nbUps(c.fp), rdt = nbUps(c.rdt), min = nbUps(c.min);
+  if(!(w > 0 && fp > 0 && fp <= 1 && rdt > 0 && rdt <= 100)) return null;
+  const va = w / fp, cap = va / (rdt / 100);
+  return { va, cap, min: min > 0 ? min : null, vah: min > 0 ? cap * min / 60 : null };
+}
+
+function peindreUps(zone){
+  const r = calculUps(UPS);
+  const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
+  if(!r){
+    const fp = nbUps(UPS.fp), rdt = nbUps(UPS.rdt);
+    const hors = (fp > 1 || fp <= 0) ? "Le facteur de puissance se tient entre 0 et 1."
+               : (rdt > 100 || rdt <= 0) ? "Le rendement se tient entre 0 et 100 %."
+               : "Renseignez la puissance des appareils.";
+    zone.innerHTML = `<div class="kick">Capacité de l'onduleur</div>
+      <div class="big"><b>—</b><span>VA</span></div><p>${hors}</p>`;
+    return;
+  }
+  const big = r.cap >= 10000 ? [vg(Number((r.cap / 1000).toFixed(1))), "kVA"]
+                             : [Math.round(r.cap).toLocaleString("fr-FR"), "VA"];
+  zone.innerHTML = `<div class="kick">Capacité de l'onduleur</div>
+    <div class="big"><b>${big[0]}</b><span>${big[1]}</span></div>
+    ${kv("Puissance apparente", vaUps(r.va, "VA"))}
+    ${kv("Batterie" + (r.min ? " pour " + vg(r.min) + " min" : ""),
+         r.vah == null ? "autonomie ?" : vaUps(r.vah, "VAh"))}`;
+}
+
+function vUps(){
+  const c = UPS;
+  const d = el("div", "ups");
+  d.append(bar("Onduleur (UPS)"));
+  const res = el("div", "res");
+  d.append(res);
+
+  /* Chaque chiffre ne refait que la carte du résultat : un rendu complet
+     fermerait le clavier. */
+  const champ = (lab, cle, ph, aide) => {
+    const f = el("div", "f");
+    f.innerHTML = `<label for="ups-${cle}">${esc(lab)}</label>
+      <input id="ups-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      ${aide ? `<small>${aide}</small>` : ""}`;
+    f.querySelector("input").addEventListener("input", e => {
+      c[cle] = e.target.value; ecrireLocal(CLE_UPS, c); peindreUps(res);
+    });
+    return f;
+  };
+
+  const ci = el("div", "card");
+  ci.innerHTML = `<h4>Charge</h4>`;
+  ci.append(champ("Puissance des appareils (W)", "w", "1200",
+    "La somme de ce qui doit tenir sur l'onduleur : console, switchs, ordinateurs…"));
+  const ff = el("div", "ff");
+  ff.append(champ("Facteur de puissance", "fp", "0,8"), champ("Rendement (%)", "rdt", "90"));
+  ci.append(ff);
+  ci.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:-4px 0 12px">0,8 et 90 %
+    si l'on ne sait pas : ce sont les valeurs courantes.</p>`);
+  ci.append(champ("Autonomie voulue (min)", "min", "10",
+    "Le temps de tenir la coupure, ou d'éteindre proprement."));
+  d.append(ci);
+
+  const fo = el("div", "card");
+  fo.innerHTML = `<h4>Formules</h4><p class="formule">VA = W / facteur de puissance<br>
+    Onduleur (VA) = VA / (rendement / 100)<br>Batterie (VAh) = onduleur × min / 60</p>`;
+  d.append(fo);
+
+  peindreUps(res);
+  return d;
+}
+
 /* ----------------------------- mise à jour ------------------------------ */
 /* L'application se compare à la version publiée dans la release du dépôt. Le
    natif vérifie tout seul au lancement et télécharge dans la foulée ; il reste
@@ -3273,7 +3385,7 @@ function vMaj(){
 }
 
 /* -------------------------------- moteur -------------------------------- */
-const VIEWS = { home, parc:vParc, outils:vOutils,
+const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps,
                 proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 tcd:vPatch, gel:vGel, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
 let VUE_AV = null;              // l'écran du rendu précédent
