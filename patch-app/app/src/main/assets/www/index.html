@@ -18,7 +18,7 @@
     --ink:#0F1116; --ink2:#5A6070; --ink3:#8990A0;
     --proj:#2F4BFF; --mach:#00998D; --haut:#E0218A; --mdg:#7A3FF2;
     --dmx:#E2761C; --gel:#C2185B; --ndi:#0E7BC4; --net:#128A45; --art:#5B3FD6;
-    --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757;
+    --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757; --cab:#A34E1D;
     /* Assombris : en petites capitales sur une surface claire, ils passaient
        sous le seuil lisible — ici et partout où ils servent de texte. */
     --ok:#0C6E36; --ko:#B01F1A;
@@ -33,7 +33,7 @@
       --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
       --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC;
+      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B;
       --ok:#45C47B; --ko:#FF6B63;
     }
   }
@@ -42,7 +42,7 @@
     --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
     --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC;
+    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B;
     --ok:#45C47B; --ko:#FF6B63;
   }
   *{box-sizing:border-box}
@@ -108,6 +108,7 @@
   .tile.wide b{font-size:17px}
   .tile.sm{min-height:84px;border-radius:16px;padding:13px}
   .tile.sm b{font-size:16px}
+  .tile.sm.wide{min-height:78px}
 
   /* La mise à jour n'est pas un outil de plateau : une ligne sous la grille,
      avec une pastille quand une version attend, plutôt qu'une tuile pleine. */
@@ -564,6 +565,23 @@
        border-radius:14px;padding:13px;margin-top:8px;cursor:pointer;
        font:700 13px/1 var(--body)}
   .err{color:var(--ko);font-size:13px;margin:8px 0 0}
+
+  /* ---------------------------- section de câble ----------------------- */
+  /* La réponse en tête : rouvert sur le plateau, l'écran redonne la section
+     sans qu'on ait à descendre sous les réglages. */
+  .cab .res{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px;
+       box-shadow:inset 3px 0 0 var(--cab)}
+  .cab .res .kick{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3)}
+  .cab .res .big{display:flex;align-items:baseline;gap:8px;margin:10px 0 4px}
+  .cab .res .big b{font:600 44px/1 var(--mono);color:var(--cab);font-variant-numeric:tabular-nums}
+  .cab .res .big span{font:600 16px/1 var(--mono);color:var(--ink2)}
+  .cab .res>p{margin:0 0 6px;font-size:13.5px;color:var(--ink2)}
+  .cab .res .alert{margin:10px 0 0}
+  .cab .f .tri{margin:0}
+  .cab .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
+  .cab .f input:focus,.cab .f select:focus{border-color:var(--cab)}
+  .cab .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
 </style>
 </head>
 <body>
@@ -600,6 +618,7 @@
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12l7.5 7.5"/></symbol>
   <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M15.7 4.3l4 4L8.4 19.6H4.4v-4z"/><path d="M13.2 6.8l4 4"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
+  <symbol id="i-cable" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="8.4" r="2.4"/><circle cx="8.9" cy="13.9" r="2.4"/><circle cx="15.1" cy="13.9" r="2.4"/></symbol>
 </defs></svg>
 <div class="shell" id="app"></div>
 <nav class="tabbar"><div class="in">
@@ -656,7 +675,8 @@ const TOOLS = [
   { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)", i:"gel" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
-  { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" }
+  { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" },
+  { k:"cab", t:"Section câble", s:"Chute de tension, mm²", c:"var(--cab)", i:"cable" }
 ];
 /* Tout ce que l'accueil sait ouvrir, y compris les outils : taper « réseau »
    ou « patch » répondait « rien pour… » alors que la tuile était juste dessous. */
@@ -727,6 +747,10 @@ function tuile(c, petite){
 function grille(liste, petite){
   const g = el("div", "tiles");
   liste.forEach(c => g.append(tuile(c, petite)));
+  /* Une petite tuile seule sur sa rangée laissait un trou dans la grille :
+     elle prend la largeur. */
+  const seules = [...g.children].filter(t => !t.classList.contains("wide"));
+  if(petite && seules.length % 2) seules[seules.length - 1].classList.add("wide");
   return g;
 }
 
@@ -2860,6 +2884,169 @@ function vGel(){
   return d;
 }
 
+/* --------------------------- section de câble ---------------------------- */
+/* D'après macalculatriceenligne.com : la section se tire de la chute de
+   tension admise, puis on vérifie que le câble tient le courant une fois
+   déclassé par la chaleur et le regroupement.
+     mono : I = P / U                S = 2 × ρ × L × I / ΔU
+     tri  : I = P / (√3 × U × cosφ)  S = √3 × ρ × L × I × cosφ / ΔU
+   ΔU se compte sur 230 V en mono, sur 400 V (tension composée) en tri. */
+const RHO = { cu:0.0178, al:0.0291 };          // Ω·mm²/m
+const SECTIONS = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
+/* Courants admissibles, PVC 70 °C, encastré ou sous conduit (méthode A1 de
+   l'IEC 60364-5-52, reprise par la NF C 15-100) : deux conducteurs chargés en
+   mono, trois en tri. C'est la pose la plus pénalisante — un H07RN-F au sol,
+   à l'air libre, en tient davantage, donc la vérification penche du côté sûr.
+   L'aluminium ne se pose pas en petite section : il commence à 16 mm². */
+const IADM = {
+  cu:{ 2:[14.5, 19.5, 26, 34, 46, 61, 80, 99, 119, 151, 182, 210],
+       3:[13.5, 18, 24, 31, 42, 56, 73, 89, 108, 136, 164, 188] },
+  al:{ 2:[0, 0, 0, 0, 0, 48, 63, 77, 93, 118, 142, 164],
+       3:[0, 0, 0, 0, 0, 43, 57, 70, 84, 107, 129, 149] }
+};
+const K1 = { 30:1, 40:0.87, 50:0.71, 60:0.58 };                   // température, PVC
+const K2 = [1, 0.80, 0.70, 0.65, 0.60, 0.57, 0.54, 0.52, 0.50];   // 1 à 9 câbles et plus
+
+const CLE_CAB = "section.v1";
+const CAB = Object.assign({ mode:"W", q:"", reseau:"mono", l:"", dv:"3", mat:"cu",
+                            cos:"1", t:30, n:1 }, lireLocal(CLE_CAB, {}));
+
+/* Sur un clavier de téléphone français, la virgule vient avant le point. */
+const nombre = v => parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", "."));
+const chiffre = (v, n) => vg(Number(v.toFixed(n)));
+
+function calculSection(c){
+  const tri = c.reseau === "tri", U = tri ? 400 : 230;
+  const cos = tri ? nombre(c.cos) : 1;
+  const q = nombre(c.q), L = nombre(c.l), dv = nombre(c.dv);
+  if(!(q > 0 && L > 0 && dv > 0 && cos > 0 && cos <= 1)) return null;
+  const I = c.mode === "A" ? q : tri ? q / (Math.sqrt(3) * U * cos) : q / U;
+  const dU = dv / 100 * U;
+  const k = RHO[c.mat] * (tri ? Math.sqrt(3) * L * I * cos : 2 * L * I);   // S × ΔU
+  const S = k / dU;
+  const K = K1[c.t] * K2[c.n - 1];
+  const tab = IADM[c.mat][tri ? 3 : 2];
+  const parChute = SECTIONS.findIndex((s, j) => tab[j] && s >= S);
+  const i = SECTIONS.findIndex((s, j) => tab[j] && s >= S && tab[j] * K >= I);
+  const r = { tri, U, I, dU, dv, S, K, parChute, premier:tab.findIndex(x => x) };
+  if(i < 0) return r;
+  return Object.assign(r, { i, s:SECTIONS[i], chute:k / SECTIONS[i], iz:tab[i] * K, iadm:tab[i] });
+}
+
+function peindreSection(zone){
+  const c = CAB, r = calculSection(c);
+  if(!r){
+    zone.innerHTML = `<div class="kick">Section conseillée</div>
+      <div class="big"><b>—</b><span>mm²</span></div>
+      <p>Renseignez la charge, la longueur et la chute admise.</p>`;
+    return;
+  }
+  const mm = s => vg(s) + " mm²";
+  const mat = c.mat === "al" ? "aluminium" : "cuivre";
+  const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
+  const calc = kv("Courant", chiffre(r.I, 1) + " A")
+             + kv("Section calculée", chiffre(r.S, 2) + " mm²")
+             + kv("Chute admise", chiffre(r.dU, 1) + " V · " + vg(r.dv) + " %");
+  if(r.s == null){
+    zone.innerHTML = `<div class="kick">Section conseillée · ${mat}</div>
+      <div class="big"><b>&gt; 120</b><span>mm²</span></div>
+      ${calc}
+      <p class="alert">Aucune section jusqu'à 120 mm² ne suffit : raccourcir la ligne,
+        ou répartir la charge sur plusieurs câbles${r.tri ? "" : ", ou passer en triphasé"}.</p>`;
+    return;
+  }
+  const pourquoi = r.i > r.parChute
+    ? `Fixée par l'échauffement : ${mm(SECTIONS[r.parChute])} suffisait pour la chute de tension, mais pas pour le courant une fois déclassé.`
+    : r.parChute === r.premier && r.S <= (r.premier ? SECTIONS[r.premier - 1] : SECTIONS[0] * 0.999)
+    ? (c.mat === "al" ? `Plus petite section en aluminium : le calcul demande moins de ${mm(r.s)}.`
+                      : `Plus petite section : le calcul demande moins de ${mm(r.s)}.`)
+    : `Fixée par la chute de tension.`;
+  const dec = r.K < 1 ? `${vg(r.iadm)} × ${vg(Number(r.K.toFixed(3)))} = ${chiffre(r.iz, 1)} A` : `${chiffre(r.iz, 1)} A`;
+  zone.innerHTML = `<div class="kick">Section conseillée · ${mat}${r.tri ? " · 3 phases" : ""}</div>
+    <div class="big"><b>${vg(r.s)}</b><span>mm²</span></div>
+    <p>${pourquoi}</p>
+    ${calc}
+    ${kv("Chute en " + mm(r.s), chiffre(r.chute, 2) + " V · " + chiffre(r.chute / r.U * 100, 2) + " %")}
+    ${kv("Courant admissible", dec)}`;
+}
+
+function vCable(){
+  const c = CAB;
+  const tri = c.reseau === "tri";
+  const d = el("div", "cab");
+  d.append(bar("Section de câble"));
+  const res = el("div", "res");
+  d.append(res);
+  const garder = () => ecrireLocal(CLE_CAB, c);
+
+  /* Les choix fermés se touchent ; un rendu complet suffit, aucun champ n'a
+     le curseur à ce moment-là. */
+  const choix = (lab, cle, vals) => {
+    const f = el("div", "f");
+    f.append(el("label", null, esc(lab)));
+    const t = el("div", "tri");
+    vals.forEach(([v, txt]) => {
+      const b = el("button", null, esc(txt));
+      b.setAttribute("aria-pressed", String(c[cle] === v));
+      b.onclick = () => { toucher(); c[cle] = v; garder(); render(); };
+      t.append(b);
+    });
+    f.append(t);
+    return f;
+  };
+  /* Les nombres ne refont que la carte du résultat : un rendu complet à
+     chaque chiffre fermerait le clavier. */
+  const champ = (lab, cle, ph, aide) => {
+    const f = el("div", "f");
+    f.innerHTML = `<label for="cab-${cle}">${esc(lab)}</label>
+      <input id="cab-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      ${aide ? `<small>${aide}</small>` : ""}`;
+    f.querySelector("input").addEventListener("input", e => {
+      c[cle] = e.target.value; garder(); peindreSection(res);
+    });
+    return f;
+  };
+
+  const ci = el("div", "card");
+  ci.innerHTML = `<h4>Ligne</h4>`;
+  ci.append(choix("Réseau", "reseau", [["mono", "230 V mono"], ["tri", "400 V tri"]]));
+  ci.append(choix("La charge en", "mode", [["W", "Puissance (W)"], ["A", "Courant (A)"]]));
+  ci.append(champ(c.mode === "A" ? "Courant par phase (A)" : "Puissance à alimenter (W)", "q",
+    c.mode === "A" ? "16" : "3500",
+    c.mode === "A" ? "" : "La somme de ce qui tourne en même temps."));
+  const ff = el("div", "ff");
+  ff.append(champ("Longueur (m)", "l", "25"), champ("Chute max (%)", "dv", "3"));
+  ci.append(ff);
+  ci.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:-4px 0 12px">Longueur réelle
+    du câble, pas la distance à vol d'oiseau. Chute : 3 % pour l'éclairage, 5 % pour le reste.</p>`);
+  if(tri) ci.append(champ("cos φ", "cos", "1", "1 pour la lumière et les résistances, 0,85 pour les moteurs."));
+  ci.append(choix("Conducteur", "mat", [["cu", "Cuivre"], ["al", "Aluminium"]]));
+  d.append(ci);
+
+  const de = el("div", "card");
+  de.innerHTML = `<h4>Déclassement</h4>`;
+  de.append(choix("Température ambiante", "t", [[30, "30 °C"], [40, "40 °C"], [50, "50 °C"], [60, "60 °C"]]));
+  const g = el("div", "f");
+  g.innerHTML = `<label for="cab-n">Câbles regroupés</label><select id="cab-n">${K2.map((k, j) =>
+    `<option value="${j + 1}"${c.n === j + 1 ? " selected" : ""}>${j + 1 === K2.length ? "9 et plus" : j + 1}
+      ${j ? "câbles" : "câble seul"} · × ${vg(k)}</option>`).join("")}</select>`;
+  g.querySelector("select").onchange = e => { c.n = +e.target.value; garder(); peindreSection(res); };
+  de.append(g);
+  de.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0">Courants admissibles
+    pour une pose encastrée ou sous conduit, la plus défavorable : à l'air libre le câble tient
+    davantage, la section conseillée reste donc du côté sûr.</p>`);
+  d.append(de);
+
+  const fo = el("div", "card");
+  fo.innerHTML = `<h4>Formules</h4><p class="formule">mono · I = P / U<br>S = 2 × ρ × L × I / ΔU<br>
+    tri · I = P / (√3 × U × cos φ)<br>S = √3 × ρ × L × I × cos φ / ΔU<br>
+    ρ cuivre 0,0178 · alu 0,0291 Ω·mm²/m<br>ΔU sur 230 V en mono, 400 V en tri</p>`;
+  d.append(fo);
+
+  peindreSection(res);
+  return d;
+}
+
 /* --------------------------- outils réseau ------------------------------ */
 let STOP = null;
 function poser(stop){ if(STOP) STOP(); STOP = stop; }
@@ -3171,7 +3358,7 @@ function vMaj(){
 /* -------------------------------- moteur -------------------------------- */
 const VIEWS = { home, parc:vParc, outils:vOutils,
                 proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
-                tcd:vPatch, gel:vGel, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
+                tcd:vPatch, gel:vGel, cab:vCable, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
   if(STOP){ STOP(); STOP = null; }

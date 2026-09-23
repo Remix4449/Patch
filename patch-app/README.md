@@ -67,6 +67,7 @@ Quelques détails qui ont leur importance :
 | MDG | Procédure embarquée, hors ligne |
 | Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé, l'ajout d'appareils et la télécommande DMX en volets, l'impression |
 | Gélatines | Lee → RGBWA, teintes approchées à recaler |
+| Section de câble | Section conseillée d'après la chute de tension admise (mono 230 V, tri 400 V, cuivre ou alu), puis vérifiée contre le courant admissible déclassé par la température et le regroupement |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
