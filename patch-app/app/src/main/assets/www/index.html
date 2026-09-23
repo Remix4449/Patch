@@ -608,6 +608,7 @@
   <button class="tb" data-t="tools"><svg class="ic"><use href="#i-outils"/></svg>Outils</button>
 </div></nav>
 
+<script src="gels.js"></script>
 <script src="common.js"></script>
 <script src="net.js"></script>
 <script>
@@ -616,8 +617,8 @@ const el = (t, c, h) => { const n = document.createElement(t); if(c) n.className
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const vg = n => String(n).replace(".", ",");
 const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, typeMach:null,
-            qs:{ proj:"", mach:"", haut:"" },
-            gel:LEE.find(g => g.ref === "L128") || LEE[0], gelMode:null };
+            qs:{ proj:"", mach:"", haut:"", gel:"" },
+            gel:GEL_PAR_REF.L201 || GELS[0], gelMode:null, gelMarque:"L" };
 
 const ic = (n, cls="ic") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const ICO_FAM = {
@@ -653,7 +654,7 @@ const TOOLS = [
   { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx", large:true },
   { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
   { k:"tcd", t:"Canal DMX", s:"Un canal à la main", c:"var(--tcd)", i:"fader" },
-  { k:"gel", t:"Gélatines", s:"Lee → LED & CMY", c:"var(--gel)", i:"gel" },
+  { k:"gel", t:"Gélatines", s:"Lee, GAM, Rosco → LED", c:"var(--gel)", i:"gel" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
   { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" }
@@ -816,7 +817,7 @@ function resultats(){
   const proj = PROJECTEURS.filter(p => plat(p.nom + " " + p.marque + " " + p.fam).includes(q));
   const mach = MACHINERIE.filter(m => plat(m.nom + " " + m.type).includes(q));
   const haut = HAUTEURS.filter(h => plat(h.nom).includes(q));
-  const gel = LEE.filter(g => plat(g.ref + " " + g.nom).includes(q));
+  const gel = GELS.filter(g => plat(g.ref + " " + g.nom).includes(q));
   /* Le titre annonçait le compte complet et la liste n'en posait que huit,
      sans rien qui dise où étaient les autres : la dernière ligne y emmène,
      avec le même mot déjà tapé. */
@@ -837,8 +838,10 @@ function resultats(){
   bloc("Projecteurs", proj, p => rowProj(p), () => { S.qs.proj = S.q; go({ v:"proj" }); });
   bloc("Machinerie", mach, m => rowMach(m), () => { S.qs.mach = S.q; go({ v:"mach" }); });
   bloc("Hauteurs", haut, h => rowHaut(h), () => { S.qs.haut = S.q; go({ v:"haut" }); });
-  bloc("Gélatines", gel, g => { const r = rowSimple(g.ref, g.nom, "", "", g.hex, "gel");
-    r.onclick = () => { S.gel = g; go({ v:"gel" }); }; return r; });
+  bloc("Gélatines", gel, g => { const r = rowSimple(g.ref, g.nom, "", MARQUES_GEL[g.m],
+      g.hex || "var(--ink3)", "gel");
+    r.onclick = () => { S.gel = g; go({ v:"gel" }); }; return r; },
+    () => { S.qs.gel = S.q; S.gelMarque = null; go({ v:"gel" }); });
   if(!ecr.length && !proj.length && !mach.length && !haut.length && !gel.length)
     d.insertAdjacentHTML("beforeend", `<p class="muted" style="margin-top:20px">Rien pour « ${esc(S.q)} ».</p>`);
   return d;
@@ -2832,19 +2835,59 @@ const CANAUX = {
   w:["Blanc", "#B8BFCC"], a:["Ambre", "#E89923"],
   c:["Cyan", "#12A7CF"], m:["Magenta", "#C8288F"], y:["Jaune", "#E8C21A"]
 };
+/* Une référence GAM ou Rosco sans équivalent Lee connu n'a pas de teinte :
+   on la garde dans le nuancier, hachurée, pour qu'on la trouve quand même. */
+const fondGel = g => g.hex || "repeating-linear-gradient(135deg,var(--sur2) 0 6px,var(--line) 6px 12px)";
+const trouveGel = q => {
+  const p = plat(q).trim(), sans = p.replace(/\s+/g, "");
+  return GELS.filter(g => (!S.gelMarque || g.m === S.gelMarque)
+    && (plat(g.ref).includes(sans) || plat(g.nom).includes(p)));
+};
+function pastilles(liste, x){
+  const sw = el("div", "swg");
+  liste.forEach(y => {
+    const b = el("button", "sw");
+    b.setAttribute("aria-pressed", y === x ? "true" : "false");
+    b.innerHTML = `<div class="c" style="background:${fondGel(y)}"></div>
+      <div class="t">${esc(y.ref)}<span>${esc(y.nom)}</span></div>`;
+    b.onclick = () => { S.gel = y; S.qs.gel = ""; render(); window.scrollTo(0, 0); };
+    sw.append(b);
+  });
+  return sw;
+}
+function rowGel(g, droite, sous){
+  const r = rowSimple(g.ref, g.nom, droite || "", sous || "", g.hex || "var(--ink3)", "gel");
+  r.onclick = () => { S.gel = g; S.qs.gel = ""; render(); window.scrollTo(0, 0); };
+  return r;
+}
 function vGel(){
   if(!S.gelMode){
     const m = lireLocal(CLE_GEL_MODE, "RGBWA");
     S.gelMode = MELANGES[m] ? m : "RGBWA";
   }
-  const mode = S.gelMode, ks = MELANGES[mode];
+  const mode = S.gelMode, ks = MELANGES[mode], x = S.gel, q = S.qs.gel.trim();
   const d = el("div");
-  d.append(bar("Gélatines → " + mode, LEE.length + " réf."));
-  const x = S.gel, c = toMelange(x.hex, mode), rw = toRGBWA(x.hex);
+  d.append(bar("Gélatines → " + mode, GELS.length + " réf."));
+  d.append(recherche("gel", "L201, CTB, congo, 3202…"));
+  d.append(bandeau(Object.values(MARQUES_GEL), MARQUES_GEL[S.gelMarque] || null, v => {
+    S.gelMarque = Object.keys(MARQUES_GEL).find(k => MARQUES_GEL[k] === v) || null; render();
+  }));
+  /* La recherche répond juste sous le champ : le nuancier complet est tout
+     en bas, trop loin pour voir ce que la frappe a trouvé. */
+  if(q){
+    const r = trouveGel(q), l = el("div", "card");
+    l.innerHTML = `<h4>${r.length} résultat${r.length > 1 ? "s" : ""}</h4>`;
+    if(r.length) l.append(pastilles(r.slice(0, 60), x));
+    else l.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0">Rien pour « ${esc(q)} ».</p>`);
+    if(r.length > 60) l.insertAdjacentHTML("beforeend",
+      `<p class="muted" style="margin:10px 0 0">Les 60 premiers : précisez la recherche.</p>`);
+    d.append(l);
+  }
   const h = el("div", "hero");
-  h.style.background = x.hex;
-  h.style.color = (rw.pct.w > 55 || rw.pct.a > 60) ? "#10131A" : "#fff";
-  h.innerHTML = `<div class="kick">Lee</div><h3>${x.ref}</h3><p>${esc(x.nom)}</p>`;
+  h.style.background = fondGel(x);
+  const rw = x.hex && toRGBWA(x.hex);
+  h.style.color = !rw ? "var(--ink)" : (rw.pct.w > 55 || rw.pct.a > 60) ? "#10131A" : "#fff";
+  h.innerHTML = `<div class="kick">${MARQUES_GEL[x.m]}</div><h3>${esc(x.ref)}</h3><p>${esc(x.nom)}</p>`;
   d.append(h);
   const t = el("div", "tri");
   t.setAttribute("role", "group");
@@ -2855,30 +2898,56 @@ function vGel(){
     b.onclick = () => { S.gelMode = k; ecrireLocal(CLE_GEL_MODE, k); render(); };
     t.append(b);
   });
-  d.append(t);
+  if(x.hex) d.append(t);
   const m = el("div", "card");
-  const line = (k, v) => `<div class="ml"><span>${CANAUX[k][0]}</span>
-    <div class="t"><div style="width:${v}%;background:${CANAUX[k][1]}"></div></div><b>${v}%</b></div>`;
-  m.innerHTML = `<h4>Mélange conseillé</h4><div class="mix">
-      ${ks.map(k => line(k, c.pct[k])).join("")}</div>
-    <div class="kv" style="margin-top:14px"><span>DMX 8 bits</span>
-      <b>${ks.map(k => c.dmx[k]).join("·")}</b></div>
-    <p class="muted" style="margin:10px 0 0">${mode === "CMY"
-      ? "0 % = drapeau sorti, faisceau blanc. " : ""}Teinte approchée — à recaler au colorimètre.</p>`;
+  if(x.hex){
+    const c = toMelange(x.hex, mode);
+    const line = (k, v) => `<div class="ml"><span>${CANAUX[k][0]}</span>
+      <div class="t"><div style="width:${v}%;background:${CANAUX[k][1]}"></div></div><b>${v}%</b></div>`;
+    m.innerHTML = `<h4>Mélange conseillé</h4><div class="mix">
+        ${ks.map(k => line(k, c.pct[k])).join("")}</div>
+      <div class="kv" style="margin-top:14px"><span>DMX 8 bits</span>
+        <b>${ks.map(k => c.dmx[k]).join("·")}</b></div>
+      <p class="muted" style="margin:10px 0 0">${mode === "CMY"
+        ? "0 % = drapeau sorti, faisceau blanc. " : ""}${x.m === "L"
+        ? "Calculé d'après la chromaticité publiée par Lee"
+        : "Teinte reprise de l'équivalent " + esc(x.eq[0])} — à recaler au colorimètre.</p>`;
+  } else {
+    m.innerHTML = `<h4>Mélange conseillé</h4><p class="muted" style="margin:0">${MARQUES_GEL[x.m]}
+      ne publie pas la teinte de cette référence et aucun équivalent Lee n'est connu.</p>`;
+  }
   d.append(m);
-  const g = el("div", "card");
-  g.innerHTML = `<h4>Nuancier</h4>`;
-  const sw = el("div", "swg");
-  LEE.forEach(y => {
-    const b = el("button", "sw");
-    b.setAttribute("aria-pressed", y === x ? "true" : "false");
-    b.innerHTML = `<div class="c" style="background:${y.hex}"></div>
-      <div class="t">${y.ref}<span>${esc(y.nom)}</span></div>`;
-    b.onclick = () => { S.gel = y; render(); window.scrollTo(0, 0); };
-    sw.append(b);
-  });
-  g.append(sw);
-  d.append(g);
+  /* Depuis un Lee : ceux qui s'en rapprochent le plus en couleur, et les GAM
+     ou Rosco qui l'annoncent comme équivalent. Depuis un GAM ou un Rosco :
+     les Lee qu'annoncent les tableaux croisés. */
+  const e = el("div", "card");
+  const blocEq = (titre, rangees) => {
+    if(!rangees.length) return;
+    e.insertAdjacentHTML("beforeend", `<h4${e.childNodes.length ? ' style="margin-top:18px"' : ""}>${titre}</h4>`);
+    const l = el("div", "rowlist");
+    rangees.forEach(r => l.append(r));
+    e.append(l);
+  };
+  if(x.m === "L"){
+    blocEq("Lee les plus proches", leeProches(x).map(p =>
+      rowGel(p.g, "ΔE " + Math.round(p.de))));
+    blocEq("Équivalents GAM et Rosco", x.eq.map(r => rowGel(GEL_PAR_REF[r], "", MARQUES_GEL[r[0]])));
+  } else {
+    blocEq("Équivalents Lee annoncés", x.eq.map(r => rowGel(GEL_PAR_REF[r])));
+  }
+  if(e.childNodes.length){
+    e.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:10px 0 0">${x.m === "L"
+      ? "ΔE : écart de couleur calculé, sous 5 à peine visible. "
+      : ""}Les équivalences entre marques sont approximatives.</p>`);
+    d.append(e);
+  }
+  if(!q){
+    const g = el("div", "card");
+    const n = GELS.filter(y => !S.gelMarque || y.m === S.gelMarque);
+    g.innerHTML = `<h4>Nuancier${S.gelMarque ? " " + MARQUES_GEL[S.gelMarque] : ""} · ${n.length}</h4>`;
+    g.append(pastilles(n, x));
+    d.append(g);
+  }
   return d;
 }
 
