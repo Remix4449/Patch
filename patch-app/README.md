@@ -64,7 +64,7 @@ Quelques détails qui ont leur importance :
 | Écran | Fonctionnement |
 | --- | --- |
 | Projecteurs, machinerie, hauteurs | Recherche, filtres, et l'inventaire se modifie depuis l'application |
-| MDG | Procédure embarquée, hors ligne |
+| Manuels | Bibliothèque de notes de fonctionnement, une fiche par appareil, hors ligne |
 | Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé, l'ajout d'appareils et la télécommande DMX en volets, l'impression |
 | Gélatines | Lee → RGBWA, teintes approchées à recaler |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
@@ -93,6 +93,19 @@ fiche, « 1000 W » ou « 8 m/min » trouvent aussi bien qu'un nom — et son ba
 de filtres : les marques pour les projecteurs, les types pour la machinerie. Le
 bandeau garde sa position quand on appuie dessus, et la page ne remonte plus en
 haut.
+
+## La bibliothèque de manuels
+
+L'écran **Manuels**, dans le parc, a pris la place de l'écran MDG, dont la
+procédure est devenue la première fiche. Les fiches sont rangées par type,
+filtrées par le bandeau, cherchées en plein texte — « purge » trouve la MDG —
+et la recherche de l'accueil les trouve aussi.
+
+Chaque fiche est un fichier de `app/src/main/assets/www/manuels/`, écrit en
+texte presque brut : `## titre`, `1.` pour une étape, `!` pour une alerte, `|`
+pour un tableau de canaux. Ajouter un manuel, c'est créer son fichier et écrire
+son nom dans `manuels/sommaire.js` ; le mode d'emploi est dans
+`manuels/README.md`.
 
 ## Le patch et le plateau, sur un seul écran
 
