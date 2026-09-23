@@ -1,7 +1,8 @@
 /* ---------------------------------------------------------------------------
    Régie — socle commun aux 3 canevas
    Données : extraites des bases Notion (Projecteurs, Machinerie,
-   Hauteurs de Passerelles & Plateformes Élévatrices, MDG).
+   Hauteurs de Passerelles & Plateformes Élévatrices). La procédure MDG
+   est devenue une fiche de la bibliothèque : voir `manuels/`.
    Les blocs marqués DEMO sont des jeux de démonstration : réseau, NDI,
    Art-Net/sACN ne peuvent pas être lus depuis une page web seule.
 --------------------------------------------------------------------------- */
@@ -96,22 +97,6 @@ const HAUTEURS = [
   { nom:"Genie + FT", type:"Plateforme élévatrice", pos:"Plateau", h:8.24, charge:136 }
 ];
 
-const MDG = {
-  titre:"MDG — machine à brume",
-  allumage:[
-    "Bouteille : manomètre à 3,5 bar",
-    "Unit sur ON",
-    "Haze sur ON",
-    "Régler la pression suivant la quantité de fumée souhaitée"
-  ],
-  extinction:[
-    "Unit sur OFF",
-    "Haze sur OFF",
-    "Pression à zéro",
-    "Vérifier sur les statuts que la purge est terminée"
-  ],
-  alertes:[ "Écran qui clignote = bouteille vide" ]
-};
 
 /* ---------------------------- Calculs DMX ------------------------------- */
 

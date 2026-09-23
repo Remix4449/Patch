@@ -64,12 +64,13 @@ Quelques détails qui ont leur importance :
 | Écran | Fonctionnement |
 | --- | --- |
 | Projecteurs, machinerie, hauteurs | Recherche, filtres, et l'inventaire se modifie depuis l'application |
-| MDG | Procédure embarquée, hors ligne |
+| Manuels | Bibliothèque de notes de fonctionnement, une fiche par appareil, hors ligne |
 | Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé, l'ajout d'appareils et la télécommande DMX en volets, l'impression |
 | Gélatines | 262 Lee (chromaticité publiée par Lee), 165 GAM et 265 Rosco avec leurs équivalents Lee ; recherche, Lee proches, mélange RGBWA, RGBW, RGB ou CMY |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
+| Onduleur | Capacité d'UPS (VA) et de batterie (VAh) d'après la puissance, le facteur de puissance, le rendement et l'autonomie voulue |
 | Testeur d'adresse | Émission d'une trame Art-Net sur un canal, sans console |
 
 ## L'inventaire se tient depuis l'application
@@ -93,6 +94,19 @@ fiche, « 1000 W » ou « 8 m/min » trouvent aussi bien qu'un nom — et son ba
 de filtres : les marques pour les projecteurs, les types pour la machinerie. Le
 bandeau garde sa position quand on appuie dessus, et la page ne remonte plus en
 haut.
+
+## La bibliothèque de manuels
+
+L'écran **Manuels**, dans le parc, a pris la place de l'écran MDG, dont la
+procédure est devenue la première fiche. Les fiches sont rangées par type,
+filtrées par le bandeau, cherchées en plein texte — « purge » trouve la MDG —
+et la recherche de l'accueil les trouve aussi.
+
+Chaque fiche est un fichier de `app/src/main/assets/www/manuels/`, écrit en
+texte presque brut : `## titre`, `1.` pour une étape, `!` pour une alerte, `|`
+pour un tableau de canaux. Ajouter un manuel, c'est créer son fichier et écrire
+son nom dans `manuels/sommaire.js` ; le mode d'emploi est dans
+`manuels/README.md`.
 
 ## Le patch et le plateau, sur un seul écran
 
