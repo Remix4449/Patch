@@ -66,7 +66,7 @@ Quelques détails qui ont leur importance :
 | Projecteurs, machinerie, hauteurs | Recherche, filtres, et l'inventaire se modifie depuis l'application |
 | MDG | Procédure embarquée, hors ligne |
 | Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé, l'ajout d'appareils et la télécommande DMX en volets, l'impression |
-| Gélatines | Lee → RGBWA, teintes approchées à recaler |
+| Gélatines | Lee → RGBWA, RGBW, RGB ou CMY, teintes approchées à recaler |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |

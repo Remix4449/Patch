@@ -183,6 +183,26 @@ function toRGBWA(hex){
   };
 }
 
+/* Les autres mélanges proposés à l'écran Gélatines, pour les projecteurs qui
+   n'ont pas d'ambre, ni de blanc, ou qui soustraient la couleur (lyres CMY).
+   RGBW : blanc = composante commune, comme en RGBWA mais sans ambre.
+   CMY : chaque drapeau retire son primaire ; 0 = faisceau blanc ouvert. */
+const MELANGES = {
+  RGBWA:["r", "g", "b", "w", "a"], RGBW:["r", "g", "b", "w"],
+  RGB:["r", "g", "b"], CMY:["c", "m", "y"]
+};
+function toMelange(hex, mode){
+  if(mode === "RGBWA") return toRGBWA(hex);
+  const { r, g, b } = hexToRgb(hex);
+  let v;
+  if(mode === "CMY") v = { c:255 - r, m:255 - g, y:255 - b };
+  else if(mode === "RGBW"){ const w = Math.min(r, g, b); v = { r:r - w, g:g - w, b:b - w, w }; }
+  else v = { r, g, b };
+  const pct = {}, dmx = {};
+  for(const k in v){ pct[k] = Math.round(v[k] / 255 * 100); dmx[k] = v[k]; }
+  return { pct, dmx };
+}
+
 /* Adresse absolue (1 = U1/C1) -> univers + canal */
 function splitAddress(abs){
   const u = Math.floor((abs - 1) / 512) + 1;

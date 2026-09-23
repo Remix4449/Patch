@@ -617,7 +617,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const vg = n => String(n).replace(".", ",");
 const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, typeMach:null,
             qs:{ proj:"", mach:"", haut:"" },
-            gel:LEE.find(g => g.ref === "L128") || LEE[0] };
+            gel:LEE.find(g => g.ref === "L128") || LEE[0], gelMode:null };
 
 const ic = (n, cls="ic") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const ICO_FAM = {
@@ -653,7 +653,7 @@ const TOOLS = [
   { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx", large:true },
   { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
   { k:"tcd", t:"Canal DMX", s:"Un canal à la main", c:"var(--tcd)", i:"fader" },
-  { k:"gel", t:"Gélatines", s:"Lee → RGBWA", c:"var(--gel)", i:"gel" },
+  { k:"gel", t:"Gélatines", s:"Lee → LED & CMY", c:"var(--gel)", i:"gel" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
   { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" }
@@ -2824,25 +2824,47 @@ premier tableau.${puissanceTotale(liste).endsWith("*")
     setTimeout(() => cadre.remove(), 2000);
   };
 }
+/* Le mode retenu reste d'une ouverture à l'autre : on travaille en général
+   toute une journée sur le même parc. */
+const CLE_GEL_MODE = "gel.mode.v1";
+const CANAUX = {
+  r:["Rouge", "#E02B24"], g:["Vert", "#12A056"], b:["Bleu", "#1C6BD0"],
+  w:["Blanc", "#B8BFCC"], a:["Ambre", "#E89923"],
+  c:["Cyan", "#12A7CF"], m:["Magenta", "#C8288F"], y:["Jaune", "#E8C21A"]
+};
 function vGel(){
+  if(!S.gelMode){
+    const m = lireLocal(CLE_GEL_MODE, "RGBWA");
+    S.gelMode = MELANGES[m] ? m : "RGBWA";
+  }
+  const mode = S.gelMode, ks = MELANGES[mode];
   const d = el("div");
-  d.append(bar("Gélatines → RGBWA", LEE.length + " réf."));
-  const x = S.gel, c = toRGBWA(x.hex);
+  d.append(bar("Gélatines → " + mode, LEE.length + " réf."));
+  const x = S.gel, c = toMelange(x.hex, mode), rw = toRGBWA(x.hex);
   const h = el("div", "hero");
   h.style.background = x.hex;
-  h.style.color = (c.pct.w > 55 || c.pct.a > 60) ? "#10131A" : "#fff";
+  h.style.color = (rw.pct.w > 55 || rw.pct.a > 60) ? "#10131A" : "#fff";
   h.innerHTML = `<div class="kick">Lee</div><h3>${x.ref}</h3><p>${esc(x.nom)}</p>`;
   d.append(h);
+  const t = el("div", "tri");
+  t.setAttribute("role", "group");
+  t.setAttribute("aria-label", "Type de mélange");
+  Object.keys(MELANGES).forEach(k => {
+    const b = el("button", null, k);
+    b.setAttribute("aria-pressed", k === mode ? "true" : "false");
+    b.onclick = () => { S.gelMode = k; ecrireLocal(CLE_GEL_MODE, k); render(); };
+    t.append(b);
+  });
+  d.append(t);
   const m = el("div", "card");
-  const line = (lab, col, v) => `<div class="ml"><span>${lab}</span>
-    <div class="t"><div style="width:${v}%;background:${col}"></div></div><b>${v}%</b></div>`;
+  const line = (k, v) => `<div class="ml"><span>${CANAUX[k][0]}</span>
+    <div class="t"><div style="width:${v}%;background:${CANAUX[k][1]}"></div></div><b>${v}%</b></div>`;
   m.innerHTML = `<h4>Mélange conseillé</h4><div class="mix">
-      ${line("Rouge", "#E02B24", c.pct.r)}${line("Vert", "#12A056", c.pct.g)}
-      ${line("Bleu", "#1C6BD0", c.pct.b)}${line("Blanc", "#B8BFCC", c.pct.w)}
-      ${line("Ambre", "#E89923", c.pct.a)}</div>
+      ${ks.map(k => line(k, c.pct[k])).join("")}</div>
     <div class="kv" style="margin-top:14px"><span>DMX 8 bits</span>
-      <b>${c.dmx.r}·${c.dmx.g}·${c.dmx.b}·${c.dmx.w}·${c.dmx.a}</b></div>
-    <p class="muted" style="margin:10px 0 0">Teinte approchée — à recaler au colorimètre.</p>`;
+      <b>${ks.map(k => c.dmx[k]).join("·")}</b></div>
+    <p class="muted" style="margin:10px 0 0">${mode === "CMY"
+      ? "0 % = drapeau sorti, faisceau blanc. " : ""}Teinte approchée — à recaler au colorimètre.</p>`;
   d.append(m);
   const g = el("div", "card");
   g.innerHTML = `<h4>Nuancier</h4>`;
