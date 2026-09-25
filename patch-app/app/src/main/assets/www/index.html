@@ -254,6 +254,24 @@
   .ups .f input:focus{border-color:var(--ups)}
   .ups .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
 
+  /* ------------------------- distance de projection --------------------- */
+  :root{--dpj:#5F7A00}
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){--dpj:#B5D045} }
+  :root[data-theme="dark"]{--dpj:#B5D045}
+  .dpj .res{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px;
+       box-shadow:inset 3px 0 0 var(--dpj)}
+  .dpj .res .kick{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3)}
+  .dpj .res .big{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+  .dpj .res .big b{font:600 44px/1 var(--mono);color:var(--dpj);font-variant-numeric:tabular-nums}
+  .dpj .res .big span{font:600 16px/1 var(--mono);color:var(--ink2)}
+  .dpj .res>p{margin:0 0 6px;font-size:13.5px;color:var(--ink2)}
+  .dpj .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
+  .dpj .f input:focus{border-color:var(--dpj)}
+  .dpj .tri{margin:0}
+  .dpj .tri button{padding-left:4px;padding-right:4px}
+  .dpj .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
+
   /* ------------------------------ mise à jour -------------------------- */
   .maj{display:flex;align-items:center;gap:12px;background:var(--sur);
        border:1.5px solid var(--maj);border-radius:14px;padding:12px 14px;margin:0 0 18px}
@@ -613,6 +631,7 @@
   <symbol id="i-poursuite" viewBox="0 0 24 24"><rect x="2.5" y="8.5" width="7" height="6" rx="1.4"/><path d="M6 14.5v4.5M3.5 21h5"/><path d="M9.5 9.5l11-4v13l-11-4z"/></symbol>
   <symbol id="i-power" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M13.2 8l-3.4 4.6h3.6L11 16.6"/></symbol>
   <symbol id="i-ups" viewBox="0 0 24 24"><rect x="2" y="7" width="17.5" height="10" rx="2.2"/><path d="M22 10.5v3"/><path d="M11.6 9l-2.4 3.2h3.2L10 15.4"/></symbol>
+  <symbol id="i-projo" viewBox="0 0 24 24"><rect x="2" y="8" width="9" height="8" rx="1.8"/><circle cx="6.5" cy="12" r="2"/><path d="M11 10l10-4.5v13L11 14"/></symbol>
   <symbol id="i-moteur" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="6.5" rx="1.5"/><path d="M12 9v2.5M12 12.5v2.5"/><path d="M9.8 17.8a2.4 2.4 0 1 0 4.4-1.3V15"/></symbol>
   <symbol id="i-structure" viewBox="0 0 24 24"><path d="M2 6.5h20M2 17.5h20"/><path d="M5 17.5L8.5 6.5 12 17.5l3.5-11L19 17.5"/></symbol>
   <symbol id="i-collier" viewBox="0 0 24 24"><path d="M15.5 6.5a6 6 0 1 0 0 11"/><path d="M15.5 6.5h3.2M15.5 17.5h3.2M18.7 9.5v5"/><circle cx="11.5" cy="12" r="2.6"/></symbol>
@@ -692,6 +711,7 @@ const TOOLS = [
   { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
   { k:"tcd", t:"Canal DMX", s:"Un canal à la main", c:"var(--tcd)", i:"fader" },
   { k:"gel", t:"Gélatines", s:"Lee, GAM, Rosco → LED", c:"var(--gel)", i:"gel" },
+  { k:"dist", t:"Projection", s:"Distance & taille d'image", c:"var(--dpj)", i:"projo" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"ups", t:"Onduleur", s:"Capacité UPS, VA", c:"var(--ups)", i:"ups" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
@@ -3343,6 +3363,162 @@ function vUps(){
   return d;
 }
 
+/* ------------------------ distance de projection ------------------------- */
+/* La page de référence (prestataires-audiovisuel.fr) n'a pas pu être lue ; ce
+   sont les relations d'usage, sans la consommation d'énergie que Rémi ne
+   voulait pas :
+     rapport de projection = distance / largeur de l'image
+     largeur = diagonale × r / √(r² + 1), hauteur = largeur / r (r = format)
+     éclairement (lux) = lumens / surface (m²)
+     luminance (cd/m²) = lux × gain / π ; 1 ft-L = 3,426 cd/m²
+   Un rapport de projection maxi, s'il est donné, fait une fourchette : c'est
+   la course du zoom. */
+const CLE_DIST = "projection.v1";
+const DIST = Object.assign({ sens:"d", fmt:"16:9", base:"l", l:"", diag:"", d:"",
+                             tr:"", trx:"", lm:"", gain:"1" }, lireLocal(CLE_DIST, {}));
+const FORMATS = [["16:9", 16 / 9], ["16:10", 16 / 10], ["4:3", 4 / 3], ["2,39:1", 2.39]];
+const POUCE = 0.0254;
+
+const nbDist = v => parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", "."));
+const mDist = (v, n = 2) => vg(Number(v.toFixed(n)));
+/* Une fourchette qui ne s'ouvre pas s'écrit comme un seul nombre. */
+const fourch = (a, b, n = 2) => b == null || Math.abs(a - b) < 0.005 ? mDist(a, n)
+                                                                     : mDist(a, n) + " – " + mDist(b, n);
+
+function calculDist(c){
+  const r = (FORMATS.find(f => f[0] === c.fmt) || FORMATS[0])[1];
+  const tr = nbDist(c.tr), trx = nbDist(c.trx);
+  if(!(tr > 0)) return { manque:"Renseignez le rapport de projection du projecteur." };
+  const tx = trx > 0 && trx !== tr ? trx : null;
+  const trA = tx ? Math.min(tr, tx) : tr, trB = tx ? Math.max(tr, tx) : null;
+  const image = w => ({ w, h: w / r, diag: w * Math.sqrt(r * r + 1) / r });
+  let imgs, dist;
+  if(c.sens === "d"){
+    const w = c.base === "l" ? nbDist(c.l) : nbDist(c.diag) * POUCE * r / Math.sqrt(r * r + 1);
+    if(!(w > 0)) return { manque:"Renseignez la taille de l'image." };
+    imgs = [image(w)];
+    dist = [trA * w, trB ? trB * w : null];
+  } else {
+    const d = nbDist(c.d);
+    if(!(d > 0)) return { manque:"Renseignez la distance entre l'objectif et l'écran." };
+    /* Au rapport le plus court, la plus grande image. */
+    imgs = trB ? [image(d / trB), image(d / trA)] : [image(d / trA)];
+    dist = [d, null];
+  }
+  const lm = nbDist(c.lm), gain = nbDist(c.gain) > 0 ? nbDist(c.gain) : 1;
+  const lum = lm > 0 ? imgs.map(i => { const lux = lm / (i.w * i.h);
+                                       return { lux, cd: lux * gain / Math.PI }; }) : null;
+  return { r, imgs, dist, lum, gain };
+}
+
+function peindreDist(zone){
+  const c = DIST, r = calculDist(c);
+  const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
+  const titre = c.sens === "d" ? "Distance de projection" : "Largeur de l'image";
+  if(r.manque){
+    zone.innerHTML = `<div class="kick">${titre}</div>
+      <div class="big"><b>—</b><span>m</span></div><p>${r.manque}</p>`;
+    return;
+  }
+  const [a, b] = r.imgs, ab = (f, n) => fourch(f(a), b ? f(b) : null, n);
+  const big = c.sens === "d" ? fourch(r.dist[0], r.dist[1]) : ab(i => i.w);
+  const pied = c.sens === "d"
+    ? (r.dist[1] ? "De l'objectif à l'écran, zoom au plus large puis au plus serré." : "De l'objectif à l'écran.")
+    : (b ? "Zoom au plus serré puis au plus large, à " + mDist(r.dist[0]) + " m." : "À " + mDist(r.dist[0]) + " m de l'écran.");
+  let lum = "";
+  if(r.lum){
+    const [la, lb] = r.lum, lf = (f, n) => fourch(f(la), lb ? f(lb) : null, n);
+    lum = kv("Éclairement", lf(x => x.lux, 0) + " lux")
+        + kv("Luminance" + (r.gain !== 1 ? " · gain " + vg(r.gain) : ""), lf(x => x.cd, 0) + " cd/m²")
+        + kv("En foot-lamberts", lf(x => x.cd / 3.426, 1) + " ft-L");
+  }
+  zone.innerHTML = `<div class="kick">${titre} · ${esc(c.fmt)}</div>
+    <div class="big"><b>${big}</b><span>m</span></div>
+    <p>${pied}</p>
+    ${c.sens === "i" ? "" : kv("Largeur", ab(i => i.w) + " m")}
+    ${kv("Hauteur", ab(i => i.h) + " m")}
+    ${kv("Diagonale", ab(i => i.diag) + " m · " + ab(i => i.diag / POUCE, 0) + " po")}
+    ${kv("Surface", ab(i => i.w * i.h) + " m²")}
+    ${lum}`;
+}
+
+function vDist(){
+  const c = DIST;
+  const d = el("div", "dpj");
+  d.append(bar("Distance de projection"));
+  const res = el("div", "res");
+  d.append(res);
+  const garder = () => ecrireLocal(CLE_DIST, c);
+
+  /* Les choix fermés refont l'écran : les champs affichés en dépendent. */
+  const choix = (lab, cle, vals) => {
+    const f = el("div", "f");
+    if(lab) f.append(el("label", null, esc(lab)));
+    const t = el("div", "tri");
+    vals.forEach(([v, txt]) => {
+      const b = el("button", null, esc(txt));
+      b.setAttribute("aria-pressed", String(c[cle] === v));
+      b.onclick = () => { toucher(); c[cle] = v; garder(); render(); };
+      t.append(b);
+    });
+    f.append(t);
+    return f;
+  };
+  /* Les nombres ne refont que la carte du résultat : un rendu complet
+     fermerait le clavier. */
+  const champ = (lab, cle, ph, aide) => {
+    const f = el("div", "f");
+    f.innerHTML = `<label for="dpj-${cle}">${esc(lab)}</label>
+      <input id="dpj-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      ${aide ? `<small>${aide}</small>` : ""}`;
+    f.querySelector("input").addEventListener("input", e => {
+      c[cle] = e.target.value; garder(); peindreDist(res);
+    });
+    return f;
+  };
+
+  const cs = el("div", "card");
+  cs.innerHTML = `<h4>Je cherche</h4>`;
+  cs.append(choix("", "sens", [["d", "La distance"], ["i", "La taille d'image"]]));
+  d.append(cs);
+
+  const ci = el("div", "card");
+  ci.innerHTML = `<h4>Image</h4>`;
+  ci.append(choix("Format", "fmt", FORMATS.map(f => [f[0], f[0]])));
+  if(c.sens === "d"){
+    ci.append(choix("Taille connue par", "base", [["l", "Largeur"], ["d", "Diagonale"]]));
+    ci.append(c.base === "l" ? champ("Largeur de l'image (m)", "l", "4")
+                             : champ("Diagonale (pouces)", "diag", "150"));
+  } else {
+    ci.append(champ("Distance objectif – écran (m)", "d", "8"));
+  }
+  d.append(ci);
+
+  const co = el("div", "card");
+  co.innerHTML = `<h4>Projecteur</h4>`;
+  const ff = el("div", "ff");
+  ff.append(champ("Rapport mini", "tr", "1,5"), champ("Rapport maxi", "trx", "2"));
+  co.append(ff);
+  co.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:-4px 0 12px">Sur la fiche
+    de l'objectif, écrit 1,5 – 2 : 1. Le maxi est pour un zoom ; on le laisse vide avec une
+    optique fixe.</p>`);
+  const fl = el("div", "ff");
+  fl.append(champ("Flux (lumens)", "lm", "10000"), champ("Gain d'écran", "gain", "1"));
+  co.append(fl);
+  co.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:-4px 0 0">Facultatif, pour
+    la luminosité. Repère : 48 cd/m² (14 ft-L) en salle noire, norme cinéma SMPTE.</p>`);
+  d.append(co);
+
+  const fo = el("div", "card");
+  fo.innerHTML = `<h4>Formules</h4><p class="formule">distance = rapport × largeur<br>
+    largeur = diagonale × r / √(r² + 1)<br>lux = lumens / surface<br>
+    cd/m² = lux × gain / π</p>`;
+  d.append(fo);
+
+  peindreDist(res);
+  return d;
+}
+
 /* ----------------------------- mise à jour ------------------------------ */
 /* L'application se compare à la version publiée dans la release du dépôt. Le
    natif vérifie tout seul au lancement et télécharge dans la foulée ; il reste
@@ -3476,7 +3652,7 @@ function vMaj(){
 }
 
 /* -------------------------------- moteur -------------------------------- */
-const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps,
+const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps, dist:vDist,
                 proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 tcd:vPatch, gel:vGel, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
 let VUE_AV = null;              // l'écran du rendu précédent
