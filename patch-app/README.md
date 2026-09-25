@@ -146,11 +146,49 @@ il s'allume tant qu'elle tient un canal.
 numéro de gradateur et passe par la plage du patch : elle ne sait donc rien dire
 d'un canal qui n'en fait pas partie — une lyre, un nœud à vérifier, un circuit
 pas encore relevé. Le volet **Télécommande DMX** émet en clair : un univers, un
-canal, une valeur de 0 à 255. L'univers et le canal se tapent au pavé, le
-niveau se tient, et l'écran dit ce que la feuille a posé à cette adresse —
-« Gradateur 12 · circuit 5 », « PC 1000 n° 3 · canal 1 sur 6 », ou rien. Les
-canaux tenus se rappellent d'une pastille, « Canaux à zéro » les relâche tous,
-et quitter l'écran relâche aussi. Là où un canal croise un gradateur de la
+canal, une valeur de 0 à 255.
+
+**La frappe est celle d'un Eos.** Une ligne de commande se remplit et se
+termine : `1/137 Thru 1/150 At 50 Enter` pose les adresses 137 à 150 de
+l'univers 1 à 50 %. C'est ce qu'a dans les doigts qui tient un pupitre ETC, et
+ça dit en quelques touches ce que des boutons demanderaient en dix.
+
+| Touche | Ce qu'elle fait |
+| --- | --- |
+| `1` … `0` | Une adresse, un circuit après `Circ`, ou un niveau après `At` |
+| `/` | Sépare l'univers de l'adresse — `2/17`. Sans lui, l'univers est celui en cours |
+| `Circ` | Appelle un circuit de la feuille au lieu d'une adresse — `Circ 12 At Full` |
+| `Thru` | Une plage, qui traverse les univers — `1/511 Thru 2/2` fait quatre adresses |
+| `+` `−` | Ajoutent ou retirent de la sélection ; une ligne qui commence par l'un des deux reprend la sélection en place |
+| `At` | Attend un pourcentage. Un seul chiffre vaut des dizaines, comme là-bas : `At 5` fait 50 %, `At 05` fait 5 % |
+| `Full` `Out` | À fond, à zéro — elles terminent la ligne d'elles-mêmes |
+| `Clear` | Reprend un cran : le dernier chiffre, puis le dernier terme, puis la sélection |
+| `Sneak` | Relâche la sélection, qui retombe et sort de la liste |
+| `Enter` | Pose la ligne |
+| `− 10 %` `+ 10 %` | Le coup de pouce d'un pupitre, sur la sélection |
+
+**`Circ` appelle un circuit**, et c'est là que la télécommande se sert de la
+feuille. `Circ 12 At Full` allume les gradateurs relevés sur le circuit 12
+*et* les appareils qui y sont branchés — pour ceux-là, leur canal
+d'intensité, le premier, ou toute leur empreinte si leur fiche demande « tous
+les canaux » ; c'est la règle de la mise en évidence, appliquée à l'appel.
+`Circ 1 Thru 12` prend une tranche de circuits. Une ligne dit ce qu'elle a
+trouvé — « 2 gradateurs · 1 appareil », ou « rien de relevé sur ce circuit »,
+qui vaut mieux qu'un écran qui ne bouge pas. Un circuit écrit autrement qu'en
+chiffres, « 12b » ou « face », se touche dans la liste : le clavier n'a que
+des chiffres. Dans une ligne de circuits, une adresse écrite avec son univers
+reste une adresse — `Circ 12 − 1/5` retire bien l'adresse 5.
+
+Ce qui manque par rapport au vrai tient à ce qu'on adresse ici : des sorties
+DMX, sans bibliothèque derrière — donc ni groupes, ni palettes, ni mémoires.
+Le niveau se tape en pourcentage ; la jauge, elle, va de 0 à 255 comme la
+ligne DMX. Pas de clavier d'Android : il recouvrirait le volet, et une adresse
+se tape, elle ne se cherche pas.
+
+L'écran dit ce que la feuille a posé à l'adresse courante — « Gradateur 12 ·
+circuit 5 », « PC 1000 n° 3 · canal 1 sur 6 », ou rien. Les adresses tenues se
+reprennent d'une pastille, « Tout relâcher » les lâche toutes, et quitter
+l'écran relâche aussi. Là où un canal croise un gradateur de la
 feuille, c'est le plus haut des deux niveaux qui sort, comme sur un pupitre. Le
 protocole, la priorité et la destination sont ceux du patch.
 
