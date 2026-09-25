@@ -19,7 +19,7 @@
     --proj:#2F4BFF; --mach:#00998D; --haut:#E0218A; --mdg:#7A3FF2;
     --dmx:#E2761C; --gel:#C2185B; --ndi:#0E7BC4; --net:#128A45; --art:#5B3FD6;
     --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757; --cab:#A34E1D; --rig:#3C5A73;
-    --bil:#8A1F2B; --led:#3F8F00; --elec:#243B6B;
+    --bil:#8A1F2B; --led:#3F8F00; --elec:#243B6B; --sub:#0A6E7C;
     /* Assombris : en petites capitales sur une surface claire, ils passaient
        sous le seuil lisible — ici et partout où ils servent de texte. */
     --ok:#0C6E36; --ko:#B01F1A;
@@ -34,7 +34,7 @@
       --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
       --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8;
+      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8;
       --ok:#45C47B; --ko:#FF6B63;
     }
   }
@@ -43,7 +43,7 @@
     --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
     --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8;
+    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8;
     --ok:#45C47B; --ko:#FF6B63;
   }
   *{box-sizing:border-box}
@@ -139,6 +139,10 @@
 
   h2.sec{font:700 11px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--ink2);
          margin:24px 0 10px}
+  /* Sous-section dans la grille des outils : range sans concurrencer le h2
+     « Outils » au-dessus, qui reste le seul repère en gras majuscule. */
+  h3.sous{font:600 12.5px/1 var(--body);color:var(--ink2);margin:16px 2px 8px}
+  h3.sous:first-of-type{margin-top:2px}
 
   .bar{display:flex;align-items:center;gap:10px;padding:14px 0 12px;position:sticky;
        top:env(safe-area-inset-top,0px);background:var(--bg);z-index:4;border-bottom:1px solid var(--line);
@@ -739,6 +743,19 @@
        font:700 12.5px/1 var(--body);color:var(--ink2);white-space:nowrap}
   .elec .onglets button[aria-selected="true"]{background:var(--elec);color:var(--bg)}
   .elec .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
+
+  /* --------------------------- calculateur de sous-réseau ---------------- */
+  .sub .res{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px;
+       box-shadow:inset 3px 0 0 var(--sub)}
+  .sub .res .kick{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3)}
+  .sub .res .big{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+  .sub .res .big b{font:600 34px/1 var(--mono);color:var(--sub);font-variant-numeric:tabular-nums}
+  .sub .res .big span{font:600 16px/1 var(--mono);color:var(--ink2)}
+  .sub .res>p{margin:0 0 6px;font-size:13.5px;color:var(--ink2)}
+  .sub .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
+  .sub .f input:focus{border-color:var(--sub)}
+  .sub .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
 </style>
 </head>
 <body>
@@ -783,6 +800,7 @@
   <symbol id="i-bil" viewBox="0 0 24 24"><path d="M3 2.5v19M3 20.5h18"/><rect x="6" y="13" width="3.6" height="7.5" rx="1"/><rect x="10.8" y="8.5" width="3.6" height="12" rx="1"/><rect x="15.6" y="15" width="3.6" height="5.5" rx="1"/></symbol>
   <symbol id="i-led" viewBox="0 0 24 24"><path d="M3 12h6"/><path d="M9 6v12l7.5-6z"/><path d="M16.5 6v12"/><path d="M14 5l1.6-2.4M17.3 6.6l1.8-1.8"/></symbol>
   <symbol id="i-elec" viewBox="0 0 24 24"><path d="M13 2.5L5 14h5.5L10 21.5 19 10h-5.5z"/></symbol>
+  <symbol id="i-sub" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.4"/><path d="M12 3v18M3 12h18"/></symbol>
 </defs></svg>
 <div class="shell" id="app"></div>
 <nav class="tabbar"><div class="in">
@@ -831,10 +849,9 @@ const CATS = [
      est devenu la première fiche. */
   { k:"mdg", t:"Manuels", s:"Notes de fonctionnement", c:"var(--mdg)", n:() => MANUELS.length, i:"manuel" }
 ];
-/* Le patch prend la tuile large : c'est l'outil qu'on ouvre le plus, et ça met
-   les deux télécommandes côte à côte sur la rangée suivante, où on les compare.
-   Elles portaient la même couleur et le même pictogramme, et leurs noms ne
-   différaient que par un suffixe. */
+/* Le patch prend la tuile large : c'est l'outil qu'on ouvre le plus. L'ordre
+   ici ne dicte plus l'affichage — TOOL_GROUPES range les tuiles par métier —
+   mais reste celui de la recherche et sert de liste de référence. */
 const TOOLS = [
   { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx", large:true },
   { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
@@ -843,14 +860,13 @@ const TOOLS = [
   { k:"led", t:"LED", s:"Ruban : alim, résistance", c:"var(--led)", i:"led" },
   { k:"dist", t:"Projection", s:"Distance, optique, lumens", c:"var(--dpj)", i:"projo" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
-  /* Les calculateurs électriques ensemble, rigging et réseau sur la rangée
-     suivante. */
   { k:"ups", t:"Onduleur", s:"Capacité UPS, VA", c:"var(--ups)", i:"ups" },
   { k:"cab", t:"Section câble", s:"Chute de tension, mm²", c:"var(--cab)", i:"cable" },
   { k:"bil", t:"Bilan de puissance", s:"Répartition des phases", c:"var(--bil)", i:"bil" },
   { k:"elec", t:"Électricité", s:"Courant, charge, groupe", c:"var(--elec)", i:"elec" },
   { k:"rig", t:"Rigging", s:"Élingage, angle, palan", c:"var(--rig)", i:"rig" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
+  { k:"sub", t:"Sous-réseau", s:"Masque, plage, broadcast", c:"var(--sub)", i:"sub" },
   { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" },
   { k:"rdm", t:"RDM", s:"Adresse, mode, nom", c:"var(--rdm)", i:"rdm" }
 ];
@@ -858,6 +874,16 @@ const TOOLS = [
    ou « patch » répondait « rien pour… » alors que la tuile était juste dessous. */
 const DESTINATIONS = () => [...CATS, ...TOOLS,
   { k:"maj", t:"Application", s:"Version & thème", c:"var(--maj)", i:"maj" }];
+
+/* La grille des outils avait grossi tuile après tuile jusqu'à seize, toutes
+   à plat : plus rien n'aidait à trouver la bonne d'un coup d'œil. Elle est
+   rangée ici par métier, sans toucher TOOLS ni la recherche qui s'appuie
+   dessus. */
+const TOOL_GROUPES = [
+  { t:"Éclairage & vidéo", cles:["dmx", "tel", "tcd", "gel", "led", "dist", "ndi"] },
+  { t:"Électricité & structure", cles:["ups", "cab", "bil", "elec", "rig"] },
+  { t:"Réseau", cles:["net", "sub", "art", "rdm"] }
+];
 
 /* --------------------------- aller et revenir ---------------------------- */
 /* Le geste de retour d'Android fermait l'application depuis n'importe quel
@@ -929,6 +955,16 @@ function grille(liste, petite){
   if(petite && seules.length % 2) seules[seules.length - 1].classList.add("wide");
   return g;
 }
+/* Une grille par groupe de TOOL_GROUPES, chacune sous son propre sous-titre. */
+function grilleOutils(){
+  const f = document.createDocumentFragment();
+  TOOL_GROUPES.forEach(g => {
+    const items = g.cles.map(k => TOOLS.find(o => o.k === k)).filter(Boolean);
+    if(!items.length) return;
+    f.append(el("h3", "sous", g.t), grille(items, true));
+  });
+  return f;
+}
 
 /* L'état du réseau : lu au plus une fois toutes les deux secondes — chaque
    frappe de recherche rendait la page entière et repassait par le pont — et
@@ -988,7 +1024,7 @@ function home(){
   d.insertAdjacentHTML("beforeend", `<h2 class="sec">Inventaire</h2>`);
   d.append(grille(CATS));
   d.insertAdjacentHTML("beforeend", `<h2 class="sec">Outils</h2>`);
-  d.append(grille(TOOLS, true), zoneAppli());
+  d.append(grilleOutils(), zoneAppli());
   return d;
 }
 
@@ -1001,7 +1037,7 @@ function vParc(){
 }
 function vOutils(){
   const d = el("div");
-  d.append(bar("Outils"), grille(TOOLS, true), zoneAppli());
+  d.append(bar("Outils"), grilleOutils(), zoneAppli());
   return d;
 }
 
@@ -4381,6 +4417,90 @@ function vNet(){
   return d;
 }
 
+/* ---------------------------- calculateur de sous-réseau ------------------ */
+/* Pas un scan : une IPv4 et un masque (CIDR, décimal ou notation /n mélangés),
+   le réseau, le broadcast et la plage qui en sortent. */
+const CLE_SUB = "sousreseau.v1";
+const SUB = Object.assign({ ip:"192.168.1.10", masque:"24" }, lireLocal(CLE_SUB, {}));
+
+const parseIpv4 = s => {
+  const parts = String(s || "").trim().split(".").map(Number);
+  if(parts.length !== 4 || parts.some(x => !(Number.isInteger(x) && x >= 0 && x <= 255))) return null;
+  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+};
+const ipv4Str = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join(".");
+function parseMasque(s){
+  let t = String(s || "").trim();
+  if(!t) return null;
+  if(t.startsWith("/")) t = t.slice(1);
+  if(/^\d{1,2}$/.test(t)){
+    const p = parseInt(t, 10);
+    return p >= 0 && p <= 32 ? p : null;
+  }
+  const parts = t.split(".").map(Number);
+  if(parts.length !== 4 || parts.some(x => !(x >= 0 && x <= 255))) return null;
+  const bin = parts.map(x => x.toString(2).padStart(8, "0")).join("");
+  const premierZero = bin.indexOf("0");
+  const prefixe = premierZero === -1 ? 32 : premierZero;
+  return ("1".repeat(prefixe) + "0".repeat(32 - prefixe)) === bin ? prefixe : null;
+}
+function calculSousReseau(c){
+  const ip = parseIpv4(c.ip), prefixe = parseMasque(c.masque);
+  if(ip == null || prefixe == null) return null;
+  const masqueInt = prefixe === 0 ? 0 : (0xFFFFFFFF << (32 - prefixe)) >>> 0;
+  const reseau = (ip & masqueInt) >>> 0;
+  const broadcast = (reseau | (~masqueInt >>> 0)) >>> 0;
+  const bitsHote = 32 - prefixe, total = Math.pow(2, bitsHote);
+  const utilisables = prefixe >= 31 ? (prefixe === 32 ? 1 : 2) : total - 2;
+  const premier = prefixe >= 31 ? reseau : (reseau + 1) >>> 0;
+  const dernier = prefixe >= 31 ? broadcast : (broadcast - 1) >>> 0;
+  return { ip, prefixe, masqueInt, reseau, broadcast, total, utilisables, premier, dernier };
+}
+function peindreSub(zone){
+  const r = calculSousReseau(SUB);
+  const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
+  if(!r){
+    zone.innerHTML = `<div class="kick">Réseau</div><div class="big"><b>—</b><span></span></div>
+      <p>Renseignez une adresse IPv4 et un masque (/24, 255.255.255.0 ou 24).</p>`;
+    return;
+  }
+  zone.innerHTML = `<div class="kick">Réseau</div>
+    <div class="big"><b>${ipv4Str(r.reseau)}/${r.prefixe}</b></div>
+    ${kv("Masque", ipv4Str(r.masqueInt))}
+    ${kv("Broadcast", ipv4Str(r.broadcast))}
+    ${kv("Plage utilisable", r.utilisables > 1 ? ipv4Str(r.premier) + " – " + ipv4Str(r.dernier) : ipv4Str(r.premier))}
+    ${kv("Adresses utilisables", vg(r.utilisables))}`;
+}
+function vSub(){
+  const c = SUB;
+  const d = el("div", "sub");
+  d.append(bar("Sous-réseau"));
+  const res = el("div", "res");
+  d.append(res);
+  const garder = () => ecrireLocal(CLE_SUB, c);
+  const champ = (lab, cle, ph, aide) => {
+    const f = el("div", "f");
+    f.innerHTML = `<label for="sub-${cle}">${esc(lab)}</label>
+      <input id="sub-${cle}" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      ${aide ? `<small>${aide}</small>` : ""}`;
+    f.querySelector("input").addEventListener("input", e => {
+      c[cle] = e.target.value; garder(); peindreSub(res);
+    });
+    return f;
+  };
+  const cc = el("div", "card");
+  cc.innerHTML = `<h4>Adresse</h4>`;
+  cc.append(champ("Adresse IPv4", "ip", "192.168.1.10"));
+  cc.append(champ("Masque", "masque", "24", "En CIDR (24 ou /24) ou en décimal (255.255.255.0)."));
+  d.append(cc);
+  const fo = el("div", "card");
+  fo.innerHTML = `<h4>Formules</h4><p class="formule">réseau = IP ET masque<br>
+    broadcast = réseau OU (NON masque)<br>utilisables = 2^(32 − préfixe) − 2</p>`;
+  d.append(fo);
+  peindreSub(res);
+  return d;
+}
+
 function vArt(){
   const d = el("div");
   d.append(bar("Art-Net / sACN"));
@@ -5031,7 +5151,7 @@ function vMaj(){
 const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps, dist:vDist,
                 proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 tcd:vPatch, gel:vGel, led:vLed, cab:vCable, bil:vBil, elec:vElec, rig:vRig, ndi:vNdi,
-                net:vNet, art:vArt, rdm:vRdm, maj:vMaj };
+                net:vNet, sub:vSub, art:vArt, rdm:vRdm, maj:vMaj };
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
   if(STOP){ STOP(); STOP = null; }
