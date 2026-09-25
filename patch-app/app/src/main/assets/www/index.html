@@ -19,6 +19,7 @@
     --proj:#2F4BFF; --mach:#00998D; --haut:#E0218A; --mdg:#7A3FF2;
     --dmx:#E2761C; --gel:#C2185B; --ndi:#0E7BC4; --net:#128A45; --art:#5B3FD6;
     --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757; --cab:#A34E1D; --rig:#3C5A73;
+    --bil:#8A1F2B; --led:#3F8F00;
     /* Assombris : en petites capitales sur une surface claire, ils passaient
        sous le seuil lisible — ici et partout où ils servent de texte. */
     --ok:#0C6E36; --ko:#B01F1A;
@@ -33,7 +34,7 @@
       --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
       --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8;
+      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564;
       --ok:#45C47B; --ko:#FF6B63;
     }
   }
@@ -42,7 +43,7 @@
     --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
     --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8;
+    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564;
     --ok:#45C47B; --ko:#FF6B63;
   }
   *{box-sizing:border-box}
@@ -679,6 +680,46 @@
        font:700 12.5px/1 var(--body);color:var(--ink2);white-space:nowrap}
   .rig .onglets button[aria-selected="true"]{background:var(--rig);color:var(--bg)}
   .rig .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
+
+  /* -------------------------------- bilan de puissance ------------------- */
+  .bil .res{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px;
+       box-shadow:inset 3px 0 0 var(--bil)}
+  .bil .res .kick{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3)}
+  .bil .res .big{display:flex;align-items:baseline;gap:8px;margin:10px 0 4px}
+  .bil .res .big b{font:600 44px/1 var(--mono);color:var(--bil);font-variant-numeric:tabular-nums}
+  .bil .res .big span{font:600 16px/1 var(--mono);color:var(--ink2)}
+  .bil .res .alert{margin:10px 0 0}
+  .bil .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
+  .bil .f input:focus{border-color:var(--bil)}
+  .bil .ligne{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);
+       font-size:14px}
+  .bil .ligne .g{flex:1;min-width:0}
+  .bil .ligne b{display:block;font:700 13.5px/1.3 var(--body)}
+  .bil .ligne span{font-size:12.5px;color:var(--ink2)}
+  .bil .ligne button{flex:none;border:0;background:var(--sur2);color:var(--ink2);border-radius:10px;
+       width:30px;height:30px;font:700 15px/1 var(--body);cursor:pointer}
+  .bil .ligne button:active{transform:scale(.95)}
+  .bil .ajout{margin-top:4px}
+
+  /* ------------------------------------ LED ------------------------------ */
+  .led .res{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px;
+       box-shadow:inset 3px 0 0 var(--led)}
+  .led .res .kick{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3)}
+  .led .res .big{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+  .led .res .big b{font:600 44px/1 var(--mono);color:var(--led);font-variant-numeric:tabular-nums}
+  .led .res .big span{font:600 16px/1 var(--mono);color:var(--ink2)}
+  .led .res>p{margin:0 0 6px;font-size:13.5px;color:var(--ink2)}
+  .led .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
+  .led .f input:focus{border-color:var(--led)}
+  .led .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px}
+  .led .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+       font:700 13.5px/1 var(--body);color:var(--ink2)}
+  .led .onglets button[aria-selected="true"]{background:var(--led);color:var(--bg)}
+  .led .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
+  .led .bandes{display:flex;gap:6px;margin:6px 0 14px}
+  .led .bandes span{flex:1;height:34px;border-radius:6px;border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -719,6 +760,8 @@
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
   <symbol id="i-cable" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="8.4" r="2.4"/><circle cx="8.9" cy="13.9" r="2.4"/><circle cx="15.1" cy="13.9" r="2.4"/></symbol>
   <symbol id="i-rig" viewBox="0 0 24 24"><path d="M12 2.5v6"/><path d="M8.3 8.5h7.4l-1.1 4.5h-5.2z"/><path d="M9.6 13v1.8a2.4 2.4 0 0 0 4.8 0V13"/><circle cx="12" cy="19.3" r="2.2"/></symbol>
+  <symbol id="i-bil" viewBox="0 0 24 24"><path d="M3 2.5v19M3 20.5h18"/><rect x="6" y="13" width="3.6" height="7.5" rx="1"/><rect x="10.8" y="8.5" width="3.6" height="12" rx="1"/><rect x="15.6" y="15" width="3.6" height="5.5" rx="1"/></symbol>
+  <symbol id="i-led" viewBox="0 0 24 24"><path d="M3 12h6"/><path d="M9 6v12l7.5-6z"/><path d="M16.5 6v12"/><path d="M14 5l1.6-2.4M17.3 6.6l1.8-1.8"/></symbol>
 </defs></svg>
 <div class="shell" id="app"></div>
 <nav class="tabbar"><div class="in">
@@ -775,12 +818,14 @@ const TOOLS = [
   { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
   { k:"tcd", t:"Canal DMX", s:"Un canal à la main", c:"var(--tcd)", i:"fader" },
   { k:"gel", t:"Gélatines", s:"Lee, GAM, Rosco → LED", c:"var(--gel)", i:"gel" },
+  { k:"led", t:"LED", s:"Ruban : alim, résistance", c:"var(--led)", i:"led" },
   { k:"dist", t:"Projection", s:"Distance, optique, lumens", c:"var(--dpj)", i:"projo" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
-  /* Les deux calculateurs électriques côte à côte, rigging et réseau sur la
-     rangée suivante. */
+  /* Les calculateurs électriques ensemble, rigging et réseau sur la rangée
+     suivante. */
   { k:"ups", t:"Onduleur", s:"Capacité UPS, VA", c:"var(--ups)", i:"ups" },
   { k:"cab", t:"Section câble", s:"Chute de tension, mm²", c:"var(--cab)", i:"cable" },
+  { k:"bil", t:"Bilan de puissance", s:"Répartition des phases", c:"var(--bil)", i:"bil" },
   { k:"rig", t:"Rigging", s:"Élingage, angle, palan", c:"var(--rig)", i:"rig" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
   { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" }
@@ -3786,6 +3831,270 @@ function vRig(){
   return d;
 }
 
+/* ----------------------------- bilan de puissance ------------------------ */
+/* Un plan de multi simple : chaque ligne est un circuit posé sur une phase,
+   en 230 V par phase (réseau triphasé 400 V classique du spectacle). Le
+   bilan dit le total par phase et l'écart entre la plus chargée et la
+   moins chargée, pour répartir avant de partir sur site plutôt qu'une fois
+   le multi câblé. */
+const CLE_BIL = "bilan.v1";
+const BIL = Object.assign({ nom:"", w:"", phase:"1", lignes:[] }, lireLocal(CLE_BIL, {}));
+
+function calculBil(c){
+  const parPhase = { 1:0, 2:0, 3:0 };
+  c.lignes.forEach(l => { parPhase[l.phase] = (parPhase[l.phase] || 0) + l.w; });
+  const total = parPhase[1] + parPhase[2] + parPhase[3];
+  const vals = [parPhase[1], parPhase[2], parPhase[3]];
+  const max = Math.max(...vals), min = Math.min(...vals);
+  const moyenne = total / 3;
+  const ecart = moyenne > 0 ? (max - min) / moyenne * 100 : 0;
+  return { parPhase, total, max, min, ecart };
+}
+
+function peindreBil(zone){
+  const r = calculBil(BIL);
+  const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
+  const ph = (n) => `${chiffre(r.parPhase[n], 0)} W · ${chiffre(r.parPhase[n] / 230, 1)} A`;
+  if(!BIL.lignes.length){
+    zone.innerHTML = `<div class="kick">Total</div>
+      <div class="big"><b>0</b><span>W</span></div>
+      <p>Ajoutez les circuits du multi pour voir la répartition par phase.</p>`;
+    return;
+  }
+  zone.innerHTML = `<div class="kick">Total sur les trois phases</div>
+    <div class="big"><b>${chiffre(r.total, 0)}</b><span>W</span></div>
+    ${r.ecart > 20 ? `<p class="alert">Écart de ${chiffre(r.ecart, 0)} % entre la phase la plus et la
+      moins chargée : à rééquilibrer si possible.</p>` : ""}
+    ${kv("L1", ph(1))}${kv("L2", ph(2))}${kv("L3", ph(3))}`;
+}
+
+function vBil(){
+  const c = BIL;
+  const d = el("div", "bil");
+  d.append(bar("Bilan de puissance"));
+  const res = el("div", "res");
+  d.append(res);
+  const garder = () => ecrireLocal(CLE_BIL, c);
+  const peindre = () => peindreBil(res);
+
+  const ci = el("div", "card");
+  ci.innerHTML = `<h4>Ajouter un circuit</h4>`;
+  const fn = el("div", "f");
+  fn.innerHTML = `<label for="bil-nom">Nom</label>
+    <input id="bil-nom" autocomplete="off" value="${esc(c.nom)}" placeholder="Face jardin, PC régie…">`;
+  fn.querySelector("input").addEventListener("input", e => { c.nom = e.target.value; garder(); });
+  ci.append(fn);
+  const ff = el("div", "ff");
+  const fw = el("div", "f");
+  fw.innerHTML = `<label for="bil-w">Puissance (W)</label>
+    <input id="bil-w" inputmode="decimal" autocomplete="off" value="${esc(c.w)}" placeholder="1500">`;
+  fw.querySelector("input").addEventListener("input", e => { c.w = e.target.value; garder(); });
+  const fp = el("div", "f");
+  fp.innerHTML = `<label>Phase</label>`;
+  const tp = el("div", "tri");
+  ["1", "2", "3"].forEach(v => {
+    const b = el("button", null, "L" + v);
+    b.setAttribute("aria-pressed", String(c.phase === v));
+    b.onclick = () => { toucher(); c.phase = v; garder(); render(); };
+    tp.append(b);
+  });
+  fp.append(tp);
+  ff.append(fw, fp);
+  ci.append(ff);
+  const ajout = el("button", "ajout", ic("plus") + "Ajouter le circuit");
+  ajout.onclick = () => {
+    const w = nombre(c.w);
+    if(!(w > 0)) return;
+    toucher();
+    c.lignes.push({ id:idLigne(), nom:c.nom.trim() || ("Circuit " + (c.lignes.length + 1)), w, phase:c.phase });
+    c.nom = ""; c.w = "";
+    garder(); render();
+  };
+  ci.append(ajout);
+  d.append(ci);
+
+  const cl = el("div", "card");
+  cl.innerHTML = `<h4>Circuits</h4>`;
+  if(c.lignes.length){
+    c.lignes.forEach(l => {
+      const row = el("div", "ligne");
+      row.innerHTML = `<div class="g"><b>${esc(l.nom)}</b><span>L${l.phase} · ${chiffre(l.w, 0)} W</span></div>`;
+      const sup = el("button", null, "×");
+      sup.setAttribute("aria-label", "Retirer " + l.nom);
+      sup.onclick = () => { toucher(); c.lignes = c.lignes.filter(x => x.id !== l.id); garder(); render(); };
+      row.append(sup);
+      cl.append(row);
+    });
+  } else cl.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0">Aucun circuit pour l'instant.</p>`);
+  d.append(cl);
+
+  d.append(el("p", "muted", "230 V par phase, réseau triphasé 400 V. Un plan de multi, pas un relevé de puissance mesurée."));
+
+  peindre();
+  return d;
+}
+
+/* --------------------------------- LED ------------------------------------ */
+/* Trois calculs indépendants pour un ruban LED : la puissance et le courant
+   à fournir (règle d'usage sur l'espacement des réinjections, la résistance
+   d'un ruban dépendant du fabricant), la résistance série d'une LED seule et
+   le code couleur d'une résistance (4 anneaux, norme E12, sans rien de
+   spécifique à el8 : ce sont des valeurs normalisées). */
+const CLE_LED = "led.v1";
+const LED = Object.assign({ onglet:"ali",
+  longueur:"", conso:"14.4", tension:"24",
+  vs:"12", vled:"3.2", iled:"20",
+  ohms:"" }, lireLocal(CLE_LED, {}));
+
+const E12 = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
+const COULEURS_R = [
+  ["Noir", "#1a1a1a"], ["Marron", "#7B3F00"], ["Rouge", "#D6382B"], ["Orange", "#E8821E"],
+  ["Jaune", "#F2D027"], ["Vert", "#3FA34D"], ["Bleu", "#2D6CDF"], ["Violet", "#7A3FD1"],
+  ["Gris", "#8A8A8A"], ["Blanc", "#FFFFFF"]
+];
+
+function calculAli(c){
+  const long = nombre(c.longueur), conso = nombre(c.conso), v = nombre(c.tension);
+  if(!(long > 0 && conso > 0 && v > 0)) return null;
+  const p = long * conso, i = p / v;
+  return { long, conso, v, p, i };
+}
+function normE12(r){
+  if(!(r > 0)) return null;
+  const exp = Math.floor(Math.log10(r)) - 1;
+  let meilleur = null;
+  for(let e = exp; e <= exp + 3; e++) for(const b of E12){
+    const val = b * Math.pow(10, e);
+    if(val >= r * 0.999 && (meilleur === null || val < meilleur)) meilleur = val;
+  }
+  return meilleur;
+}
+function calculRes(c){
+  const vs = nombre(c.vs), vled = nombre(c.vled), iled = nombre(c.iled);
+  if(!(vs > vled && iled > 0)) return null;
+  const r = (vs - vled) / (iled / 1000);
+  return { vs, vled, iled, r, pr: Math.pow(iled / 1000, 2) * r, norm: normE12(r) };
+}
+function codeCouleurR(valeur){
+  if(!(valeur > 0)) return null;
+  let exp = Math.floor(Math.log10(valeur)) - 1, mant = Math.round(valeur / Math.pow(10, exp));
+  if(mant >= 100){ mant = Math.round(mant / 10); exp += 1; }
+  if(mant < 10){ mant *= 10; exp -= 1; }
+  if(exp < -2 || exp > 9) return null;
+  const d1 = Math.floor(mant / 10), d2 = mant % 10;
+  const mult = exp === -1 ? ["Or", "#C9A227"] : exp === -2 ? ["Argent", "#BFC3C7"] : COULEURS_R[exp];
+  return { d1, d2, exp, valeur: mant * Math.pow(10, exp), bandes:[COULEURS_R[d1], COULEURS_R[d2], mult] };
+}
+
+function peindreLed(zone){
+  const c = LED;
+  const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
+  const vide = (kick, u, msg) => `<div class="kick">${kick}</div>
+    <div class="big"><b>—</b><span>${u}</span></div><p>${msg}</p>`;
+  if(c.onglet === "ali"){
+    const r = calculAli(c);
+    if(!r){ zone.innerHTML = vide("Puissance du ruban", "W", "Renseignez la longueur et la consommation."); return; }
+    zone.innerHTML = `<div class="kick">Puissance du ruban</div>
+      <div class="big"><b>${chiffre(r.p, 0)}</b><span>W</span></div>
+      ${kv("Courant à " + vg(r.v) + " V", chiffre(r.i, 2) + " A")}
+      ${kv("Alimentation conseillée (+20 %)", chiffre(r.p * 1.2, 0) + " W")}`;
+  } else if(c.onglet === "res"){
+    const r = calculRes(c);
+    if(!r){ zone.innerHTML = vide("Résistance série", "Ω", "La tension source doit dépasser la tension de la LED."); return; }
+    zone.innerHTML = `<div class="kick">Résistance série</div>
+      <div class="big"><b>${chiffre(r.r, 1)}</b><span>Ω</span></div>
+      <p>${r.norm ? "Valeur normalisée la plus proche au-dessus : " + vg(r.norm) + " Ω." : ""}</p>
+      ${kv("Puissance dissipée", chiffre(r.pr, 3) + " W")}`;
+  } else {
+    const r = codeCouleurR(nombre(c.ohms));
+    if(!r){ zone.innerHTML = vide("Code couleur", "", "Renseignez une valeur entre 0,1 Ω et 99 GΩ."); return; }
+    const noms = r.bandes.map(([n]) => n).join(" · ");
+    zone.innerHTML = `<div class="kick">Bandes (4 anneaux)</div>
+      <div class="big"><b style="font-size:22px">${noms}</b></div>
+      <div class="bandes">${r.bandes.map(([, hex]) => `<span style="background:${hex}"></span>`).join("")}</div>
+      <p>Valeur affichée arrondie à ${vg(r.valeur)} Ω. Tolérance non incluse : ajouter un 4e ou 5e anneau
+        selon la précision du composant (or ±5 %, marron ±1 %…).</p>`;
+  }
+}
+
+function vLed(){
+  const c = LED;
+  const d = el("div", "led");
+  d.append(bar("LED"));
+  const garder = () => ecrireLocal(CLE_LED, c);
+
+  const menu = el("div", "onglets");
+  menu.setAttribute("role", "tablist");
+  [["ali", "Alim. & injection"], ["res", "Résistance"], ["code", "Code couleur"]].forEach(([v, t]) => {
+    const b = el("button", null, t);
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(c.onglet === v));
+    b.onclick = () => { toucher(); c.onglet = v; garder(); render(); };
+    menu.append(b);
+  });
+  const res = el("div", "res");
+  d.append(menu, res);
+  const peindre = () => peindreLed(res);
+
+  const champ = (lab, cle, ph, aide) => {
+    const f = el("div", "f");
+    f.innerHTML = `<label for="led-${cle}">${esc(lab)}</label>
+      <input id="led-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      ${aide ? `<small>${aide}</small>` : ""}`;
+    f.querySelector("input").addEventListener("input", e => { c[cle] = e.target.value; garder(); peindre(); });
+    return f;
+  };
+  const choix = (lab, cle, vals) => {
+    const f = el("div", "f");
+    if(lab) f.append(el("label", null, esc(lab)));
+    const t = el("div", "tri");
+    vals.forEach(([v, txt]) => {
+      const b = el("button", null, esc(txt));
+      b.setAttribute("aria-pressed", String(String(c[cle]) === String(v)));
+      b.onclick = () => { toucher(); c[cle] = v; garder(); render(); };
+      t.append(b);
+    });
+    f.append(t);
+    return f;
+  };
+  const formules = lignes => {
+    const f = el("details", "card formules");
+    f.innerHTML = `<summary>Formules</summary><p class="formule">${lignes.join("<br>")}</p>`;
+    return f;
+  };
+
+  if(c.onglet === "ali"){
+    const cc = el("div", "card");
+    cc.innerHTML = `<h4>Ruban</h4>`;
+    cc.append(champ("Longueur (m)", "longueur", "5"));
+    cc.append(champ("Consommation (W/m)", "conso", "14.4", "Sur l'étiquette du ruban : 14,4 W/m pour un 5050 courant à 60 LED/m."));
+    cc.append(choix("Alimentation", "tension", [["12", "12 V"], ["24", "24 V"]]));
+    d.append(cc);
+    d.append(el("p", "muted", "Règle d'usage : réinjecter l'alimentation tous les 5 m environ en 12 V, "
+      + "tous les 10 m en 24 V (moins si le ruban est très consommateur) — la résistance de piste dépend "
+      + "du fabricant, à vérifier si le bout du ruban faiblit."));
+    d.append(formules(["puissance = longueur × consommation", "courant = puissance / tension"]));
+  } else if(c.onglet === "res"){
+    const cc = el("div", "card");
+    cc.innerHTML = `<h4>LED seule</h4>`;
+    cc.append(champ("Tension source (V)", "vs", "12"));
+    cc.append(champ("Tension directe de la LED (V)", "vled", "3.2",
+      "≈ 2 V rouge/orange/jaune, ≈ 3,2 V blanc/bleu/vert."));
+    cc.append(champ("Courant souhaité (mA)", "iled", "20"));
+    d.append(cc);
+    d.append(formules(["R = (V source − V led) / I", "P = I² × R"]));
+  } else {
+    const cc = el("div", "card");
+    cc.innerHTML = `<h4>Valeur</h4>`;
+    cc.append(champ("Résistance (Ω)", "ohms", "220"));
+    d.append(cc);
+    d.append(formules(["2 chiffres significatifs + multiplicateur, norme E12", "anneau 1 et 2 = chiffres, anneau 3 = ×10ⁿ"]));
+  }
+
+  peindre();
+  return d;
+}
+
 /* --------------------------- outils réseau ------------------------------ */
 let STOP = null;
 function poser(stop){ if(STOP) STOP(); STOP = stop; }
@@ -4502,7 +4811,8 @@ function vMaj(){
 /* -------------------------------- moteur -------------------------------- */
 const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps, dist:vDist,
                 proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
-                tcd:vPatch, gel:vGel, cab:vCable, rig:vRig, ndi:vNdi, net:vNet, art:vArt, maj:vMaj };
+                tcd:vPatch, gel:vGel, led:vLed, cab:vCable, bil:vBil, rig:vRig, ndi:vNdi, net:vNet,
+                art:vArt, maj:vMaj };
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
   if(STOP){ STOP(); STOP = null; }

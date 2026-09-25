@@ -73,7 +73,9 @@ Quelques détails qui ont leur importance :
 | Manuels | Bibliothèque de notes de fonctionnement, une fiche par appareil, hors ligne |
 | Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé, l'ajout d'appareils et la télécommande DMX en volets, l'impression |
 | Gélatines | 262 Lee (chromaticité publiée par Lee), 165 GAM et 265 Rosco avec leurs équivalents Lee ; recherche, Lee proches, mélange RGBWA, RGBW, RGB ou CMY |
+| LED | Puissance et courant d'un ruban avec règle d'usage sur la réinjection, résistance série d'une LED seule, code couleur d'une résistance (norme E12) |
 | Section de câble | Section conseillée d'après la chute de tension admise (mono 230 V, tri 400 V, cuivre ou alu), puis vérifiée contre le courant admissible déclassé par la température et le regroupement |
+| Bilan de puissance | Plan de multi : circuits posés sur une phase, total et écart entre phases en 230 V / 400 V triphasé |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
