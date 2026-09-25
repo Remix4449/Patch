@@ -77,6 +77,7 @@ Quelques détails qui ont leur importance :
 | Section de câble | Section conseillée d'après la chute de tension admise (mono 230 V, tri 400 V, cuivre ou alu), puis vérifiée contre le courant admissible déclassé par la température et le regroupement |
 | Bilan de puissance | Plan de multi : circuits posés sur une phase, total et écart entre phases en 230 V / 400 V triphasé |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
+| Sous-réseau | Réseau, masque, broadcast et plage utilisable à partir d'une IPv4 et d'un masque (CIDR ou décimal) |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
 | Projection | Distance, taille d'image ou rapport d'optique à trouver (avec la classe d'optique et le contrôle du zoom) ; mosaïque de 2 à 4 projecteurs avec recouvrement ; lumens nécessaires d'après la lumière ambiante, le contraste visé (ANSI/INFOCOMM 3M-2011), le gain et une marge ; définition, taille de pixel et distances du public (règle 4-6-8, acuité d'une minute d'arc) |
