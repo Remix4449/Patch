@@ -122,8 +122,19 @@ public class Maj {
         if ("pret".equals(phase)) verifier();
     }
 
-    /** Reprend le seul téléchargement, après un échec réseau par exemple. */
-    public void telecharger() { lancer(false, true); }
+    /**
+     * Reprend le téléchargement. Après une erreur, la phase n'est plus
+     * « disponible » et le bouton ne faisait rien : on repart alors de la
+     * vérification, qui relance le téléchargement.
+     */
+    public void telecharger() { lancer("erreur".equals(phase), true); }
+
+    /** Nombre d'essais quand le réseau coupe, et l'attente avant chacun. */
+    private static final int ESSAIS = 3;
+    private static final long[] ATTENTES = { 3000, 8000 };
+
+    /** Vrai si la dernière erreur vient du réseau et mérite un nouvel essai. */
+    private volatile boolean passager = false;
 
     private void lancer(final boolean verif, final boolean tele) {
         if (occupe) return;
@@ -131,8 +142,22 @@ public class Maj {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    if (verif) verifierIci();
-                    if (tele && "disponible".equals(phase)) telechargerIci();
+                    /*
+                     * En 4G faible, une connexion qui expire est courante et se
+                     * rattrape au second essai : on réessaie seul plutôt que de
+                     * laisser l'écran en erreur.
+                     */
+                    for (int essai = 0; essai < ESSAIS; essai++) {
+                        if (essai > 0) {
+                            erreur = erreur + ", nouvel essai";
+                            try { Thread.sleep(ATTENTES[essai - 1]); }
+                            catch (InterruptedException e) { return; }
+                        }
+                        passager = false;
+                        if (verif || essai > 0) verifierIci();
+                        if (tele && "disponible".equals(phase)) telechargerIci();
+                        if (!"erreur".equals(phase) || !passager) break;
+                    }
                 } finally {
                     occupe = false;
                 }
@@ -168,6 +193,7 @@ public class Maj {
                 phase = "disponible";
             }
         } catch (Exception e) {
+            passager = e instanceof java.io.IOException;
             erreur = dire(e);
             phase = "erreur";
         } finally {
@@ -232,7 +258,10 @@ public class Maj {
              * la même version en boucle. On ne garde que l'APK attendu.
              */
             int lu = versionDe(part);
-            if (lu == 0) throw new Exception("APK incomplet, réessaie dans une minute");
+            if (lu == 0) {                       // flux coupé sans erreur : APK tronqué
+                passager = true;
+                throw new Exception("APK incomplet");
+            }
             if (lu != publie) throw new Exception("publication en cours, réessaie dans une minute");
             File cible = fichier(act);
             cible.delete();
@@ -241,6 +270,7 @@ public class Maj {
             taille = cible.length();
             phase = "pret";
         } catch (Exception e) {
+            if (e instanceof java.io.IOException) passager = true;
             erreur = dire(e);
             phase = "erreur";
             try { part.delete(); } catch (Exception ignore) { }
@@ -319,7 +349,7 @@ public class Maj {
         Network n = reseauInternet();
         HttpURLConnection c = (HttpURLConnection)
                 (n != null ? n.openConnection(u) : u.openConnection());
-        c.setConnectTimeout(10000);
+        c.setConnectTimeout(20000);
         c.setReadTimeout(30000);
         c.setUseCaches(false);
         c.setInstanceFollowRedirects(true);
