@@ -81,6 +81,7 @@ Quelques détails qui ont leur importance :
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
 | Projection | Distance, taille d'image ou rapport d'optique à trouver (avec la classe d'optique et le contrôle du zoom) ; mosaïque de 2 à 4 projecteurs avec recouvrement ; lumens nécessaires d'après la lumière ambiante, le contraste visé (ANSI/INFOCOMM 3M-2011), le gain et une marge ; définition, taille de pixel et distances du public (règle 4-6-8, acuité d'une minute d'arc) |
 | Onduleur | Capacité d'UPS (VA) et de batterie (VAh) d'après la puissance, le facteur de puissance, le rendement et l'autonomie voulue |
+| Électricité | Puissance ↔ courant (mono/tri), puissance par phase équilibrée, répartition sur des départs avec calibre de disjoncteur, dimensionnement de groupe électrogène, facteur de puissance (kVA/kVAR) |
 | Rigging | Vérification CMU, élingage 2 brins, facteur d'angle, bridage multi-points, sélection de palan d'après des capacités courantes |
 | Testeur d'adresse | Émission d'une trame Art-Net sur un canal, sans console |
 
