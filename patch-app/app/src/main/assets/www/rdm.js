@@ -73,9 +73,9 @@ NET.rdm = {
 (() => {
   const st = document.createElement("style");
   st.textContent = `
-  :root{--rdm:#8A5A00}
-  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){--rdm:#B87A1E} }
-  :root[data-theme="dark"]{--rdm:#B87A1E}
+  :root{--rdm:#8A2F7E}
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){--rdm:#D98BD0} }
+  :root[data-theme="dark"]{--rdm:#D98BD0}
   .rdm .row.sel{border-color:var(--rdm)}
   .rdm .row .av{font-size:11px}
   .rdm .alerte{display:block;color:var(--ko);font:600 12px/1.3 var(--body);margin-top:3px}
