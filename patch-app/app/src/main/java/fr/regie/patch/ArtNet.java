@@ -21,7 +21,14 @@ public class ArtNet {
         public String ip = "", court = "", longNom = "", mac = "", rapport = "";
         public int[] univers = new int[0];
         public long vu;
+        /* Un nœud de plus de quatre ports répond par plusieurs ArtPollReply,
+           un par groupe de quatre (BindIndex) : on garde chaque groupe. */
+        final Map<Integer, int[]> parGroupe = new java.util.TreeMap<Integer, int[]>();
     }
+
+    /** Reçoit les réponses RDM (ArtTodData, ArtRdm) arrivées sur la prise Art-Net. */
+    public interface EcouteRdm { void recu(int op, byte[] b, int len, String src); }
+    public volatile EcouteRdm rdm;
 
     public static class Uni {
         public int univers;           // adresse de port, base 0
@@ -95,7 +102,15 @@ public class ArtNet {
             int nb = Math.min(4, ((b[172] & 255) << 8) | (b[173] & 255));
             int[] u = new int[nb];
             for (int i = 0; i < nb; i++) u[i] = (net << 8) | (sub << 4) | (b[190 + i] & 0x0F);
-            n.univers = u;
+            int groupe = len > 211 ? (b[211] & 255) : 0;
+            Noeud avant = noeuds.get(n.ip);
+            if (avant != null) n.parGroupe.putAll(avant.parGroupe);
+            n.parGroupe.put(groupe, u);
+            int total = 0;
+            for (int[] g : n.parGroupe.values()) total += g.length;
+            n.univers = new int[total];
+            int k = 0;
+            for (int[] g : n.parGroupe.values()) for (int x : g) n.univers[k++] = x;
             StringBuilder m = new StringBuilder();
             for (int i = 0; i < 6; i++) {
                 if (i > 0) m.append(':');
@@ -104,6 +119,12 @@ public class ArtNet {
             n.mac = m.toString();
             n.vu = System.currentTimeMillis();
             noeuds.put(n.ip, n);
+            return;
+        }
+
+        if (op == 0x8100 || op == 0x8300) {        // ArtTodData, ArtRdm
+            EcouteRdm e = rdm;
+            if (e != null) e.recu(op, java.util.Arrays.copyOf(b, len), len, src);
             return;
         }
 
@@ -166,6 +187,14 @@ public class ArtNet {
         p[15] = (byte) ((portAddress >> 8) & 0x7F);
         p[16] = (byte) 0x02; p[17] = (byte) 0x00;   // longueur 512
         System.arraycopy(data, 0, p, 18, Math.min(512, data.length));
+        return envoyerBrut(p, (cible == null || cible.isEmpty()) ? diffusion : cible);
+    }
+
+    /** Adresse de diffusion du sous-réseau Wi-Fi. */
+    public String diffusion() { return diffusion; }
+
+    /** Envoie un paquet Art-Net déjà formé, depuis la prise d'écoute (port 6454). */
+    public boolean envoyer(byte[] p, String cible) {
         return envoyerBrut(p, (cible == null || cible.isEmpty()) ? diffusion : cible);
     }
 

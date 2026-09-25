@@ -21,6 +21,8 @@ public class Regie {
     private final Sacn sacn = new Sacn();
     private final Scanner scan = new Scanner();
     private final Emetteur emetteur = new Emetteur(art, sacn);
+    private final Rdm rdm = new Rdm(art);
+    private final Llrp llrp = new Llrp();
     private final Ndi ndi;
     private final Maj maj;
 
@@ -237,6 +239,90 @@ public class Regie {
             JSONObject o = new JSONObject();
             o.put("encours", ndi.encours);
             o.put("sources", a);
+            return o.toString();
+        } catch (Exception e) { return "{}"; }
+    }
+
+    /* --------------------------------- RDM ------------------------------ */
+
+    /** Demande la liste des appareils RDM aux nœuds ; relancer refait la découverte sur les lignes. */
+    @JavascriptInterface
+    public void rdmDecouvrir(boolean relancer) { rdm.decouvrir(relancer); }
+
+    @JavascriptInterface
+    public void rdmRelire(String uid) { rdm.relire(uid); }
+
+    /** quoi : adresse, mode, nom ou identifier. */
+    @JavascriptInterface
+    public void rdmRegler(String uid, String quoi, String valeur) {
+        rdm.regler(uid, quoi, valeur == null ? "" : valeur);
+    }
+
+    @JavascriptInterface
+    public void rdmOublier() { rdm.oublier(); }
+
+    @JavascriptInterface
+    public String rdmEtat() {
+        try {
+            JSONArray a = new JSONArray();
+            for (Rdm.Appareil x : rdm.appareils.values()) {
+                JSONObject j = new JSONObject();
+                j.put("uid", x.uid);
+                j.put("ip", x.ip);
+                j.put("noeud", nomConnu(x.ip));
+                j.put("univers", x.univers + 1);        // base 1, comme sur les pupitres
+                j.put("fabricant", x.fabricant);
+                j.put("modele", x.modele);
+                j.put("nom", x.nom);
+                j.put("logiciel", x.logiciel);
+                j.put("adresse", x.adresse);
+                j.put("canaux", x.canaux);
+                j.put("mode", x.mode);
+                j.put("modes", x.modes);
+                j.put("identifie", x.identifie);
+                j.put("lu", x.lu);
+                j.put("erreur", x.erreur);
+                JSONArray m = new JSONArray();
+                for (Rdm.Mode md : x.listeModes.values()) {
+                    JSONObject k = new JSONObject();
+                    k.put("n", md.numero);
+                    k.put("canaux", md.canaux);
+                    k.put("nom", md.nom);
+                    m.put(k);
+                }
+                j.put("listeModes", m);
+                a.put(j);
+            }
+            JSONObject o = new JSONObject();
+            o.put("encours", rdm.encours);
+            o.put("attente", rdm.enAttente());
+            o.put("message", rdm.message);
+            o.put("noeuds", art.noeuds.size());
+            o.put("appareils", a);
+            return o.toString();
+        } catch (Exception e) { return "{}"; }
+    }
+
+    @JavascriptInterface
+    public void llrpDecouvrir() { llrp.decouvrir(reseau.ip); }
+
+    @JavascriptInterface
+    public String llrpEtat() {
+        try {
+            JSONArray a = new JSONArray();
+            for (Llrp.Cible c : llrp.cibles.values()) {
+                JSONObject j = new JSONObject();
+                j.put("uid", c.uid);
+                j.put("mac", c.mac);
+                j.put("ip", c.ip);
+                j.put("role", c.role);
+                j.put("cid", c.cid);
+                a.put(j);
+            }
+            JSONObject o = new JSONObject();
+            o.put("encours", llrp.encours);
+            o.put("erreur", llrp.erreur);
+            o.put("cibles", a);
             return o.toString();
         } catch (Exception e) { return "{}"; }
     }
