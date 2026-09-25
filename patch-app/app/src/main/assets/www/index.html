@@ -270,7 +270,13 @@
   .dpj .f input:focus{border-color:var(--dpj)}
   .dpj .tri{margin:0}
   .dpj .tri button{padding-left:4px;padding-right:4px}
-  .dpj .card .res{margin:14px 0 0;background:var(--bg)}
+  .dpj .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px}
+  .dpj .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+       font:700 13.5px/1 var(--body);color:var(--ink2)}
+  .dpj .onglets button[aria-selected="true"]{background:var(--dpj);color:var(--bg)}
+  .dpj .formules summary{font:700 11px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3);cursor:pointer}
+  .dpj .formules[open] summary{margin-bottom:12px}
   .dpj .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
 
   /* ------------------------------ mise à jour -------------------------- */
@@ -3387,7 +3393,7 @@ function vUps(){
 const CLE_DIST = "projection.v1";
 const DIST = Object.assign({ sens:"d", fmt:"16:9", base:"l", l:"", diag:"", d:"",
                              tr:"", trx:"", lm:"", gain:"1", amb:"50", ctr:"15", marge:"20",
-                             n:1, rec:"15", res:"1920x1080" }, lireLocal(CLE_DIST, {}));
+                             n:1, rec:"15", res:"1920x1080", onglet:"geo" }, lireLocal(CLE_DIST, {}));
 const FORMATS = [["16:9", 16 / 9], ["16:10", 16 / 10], ["4:3", 4 / 3], ["2,39:1", 2.39]];
 const RESOLUTIONS = [["1920x1080", "HD"], ["1920x1200", "WUXGA"], ["3840x2160", "4K UHD"], ["1024x768", "XGA"]];
 /* ANSI/INFOCOMM 3M-2011, contraste d'une image projetée. */
@@ -3477,14 +3483,17 @@ function calculDist(c){
   return r;
 }
 
-function peindreDist(zone, zl, zp){
+function peindreDist(zone){
   const c = DIST, r = calculDist(c);
   const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
   const titre = { d:"Distance de projection", i:"Largeur de l'image", o:"Rapport de projection" }[c.sens];
   if(r.manque){
-    zone.innerHTML = `<div class="kick">${titre}</div>
-      <div class="big"><b>—</b><span>${c.sens === "o" ? ": 1" : "m"}</span></div><p>${r.manque}</p>`;
-    zl.innerHTML = zp.innerHTML = "";
+    const [k, u] = c.onglet === "lum" ? ["Lumens nécessaires", "lm"]
+                 : c.onglet === "pub" ? ["Places du public", "m"]
+                 : [titre, c.sens === "o" ? ": 1" : "m"];
+    zone.innerHTML = `<div class="kick">${k}</div>
+      <div class="big"><b>—</b><span>${u}</span></div>
+      <p>${c.onglet === "geo" ? r.manque : "Renseignez d'abord l'image et l'optique dans Placement."}</p>`;
     return;
   }
   const [a, b] = r.imgs, ab = (f, n) => fourch(f(a), b ? f(b) : null, n);
@@ -3514,9 +3523,15 @@ function peindreDist(zone, zl, zp){
     + kv("Diagonale", ab(i => i.diag) + " m · " + ab(i => i.diag / POUCE, 0) + " po")
     + (r.n > 1 ? kv("Format obtenu", mDist(a.w / a.h) + " : 1") : "")
     + kv("Surface", ab(i => i.w * i.h) + " m²");
-  zone.innerHTML = `<div class="kick">${titre} · ${fmt}</div>
-    <div class="big"><b>${big}</b><span>${unite}</span></div>
-    <p>${pied}</p>${geo}`;
+  /* Lumière et public rappellent l'image sur laquelle ils sont calculés. */
+  const g = r.imgs[r.imgs.length - 1];
+  const rappel = kv("Image", mDist(g.w) + " × " + mDist(g.h) + " m" + (r.n > 1 ? " · " + r.n + " projecteurs" : ""));
+  if(c.onglet === "geo"){
+    zone.innerHTML = `<div class="kick">${titre} · ${fmt}</div>
+      <div class="big"><b>${big}</b><span>${unite}</span></div>
+      <p>${pied}</p>${geo}`;
+    return;
+  }
 
   const L = r.lumiere, par = r.n > 1 ? " par projecteur" : "";
   let lum = `<div class="kick">Lumens nécessaires${par}</div>
@@ -3535,26 +3550,39 @@ function peindreDist(zone, zl, zp){
               : "Pas assez : il manque " + entier(L.besoin - L.lm) + " lm" + par + ". "
                 + (L.pile > 1 ? L.pile + " projecteurs empilés y arriveraient." : "")}</p>`;
   }
-  zl.innerHTML = lum;
+  if(c.onglet === "lum"){ zone.innerHTML = lum.replace("</p>", "</p>" + rappel); return; }
 
   const P = r.public;
-  zp.innerHTML = P ? `${kv("Définition", entier(P.pxTot) + " × " + entier(P.py) + " px")}
+  zone.innerHTML = `<div class="kick">Places du public</div>
+    <div class="big"><b>${mDist(P.premier, 1)} – ${mDist(P.d8, 1)}</b><span>m</span></div>
+    <p>Du premier rang, où l'on ne distingue plus les pixels, au dernier, pour regarder l'image.</p>
+    ${rappel}${kv("Définition", entier(P.pxTot) + " × " + entier(P.py) + " px")}
     ${kv("Taille d'un pixel", mDist(P.pas * 1000, 1) + " mm")}
     ${kv("Premier rang, pixels invisibles", "≥ " + mDist(P.premier, 1) + " m")}
     ${kv("Dernier rang, image à regarder", "≤ " + mDist(P.d8, 1) + " m")}
     ${kv("Dernier rang, texte à lire", "≤ " + mDist(P.d6, 1) + " m")}
-    ${kv("Dernier rang, détail à inspecter", "≤ " + mDist(P.d4, 1) + " m")}` : "";
+    ${kv("Dernier rang, détail à inspecter", "≤ " + mDist(P.d4, 1) + " m")}`;
 }
 
 function vDist(){
   const c = DIST;
   const d = el("div", "dpj");
   d.append(bar("Distance de projection"));
-  const res = el("div", "res");
-  d.append(res);
   const garder = () => ecrireLocal(CLE_DIST, c);
-  const zl = el("div", "res"), zp = el("div");
-  const peindre = () => peindreDist(res, zl, zp);
+  /* Tout sur une page faisait neuf cartes à descendre : trois onglets, la
+     réponse de l'onglet en tête, et seulement ses réglages dessous. */
+  const menu = el("div", "onglets");
+  menu.setAttribute("role", "tablist");
+  [["geo", "Placement"], ["lum", "Lumière"], ["pub", "Public"]].forEach(([v, t]) => {
+    const b = el("button", null, t);
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(c.onglet === v));
+    b.onclick = () => { toucher(); c.onglet = v; garder(); render(); };
+    menu.append(b);
+  });
+  const res = el("div", "res");
+  d.append(menu, res);
+  const peindre = () => peindreDist(res);
 
   /* Les choix fermés refont l'écran : les champs affichés en dépendent. */
   const choix = (lab, cle, vals) => {
@@ -3584,72 +3612,79 @@ function vDist(){
   };
   const note = (txt, bas) => `<p class="muted" style="margin:-4px 0 ${bas ?? 12}px">${txt}</p>`;
 
-  const cs = el("div", "card");
-  cs.innerHTML = `<h4>Je cherche</h4>`;
-  cs.append(choix("", "sens", [["d", "La distance"], ["i", "L'image"], ["o", "L'optique"]]));
-  d.append(cs);
+  const formules = lignes => {
+    const f = el("details", "card formules");
+    f.innerHTML = `<summary>Formules</summary><p class="formule">${lignes.join("<br>")}</p>`;
+    return f;
+  };
 
-  const ci = el("div", "card");
-  ci.innerHTML = `<h4>Image</h4>`;
-  if(c.n > 1) ci.insertAdjacentHTML("beforeend", note("En mosaïque, le format vient des projecteurs.", 12)
-                                                   .replace("margin:-4px", "margin:0"));
-  else ci.append(choix("Format", "fmt", FORMATS.map(f => [f[0], f[0]])));
-  if(c.sens !== "i"){
-    ci.append(choix("Taille connue par", "base", [["l", "Largeur"], ["d", "Diagonale"]]));
-    ci.append(c.base === "l" ? champ("Largeur de l'image (m)", "l", "4")
-                             : champ("Diagonale (pouces)", "diag", "150"));
+  if(c.onglet === "lum"){
+    const cl = el("div", "card");
+    cl.innerHTML = `<h4>Salle</h4>`;
+    cl.append(choix("Lumière ambiante", "amb", AMBIANCES));
+    cl.append(champ("Ambiant sur l'écran (lux)", "amb", "50",
+      "Des ordres de grandeur : mesurez au luxmètre, capteur tourné vers le public, projecteur éteint."));
+    cl.append(choix("Contraste visé", "ctr", CONTRASTES.map(([v, t]) => [v, t])));
+    cl.insertAdjacentHTML("beforeend", note(CONTRASTES.map(([, t, s]) => t + " " + s).join(" · ")
+      + " (ANSI/INFOCOMM 3M-2011).", 0));
+    d.append(cl);
+    const ce = el("div", "card");
+    ce.innerHTML = `<h4>Écran et projecteur</h4>`;
+    const fl = el("div", "ff");
+    fl.append(champ("Gain d'écran", "gain", "1"), champ("Marge (%)", "marge", "20"));
+    ce.append(fl);
+    ce.insertAdjacentHTML("beforeend", note("La marge couvre le vieillissement de la lampe ou du laser et les modes éco."));
+    ce.append(champ("Flux du projecteur (lm)", "lm", "10000", "Facultatif : pour vérifier un projecteur donné."));
+    d.append(ce);
+    d.append(formules(["lux = lumens / surface d'un projecteur", "cd/m² = lux × gain / π",
+      "contraste = (lux projeté + ambiant) / ambiant",
+      "lumens = max(ambiant × (contraste − 1), 48 π / gain)", "&nbsp;&nbsp;× surface × (1 + marge)"]));
+  } else if(c.onglet === "pub"){
+    const cp = el("div", "card");
+    cp.innerHTML = `<h4>Projecteur</h4>`;
+    cp.append(choix("Définition", "res", RESOLUTIONS.map(([v, t]) => [v, t])));
+    cp.insertAdjacentHTML("beforeend", note("Dernier rang : règle 4-6-8, en hauteurs d'image. Premier rang : "
+      + "là où l'œil ne distingue plus un pixel (une minute d'arc).", 0).replace("margin:-4px", "margin:0"));
+    d.append(cp);
+    d.append(formules(["pixel = max(largeur / px, hauteur / px)", "premier rang = pixel / tan(1′)",
+      "dernier rang = 8, 6 ou 4 × hauteur"]));
+  } else {
+    const cs = el("div", "card");
+    cs.innerHTML = `<h4>Je cherche</h4>`;
+    cs.append(choix("", "sens", [["d", "La distance"], ["i", "L'image"], ["o", "L'optique"]]));
+    d.append(cs);
+
+    const ci = el("div", "card");
+    ci.innerHTML = `<h4>Image</h4>`;
+    if(c.n > 1) ci.insertAdjacentHTML("beforeend", note("En mosaïque, le format vient des projecteurs.")
+                                                     .replace("margin:-4px", "margin:0"));
+    else ci.append(choix("Format", "fmt", FORMATS.map(f => [f[0], f[0]])));
+    if(c.sens !== "i"){
+      ci.append(choix("Taille connue par", "base", [["l", "Largeur"], ["d", "Diagonale"]]));
+      ci.append(c.base === "l" ? champ("Largeur de l'image (m)", "l", "4")
+                               : champ("Diagonale (pouces)", "diag", "150"));
+    }
+    if(c.sens !== "d") ci.append(champ("Distance objectif – écran (m)", "d", "8"));
+    d.append(ci);
+
+    const co = el("div", "card");
+    co.innerHTML = `<h4>Optique</h4>`;
+    const ff = el("div", "ff");
+    ff.append(champ("Rapport mini", "tr", "1,5"), champ("Rapport maxi", "trx", "2"));
+    co.append(ff);
+    co.insertAdjacentHTML("beforeend", note(c.sens === "o"
+      ? "Facultatif : l'optique du projecteur, pour savoir si elle couvre le rapport trouvé."
+      : "Sur la fiche de l'objectif, écrit 1,5 – 2 : 1. Le maxi est pour un zoom ; on le laisse vide avec une optique fixe."));
+    co.append(choix("Projecteurs côte à côte", "n", [[1, "Un seul"], [2, "2"], [3, "3"], [4, "4"]]));
+    if(c.n > 1){
+      co.append(champ("Recouvrement (%)", "rec", "15",
+        "La part de l'image d'un projecteur qui chevauche la voisine pour le fondu (edge blending)."));
+      co.append(choix("Définition", "res", RESOLUTIONS.map(([v, t]) => [v, t])));
+    }
+    d.append(co);
+    d.append(formules(["rapport = distance / largeur d'un projecteur",
+      "largeur = diagonale × r / √(r² + 1)", "mosaïque : largeur = l × (n − (n − 1) × recouvrement)"]));
   }
-  if(c.sens !== "d") ci.append(champ("Distance objectif – écran (m)", "d", "8"));
-  d.append(ci);
-
-  const co = el("div", "card");
-  co.innerHTML = `<h4>Optique</h4>`;
-  const ff = el("div", "ff");
-  ff.append(champ("Rapport mini", "tr", "1,5"), champ("Rapport maxi", "trx", "2"));
-  co.append(ff);
-  co.insertAdjacentHTML("beforeend", note(c.sens === "o"
-    ? "Facultatif : l'optique du projecteur, pour savoir si elle couvre le rapport trouvé."
-    : "Sur la fiche de l'objectif, écrit 1,5 – 2 : 1. Le maxi est pour un zoom ; on le laisse vide avec une optique fixe.", 0));
-  d.append(co);
-
-  const cm = el("div", "card");
-  cm.innerHTML = `<h4>Projecteurs</h4>`;
-  cm.append(choix("Côte à côte", "n", [[1, "Un seul"], [2, "2"], [3, "3"], [4, "4"]]));
-  if(c.n > 1) cm.append(champ("Recouvrement (%)", "rec", "15",
-    "La part de l'image d'un projecteur qui chevauche la voisine pour le fondu (edge blending)."));
-  cm.append(choix("Définition", "res", RESOLUTIONS.map(([v, t]) => [v, t])));
-  d.append(cm);
-
-  const cl = el("div", "card");
-  cl.innerHTML = `<h4>Luminosité</h4>`;
-  cl.append(choix("Lumière ambiante", "amb", AMBIANCES));
-  cl.append(champ("Ambiant sur l'écran (lux)", "amb", "50",
-    "Des ordres de grandeur : mesurez au luxmètre, capteur tourné vers le public, projecteur éteint."));
-  cl.append(choix("Contraste visé", "ctr", CONTRASTES.map(([v, t]) => [v, t])));
-  cl.insertAdjacentHTML("beforeend", note(CONTRASTES.map(([, t, s]) => t + " " + s).join(" · ")
-    + " (ANSI/INFOCOMM 3M-2011)."));
-  const fl = el("div", "ff");
-  fl.append(champ("Gain d'écran", "gain", "1"), champ("Marge (%)", "marge", "20"));
-  cl.append(fl);
-  cl.insertAdjacentHTML("beforeend", note("La marge couvre le vieillissement de la lampe ou du laser et les modes éco."));
-  cl.append(champ("Flux du projecteur (lm)", "lm", "10000", "Facultatif : pour vérifier un projecteur donné."));
-  cl.append(zl);
-  d.append(cl);
-
-  const cp = el("div", "card");
-  cp.innerHTML = `<h4>Public</h4>`;
-  cp.append(zp);
-  cp.insertAdjacentHTML("beforeend", note("Dernier rang : règle 4-6-8, en hauteurs d'image. Premier rang : "
-    + "là où l'œil ne distingue plus un pixel (une minute d'arc).", 0).replace("margin:-4px", "margin:10px"));
-  d.append(cp);
-
-  const fo = el("div", "card");
-  fo.innerHTML = `<h4>Formules</h4><p class="formule">rapport = distance / largeur d'un projecteur<br>
-    largeur = diagonale × r / √(r² + 1)<br>mosaïque : largeur = l × (n − (n − 1) × recouvrement)<br>
-    lux = lumens / surface d'un projecteur<br>cd/m² = lux × gain / π<br>
-    contraste = (lux projeté + ambiant) / ambiant<br>lumens = max(ambiant × (contraste − 1), 48 π / gain)<br>
-    &nbsp;&nbsp;× surface × (1 + marge)<br>premier rang = pixel / tan(1′)</p>`;
-  d.append(fo);
 
   peindre();
   return d;
