@@ -10,9 +10,16 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
- * RDM (E1.20) transporté par Art-Net : le nœud fait la découverte sur ses
- * lignes DMX et nous rend la liste des UID (ArtTodData), puis relaie nos
- * questions et nos réglages à chaque appareil (ArtRdm).
+ * RDM (E1.20), par deux chemins.
+ *
+ * Art-Net : le nœud fait la découverte sur ses lignes DMX et nous rend la
+ * liste des UID (ArtTodData), puis relaie nos questions et nos réglages à
+ * chaque appareil (ArtRdm).
+ *
+ * RDMnet (E1.33) : le transport est dans Rdmnet ; ici on explore chaque
+ * appareil connecté au broker, ses ports (E1.37-7, ENDPOINT_LIST) et les
+ * projecteurs vus derrière chacun (ENDPOINT_RESPONDERS). Les questions et les
+ * réglages sont ensuite les mêmes qu'en Art-Net.
  *
  * Le travail passe par une seule file : une question part, on attend sa
  * réponse, puis la suivante. Une ligne DMX ne porte qu'un échange RDM à la
@@ -27,6 +34,9 @@ public class Rdm {
             SOFTWARE_VERSION_LABEL = 0x00C0, DMX_PERSONALITY = 0x00E0,
             DMX_PERSONALITY_DESCRIPTION = 0x00E1, DMX_START_ADDRESS = 0x00F0,
             IDENTIFY_DEVICE = 0x1000;
+    /* E1.37-7 : les ports d'une passerelle RDMnet. */
+    static final int ENDPOINT_LIST = 0x0900, ENDPOINT_TO_UNIVERSE = 0x0903,
+            ENDPOINT_LABEL = 0x0905, ENDPOINT_RESPONDERS = 0x090B;
 
     private static final int ATTENTE_MS = 1500;
 
@@ -36,10 +46,15 @@ public class Rdm {
     }
 
     public static class Appareil {
+        public String cle = "";            // clé de la liste : l'UID en Art-Net, « rdmnet:UID » en RDMnet
         public String uid = "";            // « 4845:12345678 », comme sur les pupitres
         public byte[] uidOctets = new byte[6];
+        public String via = "Art-Net";
         public String ip = "";             // le nœud qui voit l'appareil
-        public int univers;                // adresse de port Art-Net, base 0
+        public String noeud = "";          // RDMnet : la passerelle et son port
+        public byte[] rptUid = new byte[6];// RDMnet : l'appareil connecté au broker
+        public int endpoint;               // RDMnet : 0 pour l'appareil lui-même
+        public int univers;                // base 0 : adresse de port Art-Net, univers sACN - 1
         public String fabricant = "", modele = "", nom = "", logiciel = "";
         public int modeleId, categorie, adresse, canaux, mode, modes;
         public boolean identifie, lu;
@@ -59,6 +74,16 @@ public class Rdm {
     private final LinkedBlockingQueue<byte[]> reponses = new LinkedBlockingQueue<byte[]>();
     private Thread ouvrier;
     private int transaction;
+
+    /**
+     * Un aller-retour RDM par un autre chemin que l'Art-Net. Rend la réponse
+     * de l'appareil (les morceaux d'un ACK_OVERFLOW déjà recollés), null si
+     * rien n'est revenu à temps, ou une réponse portant un statut d'échec.
+     */
+    public interface Transport {
+        Reponse echanger(Appareil a, int tn, int cc, int pid, byte[] pd);
+    }
+    public volatile Transport rdmnet;
 
     public Rdm(ArtNet a) {
         art = a;
@@ -187,7 +212,7 @@ public class Rdm {
             String cle = uidTexte(u);
             Appareil a = appareils.get(cle);
             boolean neuf = a == null;
-            if (neuf) { a = new Appareil(); a.uid = cle; a.uidOctets = u; appareils.put(cle, a); }
+            if (neuf) { a = new Appareil(); a.cle = cle; a.uid = cle; a.uidOctets = u; appareils.put(cle, a); }
             a.ip = src; a.univers = univers; a.vu = t;
             vus.add(cle);
             if (neuf) relire(cle);
@@ -195,8 +220,9 @@ public class Rdm {
         // Liste complète en un seul bloc : ce qui n'y est plus a été débranché.
         if (bloc == 0 && nb == total)
             for (Appareil a : appareils.values())
-                if (a.ip.equals(src) && a.univers == univers && !vus.contains(a.uid))
-                    appareils.remove(a.uid);
+                if ("Art-Net".equals(a.via) && a.ip.equals(src) && a.univers == univers
+                        && !vus.contains(a.cle))
+                    appareils.remove(a.cle);
     }
 
     static String uidTexte(byte[] u) {
@@ -282,43 +308,137 @@ public class Rdm {
     /* ------------------------------ échange ------------------------------ */
 
     /**
-     * Envoie une commande et attend la réponse de cet appareil à ce paramètre.
-     * Rend les données de la réponse, ou null en posant a.erreur.
+     * Envoie une commande et attend la réponse de cet appareil à ce paramètre,
+     * par le chemin de l'appareil. Rend les données de la réponse, ou null en
+     * posant a.erreur.
      */
-    private byte[] demander(Appareil a, int cc, int pid, byte[] pd) {
-        for (int essai = 0; essai < 3; essai++) {
+    byte[] demander(Appareil a, int cc, int pid, byte[] pd) {
+        java.io.ByteArrayOutputStream cumul = null;
+        for (int essai = 0; essai < 3; ) {
             int tn = (transaction++) & 0xFF;
-            reponses.clear();
-            if (!art.envoyer(artRdm(a.univers, a.uidOctets, source, tn, cc, pid, pd), a.ip)) {
-                a.erreur = "envoi impossible"; return null;
+            Reponse r;
+            if ("RDMnet".equals(a.via)) {
+                Transport t = rdmnet;
+                r = t == null ? Reponse.echec("RDMnet arrêté") : t.echanger(a, tn, cc, pid, pd);
+            } else r = echangerArtNet(a, tn, cc, pid, pd);
+            if (r == null) { essai++; continue; }
+            if (r.statut != null) { a.erreur = r.statut; return null; }
+            if (r.type == 0x00) {                                              // ACK
+                if (cumul == null) return r.donnees;
+                cumul.write(r.donnees, 0, r.donnees.length);
+                return cumul.toByteArray();
             }
-            long fin = System.currentTimeMillis() + ATTENTE_MS;
-            while (true) {
-                long reste = fin - System.currentTimeMillis();
-                if (reste <= 0) break;
-                byte[] b;
-                try { b = reponses.poll(reste, TimeUnit.MILLISECONDS); }
-                catch (InterruptedException e) { return null; }
-                if (b == null) break;
-                Reponse r = lire(b);
-                if (r == null || !r.de(a.uidOctets) || r.pid != pid || r.cc != cc + 1) continue;
-                if (r.type == 0x00) return r.donnees;                          // ACK
-                if (r.type == 0x02) {                                          // NACK
-                    a.erreur = nack(r.donnees.length >= 2 ? u16(r.donnees, 0) : -1, pid);
-                    return null;
-                }
-                if (r.type == 0x01) {                                          // ACK_TIMER
-                    int dixiemes = r.donnees.length >= 2 ? u16(r.donnees, 0) : 5;
-                    try { Thread.sleep(Math.min(3000, dixiemes * 100L)); } catch (InterruptedException e) { return null; }
-                    if (cc == SET) { a.erreur = ""; return new byte[0]; }     // pris en compte plus tard
-                    break;                                                     // on redemande
-                }
-                a.erreur = "réponse en plusieurs morceaux non gérée";
+            if (r.type == 0x02) {                                              // NACK
+                a.erreur = nack(r.donnees.length >= 2 ? u16(r.donnees, 0) : -1, pid);
                 return null;
             }
+            if (r.type == 0x01) {                                              // ACK_TIMER
+                int dixiemes = r.donnees.length >= 2 ? u16(r.donnees, 0) : 5;
+                try { Thread.sleep(Math.min(3000, dixiemes * 100L)); } catch (InterruptedException e) { return null; }
+                if (cc == SET) { a.erreur = ""; return new byte[0]; }         // pris en compte plus tard
+                essai++;
+                continue;                                                      // on redemande
+            }
+            if (r.type == 0x03) {                                              // ACK_OVERFLOW : la suite au prochain GET
+                if (cumul == null) cumul = new java.io.ByteArrayOutputStream();
+                cumul.write(r.donnees, 0, r.donnees.length);
+                if (cumul.size() > 16384) { a.erreur = "réponse trop longue"; return null; }
+                continue;
+            }
+            a.erreur = "réponse illisible";
+            return null;
         }
         a.erreur = "pas de réponse";
         return null;
+    }
+
+    /** Un aller-retour ArtRdm avec le nœud qui voit l'appareil. */
+    private Reponse echangerArtNet(Appareil a, int tn, int cc, int pid, byte[] pd) {
+        reponses.clear();
+        if (!art.envoyer(artRdm(a.univers, a.uidOctets, source, tn, cc, pid, pd), a.ip))
+            return Reponse.echec("envoi impossible");
+        long fin = System.currentTimeMillis() + ATTENTE_MS;
+        while (true) {
+            long reste = fin - System.currentTimeMillis();
+            if (reste <= 0) return null;
+            byte[] b;
+            try { b = reponses.poll(reste, TimeUnit.MILLISECONDS); }
+            catch (InterruptedException e) { return Reponse.echec("interrompu"); }
+            if (b == null) return null;
+            Reponse r = lire(b);
+            if (r != null && r.de(a.uidOctets) && r.pid == pid && r.cc == cc + 1) return r;
+        }
+    }
+
+    /* ------------------------------- RDMnet ------------------------------ */
+
+    /**
+     * Explore un appareil connecté au broker : lui-même, puis, si c'est une
+     * passerelle, chacun de ses ports et les projecteurs vus derrière.
+     */
+    public void explorerRdmnet(final byte[] rpt, final String nomClient) {
+        planifier(new Runnable() {
+            public void run() {
+                String uid = uidTexte(rpt);
+                Appareil g = appareils.get("rdmnet:" + uid);
+                if (g == null) {
+                    g = rdmnetAppareil(rpt, rpt, 0, "rdmnet:" + uid);
+                    appareils.put(g.cle, g);
+                }
+                g.noeud = nomClient; g.univers = -1;
+                lireTout(g.cle);
+                byte[] liste = demander(g, GET, ENDPOINT_LIST, new byte[0]);
+                if (liste == null) { g.erreur = ""; return; }   // pas une passerelle : rien derrière
+                java.util.Set<String> vus = new java.util.HashSet<String>();
+                vus.add(g.cle);
+                for (int o = 4; o + 3 <= liste.length; o += 3) {
+                    int ep = u16(liste, o);
+                    if (ep == 0) continue;
+                    byte[] epb = { (byte) (ep >> 8), (byte) ep };
+                    int univers = 0;
+                    byte[] u = demander(g, GET, ENDPOINT_TO_UNIVERSE, epb);
+                    if (u != null && u.length >= 4) univers = u16(u, 2);
+                    String etiquette = "";
+                    byte[] l = demander(g, GET, ENDPOINT_LABEL, epb);
+                    if (l != null && l.length > 2) etiquette = texte(java.util.Arrays.copyOfRange(l, 2, l.length));
+                    byte[] r = demander(g, GET, ENDPOINT_RESPONDERS, epb);
+                    if (r == null || r.length < 6) continue;
+                    for (int k = 6; k + 6 <= r.length; k += 6) {
+                        byte[] f = java.util.Arrays.copyOfRange(r, k, k + 6);
+                        String cle = "rdmnet:" + uid + "/" + ep + "/" + uidTexte(f);
+                        vus.add(cle);
+                        Appareil a = appareils.get(cle);
+                        if (a == null) { a = rdmnetAppareil(f, rpt, ep, cle); appareils.put(cle, a); relire(cle); }
+                        a.univers = univers - 1;
+                        a.noeud = (g.nom.isEmpty() ? nomClient : g.nom) + " · "
+                                + (etiquette.isEmpty() ? "port " + ep : etiquette);
+                    }
+                }
+                g.erreur = "";
+                for (Appareil a : appareils.values())
+                    if ("RDMnet".equals(a.via) && java.util.Arrays.equals(a.rptUid, rpt) && !vus.contains(a.cle))
+                        appareils.remove(a.cle);
+            }
+        });
+    }
+
+    private static Appareil rdmnetAppareil(byte[] uid, byte[] rpt, int ep, String cle) {
+        Appareil a = new Appareil();
+        a.cle = cle; a.uid = uidTexte(uid); a.uidOctets = uid;
+        a.via = "RDMnet"; a.rptUid = rpt; a.endpoint = ep;
+        a.vu = System.currentTimeMillis();
+        return a;
+    }
+
+    /** L'appareil a quitté le broker : on retire ce qu'on voyait par lui. */
+    public void oublierRdmnet(byte[] rpt) {
+        for (Appareil a : appareils.values())
+            if ("RDMnet".equals(a.via) && java.util.Arrays.equals(a.rptUid, rpt)) appareils.remove(a.cle);
+    }
+
+    /** Le broker est perdu : plus rien n'est joignable en RDMnet. */
+    public void oublierRdmnet() {
+        for (Appareil a : appareils.values()) if ("RDMnet".equals(a.via)) appareils.remove(a.cle);
     }
 
     /** Paquet ArtRdm : le message RDM sans son code de départ, somme comprise. */
@@ -354,11 +474,13 @@ public class Rdm {
         return m;
     }
 
-    static class Reponse {
+    public static class Reponse {
         byte[] src = new byte[6];
         int type, cc, pid;
         byte[] donnees = new byte[0];
+        String statut;                       // échec du transport, sans réponse de l'appareil
         boolean de(byte[] uid) { return java.util.Arrays.equals(src, uid); }
+        static Reponse echec(String s) { Reponse r = new Reponse(); r.statut = s; return r; }
     }
 
     /**
@@ -369,6 +491,12 @@ public class Rdm {
         if (b.length < 24 + 23) return null;
         int o = 24;
         if ((b[o] & 255) == 0xCC) o++;
+        return lireMessage(b, o);
+    }
+
+    /** Lit un message RDM qui commence au sous-code de départ (0x01), à l'indice o. */
+    static Reponse lireMessage(byte[] b, int o) {
+        if (o + 23 > b.length) return null;
         if ((b[o] & 255) != 0x01) return null;       // sous-code de départ RDM
         int pdl = b[o + 22] & 255;
         if (o + 23 + pdl > b.length) return null;

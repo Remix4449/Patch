@@ -22,6 +22,7 @@ public class Regie {
     private final Scanner scan = new Scanner();
     private final Emetteur emetteur = new Emetteur(art, sacn);
     private final Rdm rdm = new Rdm(art);
+    private final Rdmnet rdmnet = new Rdmnet(rdm);
     private final Llrp llrp = new Llrp();
     private final Ndi ndi;
     private final Maj maj;
@@ -267,9 +268,12 @@ public class Regie {
             JSONArray a = new JSONArray();
             for (Rdm.Appareil x : rdm.appareils.values()) {
                 JSONObject j = new JSONObject();
+                j.put("cle", x.cle);
                 j.put("uid", x.uid);
+                j.put("via", x.via);
+                j.put("endpoint", x.endpoint);
                 j.put("ip", x.ip);
-                j.put("noeud", nomConnu(x.ip));
+                j.put("noeud", x.noeud.isEmpty() ? nomConnu(x.ip) : x.noeud);
                 j.put("univers", x.univers + 1);        // base 1, comme sur les pupitres
                 j.put("fabricant", x.fabricant);
                 j.put("modele", x.modele);
@@ -299,6 +303,43 @@ public class Regie {
             o.put("message", rdm.message);
             o.put("noeuds", art.noeuds.size());
             o.put("appareils", a);
+            return o.toString();
+        } catch (Exception e) { return "{}"; }
+    }
+
+    /** Cherche un broker RDMnet ; à défaut, le téléphone en sert un. */
+    @JavascriptInterface
+    public void rdmnetDemarrer() { rdmnet.demarrerAuto(reseau.ip); }
+
+    /** Broker donné à la main : « 192.168.1.20 » ou « 192.168.1.20:8888 ». */
+    @JavascriptInterface
+    public void rdmnetConnecter(String adresse) {
+        if (adresse == null || adresse.trim().isEmpty()) return;
+        String a = adresse.trim();
+        int port = 8888;
+        int d = a.lastIndexOf(':');
+        if (d > 0) {
+            try { port = Integer.parseInt(a.substring(d + 1)); } catch (NumberFormatException ignore) { }
+            a = a.substring(0, d);
+        }
+        rdmnet.connecter(a, port, "manuel");
+    }
+
+    @JavascriptInterface
+    public void rdmnetArreter() { rdmnet.toutArreter(); }
+
+    @JavascriptInterface
+    public String rdmnetEtat() {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("mode", rdmnet.mode);
+            o.put("actif", rdmnet.actif || !rdmnet.mode.isEmpty());
+            o.put("connecte", rdmnet.connecte);
+            o.put("broker", rdmnet.broker);
+            o.put("message", rdmnet.message);
+            int n = 0;
+            for (Rdmnet.Client c : rdmnet.clients.values()) if (c.type == Rdmnet.RPT_CLIENT_DEVICE) n++;
+            o.put("appareils", n);
             return o.toString();
         } catch (Exception e) { return "{}"; }
     }
@@ -422,6 +463,7 @@ public class Regie {
     @JavascriptInterface
     public void stopAll() {
         emetteur.arreter();
+        rdmnet.toutArreter();
         scan.arreter();
         ndi.arreter();
         art.arreter();
