@@ -138,6 +138,12 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (maj != null) maj.reprendre();
+    }
+
+    @Override
     protected void onDestroy() {
         if (pont != null) pont.stopAll();
         super.onDestroy();

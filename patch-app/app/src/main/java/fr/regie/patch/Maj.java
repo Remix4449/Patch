@@ -77,6 +77,22 @@ public class Maj {
     /** Numéro de la version déjà téléchargée, pour ne pas la reprendre. */
     private File marque() { return new File(dossier(act), "version"); }
 
+    /**
+     * Numéro de version lu dans l'APK lui-même, 0 s'il est illisible.
+     *
+     * La fiche version.json et l'APK sont deux fichiers publiés l'un après
+     * l'autre : un téléchargement qui tombe pendant une publication peut
+     * rapporter un APK qui n'est pas celui que la fiche annonce. Seul l'APK
+     * dit ce qu'Android installera vraiment.
+     */
+    private int versionDe(File f) {
+        try {
+            if (f == null || !f.exists()) return 0;
+            PackageInfo p = act.getPackageManager().getPackageArchiveInfo(f.getPath(), 0);
+            return p == null ? 0 : p.versionCode;
+        } catch (Exception e) { return 0; }
+    }
+
     /* ------------------------------ démarrage --------------------------- */
 
     /**
@@ -94,6 +110,17 @@ public class Maj {
 
     /** Vérifie, puis télécharge tout de suite si une version attend. */
     public void verifier() { lancer(true, true); }
+
+    /**
+     * Au retour dans l'application, par exemple depuis l'écran d'installation
+     * d'Android. Une installation réussie relance l'application ; si l'on
+     * revient ici avec une version prête, c'est que l'installation n'a pas eu
+     * lieu. On revérifie, pour ne pas reproposer une version que la release a
+     * déjà remplacée.
+     */
+    public void reprendre() {
+        if ("pret".equals(phase)) verifier();
+    }
 
     /** Reprend le seul téléchargement, après un échec réseau par exemple. */
     public void telecharger() { lancer(false, true); }
@@ -162,7 +189,7 @@ public class Maj {
             File f = fichier(act);
             if (f == null || !f.exists() || f.length() == 0) return false;
             String v = texte(new java.io.FileInputStream(marque())).trim();
-            return Integer.parseInt(v) == publie;
+            return Integer.parseInt(v) == publie && versionDe(f) == publie;
         } catch (Exception e) { return false; }
     }
 
@@ -198,6 +225,15 @@ public class Maj {
             out.flush();
             out.close();
             out = null;
+            /*
+             * Un APK tronqué ou remplacé en cours de publication passait quand
+             * même pour la version annoncée : Android refusait de l'installer,
+             * ou installait une version plus ancienne, et l'accueil reproposait
+             * la même version en boucle. On ne garde que l'APK attendu.
+             */
+            int lu = versionDe(part);
+            if (lu == 0) throw new Exception("APK incomplet, réessaie dans une minute");
+            if (lu != publie) throw new Exception("publication en cours, réessaie dans une minute");
             File cible = fichier(act);
             cible.delete();
             if (!part.renameTo(cible)) throw new Exception("écriture impossible");

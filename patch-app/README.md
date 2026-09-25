@@ -53,11 +53,17 @@ Quelques détails qui ont leur importance :
 - **la clé de signature est dans le dépôt, exprès.** Android refuse une mise à
   jour signée par une autre clé que la version en place, et une construction sans
   clé fixe en fabrique une nouvelle à chaque passage. Voir `cle/README.md` ;
-- **toute branche poussée remplace l'APK de la release.** Le workflow se
-  déclenche sur n'importe quelle poussée touchant `patch-app/` : une correction
-  en cours de relecture arrive donc sur le téléphone. C'est pratique pour
-  essayer un correctif, et c'est à savoir. La branche d'origine est écrite dans
-  l'écran *Mise à jour* quand ce n'est pas `main`.
+- **seul `main` publie la version que le téléphone installe.** Une branche de
+  travail publie dans la release `apk-essai`, que l'application ne regarde pas :
+  on y prend l'APK à la main pour essayer un correctif. Avant, toute branche
+  remplaçait l'APK de `apk`, et une version de travail pouvait arriver sur le
+  téléphone, ou lui retirer ce que `main` venait d'ajouter ;
+- **l'APK téléchargé est relu avant d'être proposé.** La fiche et l'APK sont
+  publiés l'un après l'autre ; un téléchargement qui tombe entre les deux
+  pouvait rapporter un APK qui n'était pas celui annoncé, et l'accueil
+  reproposait alors la même version en boucle. `Maj.java` lit le numéro dans l'APK lui-même et le
+  rejette s'il ne correspond pas, puis revérifie au retour de l'écran
+  d'installation d'Android.
 
 ## Ce que fait l'application
 
