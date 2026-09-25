@@ -73,12 +73,15 @@ Quelques détails qui ont leur importance :
 | Manuels | Bibliothèque de notes de fonctionnement, une fiche par appareil, hors ligne |
 | Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé, l'ajout d'appareils et la télécommande DMX en volets, l'impression |
 | Gélatines | 262 Lee (chromaticité publiée par Lee), 165 GAM et 265 Rosco avec leurs équivalents Lee ; recherche, Lee proches, mélange RGBWA, RGBW, RGB ou CMY |
+| LED | Puissance et courant d'un ruban avec règle d'usage sur la réinjection, résistance série d'une LED seule, code couleur d'une résistance (norme E12) |
 | Section de câble | Section conseillée d'après la chute de tension admise (mono 230 V, tri 400 V, cuivre ou alu), puis vérifiée contre le courant admissible déclassé par la température et le regroupement |
+| Bilan de puissance | Plan de multi : circuits posés sur une phase, total et écart entre phases en 230 V / 400 V triphasé |
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
 | Projection | Distance, taille d'image ou rapport d'optique à trouver (avec la classe d'optique et le contrôle du zoom) ; mosaïque de 2 à 4 projecteurs avec recouvrement ; lumens nécessaires d'après la lumière ambiante, le contraste visé (ANSI/INFOCOMM 3M-2011), le gain et une marge ; définition, taille de pixel et distances du public (règle 4-6-8, acuité d'une minute d'arc) |
 | Onduleur | Capacité d'UPS (VA) et de batterie (VAh) d'après la puissance, le facteur de puissance, le rendement et l'autonomie voulue |
+| Électricité | Puissance ↔ courant (mono/tri), puissance par phase équilibrée, répartition sur des départs avec calibre de disjoncteur, dimensionnement de groupe électrogène, facteur de puissance (kVA/kVAR) |
 | Rigging | Vérification CMU, élingage 2 brins, facteur d'angle, bridage multi-points, sélection de palan d'après des capacités courantes |
 | Testeur d'adresse | Émission d'une trame Art-Net sur un canal, sans console |
 
