@@ -139,6 +139,10 @@
 
   h2.sec{font:700 11px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--ink2);
          margin:24px 0 10px}
+  /* Sous-section dans la grille des outils : range sans concurrencer le h2
+     « Outils » au-dessus, qui reste le seul repère en gras majuscule. */
+  h3.sous{font:600 12.5px/1 var(--body);color:var(--ink2);margin:16px 2px 8px}
+  h3.sous:first-of-type{margin-top:2px}
 
   .bar{display:flex;align-items:center;gap:10px;padding:14px 0 12px;position:sticky;
        top:env(safe-area-inset-top,0px);background:var(--bg);z-index:4;border-bottom:1px solid var(--line);
@@ -845,10 +849,9 @@ const CATS = [
      est devenu la première fiche. */
   { k:"mdg", t:"Manuels", s:"Notes de fonctionnement", c:"var(--mdg)", n:() => MANUELS.length, i:"manuel" }
 ];
-/* Le patch prend la tuile large : c'est l'outil qu'on ouvre le plus, et ça met
-   les deux télécommandes côte à côte sur la rangée suivante, où on les compare.
-   Elles portaient la même couleur et le même pictogramme, et leurs noms ne
-   différaient que par un suffixe. */
+/* Le patch prend la tuile large : c'est l'outil qu'on ouvre le plus. L'ordre
+   ici ne dicte plus l'affichage — TOOL_GROUPES range les tuiles par métier —
+   mais reste celui de la recherche et sert de liste de référence. */
 const TOOLS = [
   { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx", large:true },
   { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
@@ -857,8 +860,6 @@ const TOOLS = [
   { k:"led", t:"LED", s:"Ruban : alim, résistance", c:"var(--led)", i:"led" },
   { k:"dist", t:"Projection", s:"Distance, optique, lumens", c:"var(--dpj)", i:"projo" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
-  /* Les calculateurs électriques ensemble, rigging et réseau sur la rangée
-     suivante. */
   { k:"ups", t:"Onduleur", s:"Capacité UPS, VA", c:"var(--ups)", i:"ups" },
   { k:"cab", t:"Section câble", s:"Chute de tension, mm²", c:"var(--cab)", i:"cable" },
   { k:"bil", t:"Bilan de puissance", s:"Répartition des phases", c:"var(--bil)", i:"bil" },
@@ -873,6 +874,16 @@ const TOOLS = [
    ou « patch » répondait « rien pour… » alors que la tuile était juste dessous. */
 const DESTINATIONS = () => [...CATS, ...TOOLS,
   { k:"maj", t:"Application", s:"Version & thème", c:"var(--maj)", i:"maj" }];
+
+/* La grille des outils avait grossi tuile après tuile jusqu'à seize, toutes
+   à plat : plus rien n'aidait à trouver la bonne d'un coup d'œil. Elle est
+   rangée ici par métier, sans toucher TOOLS ni la recherche qui s'appuie
+   dessus. */
+const TOOL_GROUPES = [
+  { t:"Éclairage & vidéo", cles:["dmx", "tel", "tcd", "gel", "led", "dist", "ndi"] },
+  { t:"Électricité & structure", cles:["ups", "cab", "bil", "elec", "rig"] },
+  { t:"Réseau", cles:["net", "sub", "art", "rdm"] }
+];
 
 /* --------------------------- aller et revenir ---------------------------- */
 /* Le geste de retour d'Android fermait l'application depuis n'importe quel
@@ -944,6 +955,16 @@ function grille(liste, petite){
   if(petite && seules.length % 2) seules[seules.length - 1].classList.add("wide");
   return g;
 }
+/* Une grille par groupe de TOOL_GROUPES, chacune sous son propre sous-titre. */
+function grilleOutils(){
+  const f = document.createDocumentFragment();
+  TOOL_GROUPES.forEach(g => {
+    const items = g.cles.map(k => TOOLS.find(o => o.k === k)).filter(Boolean);
+    if(!items.length) return;
+    f.append(el("h3", "sous", g.t), grille(items, true));
+  });
+  return f;
+}
 
 /* L'état du réseau : lu au plus une fois toutes les deux secondes — chaque
    frappe de recherche rendait la page entière et repassait par le pont — et
@@ -1003,7 +1024,7 @@ function home(){
   d.insertAdjacentHTML("beforeend", `<h2 class="sec">Inventaire</h2>`);
   d.append(grille(CATS));
   d.insertAdjacentHTML("beforeend", `<h2 class="sec">Outils</h2>`);
-  d.append(grille(TOOLS, true), zoneAppli());
+  d.append(grilleOutils(), zoneAppli());
   return d;
 }
 
@@ -1016,7 +1037,7 @@ function vParc(){
 }
 function vOutils(){
   const d = el("div");
-  d.append(bar("Outils"), grille(TOOLS, true), zoneAppli());
+  d.append(bar("Outils"), grilleOutils(), zoneAppli());
   return d;
 }
 
