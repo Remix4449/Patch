@@ -270,6 +270,7 @@
   .dpj .f input:focus{border-color:var(--dpj)}
   .dpj .tri{margin:0}
   .dpj .tri button{padding-left:4px;padding-right:4px}
+  .dpj .card .res{margin:14px 0 0;background:var(--bg)}
   .dpj .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
 
   /* ------------------------------ mise à jour -------------------------- */
@@ -711,7 +712,7 @@ const TOOLS = [
   { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
   { k:"tcd", t:"Canal DMX", s:"Un canal à la main", c:"var(--tcd)", i:"fader" },
   { k:"gel", t:"Gélatines", s:"Lee, GAM, Rosco → LED", c:"var(--gel)", i:"gel" },
-  { k:"dist", t:"Projection", s:"Distance & taille d'image", c:"var(--dpj)", i:"projo" },
+  { k:"dist", t:"Projection", s:"Distance, optique, lumens", c:"var(--dpj)", i:"projo" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"ups", t:"Onduleur", s:"Capacité UPS, VA", c:"var(--ups)", i:"ups" },
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
@@ -3366,80 +3367,183 @@ function vUps(){
 /* ------------------------ distance de projection ------------------------- */
 /* La page de référence (prestataires-audiovisuel.fr) n'a pas pu être lue ; ce
    sont les relations d'usage, sans la consommation d'énergie que Rémi ne
-   voulait pas :
-     rapport de projection = distance / largeur de l'image
+   voulait pas.
+   Géométrie :
+     rapport de projection = distance / largeur de l'image d'un projecteur
      largeur = diagonale × r / √(r² + 1), hauteur = largeur / r (r = format)
-     éclairement (lux) = lumens / surface (m²)
+   En mosaïque, n projecteurs côte à côte avec un recouvrement o (part de la
+   largeur d'un projecteur) : largeur totale = l × (n − (n − 1) × o), et le
+   format vient alors des projecteurs.
+   Lumière :
+     éclairement (lux) = lumens / surface éclairée par un projecteur (m²)
      luminance (cd/m²) = lux × gain / π ; 1 ft-L = 3,426 cd/m²
-   Un rapport de projection maxi, s'il est donné, fait une fourchette : c'est
-   la course du zoom. */
+     contraste = (éclairement projeté + ambiant) / ambiant, le gain de l'écran
+     s'appliquant aux deux
+   Besoin en lumens : l'éclairement qui tient le contraste visé face à la
+   lumière ambiante, sans descendre sous 48 cd/m², plus une marge pour le
+   vieillissement de la source et les modes éco.
+   Public : dernier rang selon la règle 4-6-8 (en hauteurs d'image) ; premier
+   rang là où un pixel sous-tend une minute d'arc, la limite de l'œil. */
 const CLE_DIST = "projection.v1";
 const DIST = Object.assign({ sens:"d", fmt:"16:9", base:"l", l:"", diag:"", d:"",
-                             tr:"", trx:"", lm:"", gain:"1" }, lireLocal(CLE_DIST, {}));
+                             tr:"", trx:"", lm:"", gain:"1", amb:"50", ctr:"15", marge:"20",
+                             n:1, rec:"15", res:"1920x1080" }, lireLocal(CLE_DIST, {}));
 const FORMATS = [["16:9", 16 / 9], ["16:10", 16 / 10], ["4:3", 4 / 3], ["2,39:1", 2.39]];
-const POUCE = 0.0254;
+const RESOLUTIONS = [["1920x1080", "HD"], ["1920x1200", "WUXGA"], ["3840x2160", "4K UHD"], ["1024x768", "XGA"]];
+/* ANSI/INFOCOMM 3M-2011, contraste d'une image projetée. */
+const CONTRASTES = [["7", "7:1", "regarder, sans lire de détail"], ["15", "15:1", "lire texte et tableaux"],
+                    ["50", "50:1", "analyser une image fine"], ["80", "80:1", "vidéo plein écran"]];
+/* Ordres de grandeur de la lumière qui tombe sur l'écran, à corriger au
+   luxmètre si l'on en a un. */
+const AMBIANCES = [["1", "Noir"], ["50", "Pénombre"], ["150", "Éclairée"], ["400", "Plein jour"]];
+const POUCE = 0.0254, LUM_MIN = 48, FTL = 3.426, MINUTE = Math.PI / 180 / 60;
 
 const nbDist = v => parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", "."));
 const mDist = (v, n = 2) => vg(Number(v.toFixed(n)));
+const entier = v => Math.round(v).toLocaleString("fr-FR");
 /* Une fourchette qui ne s'ouvre pas s'écrit comme un seul nombre. */
 const fourch = (a, b, n = 2) => b == null || Math.abs(a - b) < 0.005 ? mDist(a, n)
                                                                      : mDist(a, n) + " – " + mDist(b, n);
+/* Classes indicatives : les constructeurs ne découpent pas tous pareil. */
+const classeOptique = t => t < 0.5 ? "ultra-courte focale" : t < 1 ? "courte focale"
+                         : t <= 2.5 ? "focale standard" : "longue focale";
 
 function calculDist(c){
-  const r = (FORMATS.find(f => f[0] === c.fmt) || FORMATS[0])[1];
+  const n = Math.max(1, Math.min(4, +c.n || 1));
+  const rec = n > 1 ? Math.min(Math.max(nbDist(c.rec) || 0, 0), 50) / 100 : 0;
+  const k = n - (n - 1) * rec;                              // largeurs de projecteur dans l'image
+  const [px, py] = String(c.res).split("x").map(Number);
+  /* Seul, le projecteur prend le format de l'écran ; en mosaïque, c'est lui
+     qui le donne. */
+  const rp = n > 1 ? px / py : (FORMATS.find(f => f[0] === c.fmt) || FORMATS[0])[1];
   const tr = nbDist(c.tr), trx = nbDist(c.trx);
-  if(!(tr > 0)) return { manque:"Renseignez le rapport de projection du projecteur." };
   const tx = trx > 0 && trx !== tr ? trx : null;
-  const trA = tx ? Math.min(tr, tx) : tr, trB = tx ? Math.max(tr, tx) : null;
-  const image = w => ({ w, h: w / r, diag: w * Math.sqrt(r * r + 1) / r });
-  let imgs, dist;
+  const trA = tr > 0 ? (tx ? Math.min(tr, tx) : tr) : null, trB = tr > 0 && tx ? Math.max(tr, tx) : null;
+  /* Une image, pour une largeur par projecteur. */
+  const image = wp => {
+    const w = wp * k, h = wp / rp;
+    return { wp, w, h, diag: Math.hypot(w, h) };
+  };
+  const r = { n, rec, k, px, py, trA, trB };
+  const d = nbDist(c.d);
   if(c.sens === "d"){
-    const w = c.base === "l" ? nbDist(c.l) : nbDist(c.diag) * POUCE * r / Math.sqrt(r * r + 1);
-    if(!(w > 0)) return { manque:"Renseignez la taille de l'image." };
-    imgs = [image(w)];
-    dist = [trA * w, trB ? trB * w : null];
-  } else {
-    const d = nbDist(c.d);
+    if(!trA) return { manque:"Renseignez le rapport de projection du projecteur." };
+    const W = c.base === "l" ? nbDist(c.l)
+            : nbDist(c.diag) * POUCE * (rp * k) / Math.sqrt((rp * k) ** 2 + 1);
+    if(!(W > 0)) return { manque:"Renseignez la taille de l'image." };
+    r.imgs = [image(W / k)];
+    r.dist = [trA * W / k, trB ? trB * W / k : null];
+  } else if(c.sens === "i"){
+    if(!trA) return { manque:"Renseignez le rapport de projection du projecteur." };
     if(!(d > 0)) return { manque:"Renseignez la distance entre l'objectif et l'écran." };
     /* Au rapport le plus court, la plus grande image. */
-    imgs = trB ? [image(d / trB), image(d / trA)] : [image(d / trA)];
-    dist = [d, null];
+    r.imgs = trB ? [image(d / trB), image(d / trA)] : [image(d / trA)];
+    r.dist = [d, null];
+  } else {
+    const W = c.base === "l" ? nbDist(c.l)
+            : nbDist(c.diag) * POUCE * (rp * k) / Math.sqrt((rp * k) ** 2 + 1);
+    if(!(W > 0)) return { manque:"Renseignez la taille de l'image." };
+    if(!(d > 0)) return { manque:"Renseignez la distance entre l'objectif et l'écran." };
+    r.imgs = [image(W / k)];
+    r.dist = [d, null];
+    r.besoin = d / (W / k);
   }
-  const lm = nbDist(c.lm), gain = nbDist(c.gain) > 0 ? nbDist(c.gain) : 1;
-  const lum = lm > 0 ? imgs.map(i => { const lux = lm / (i.w * i.h);
-                                       return { lux, cd: lux * gain / Math.PI }; }) : null;
-  return { r, imgs, dist, lum, gain };
+
+  /* La lumière et le public se lisent sur la plus grande image, la plus
+     exigeante. */
+  const g = r.imgs[r.imgs.length - 1];
+  const gain = nbDist(c.gain) > 0 ? nbDist(c.gain) : 1;
+  const amb = Math.max(nbDist(c.amb) || 0, 0), ctr = nbDist(c.ctr) || 15;
+  const marge = Math.max(nbDist(c.marge) || 0, 0) / 100;
+  const surf = g.wp * g.h;                                  // éclairée par un projecteur
+  const eCtr = amb * (ctr - 1), eMin = LUM_MIN * Math.PI / gain;
+  const eReq = Math.max(eCtr, eMin);
+  r.lumiere = { gain, amb, ctr, marge, surf, eReq, parContraste: eCtr >= eMin,
+                besoin: eReq * surf * (1 + marge) };
+  const lm = nbDist(c.lm);
+  if(lm > 0){
+    const e = lm / surf;
+    Object.assign(r.lumiere, { lm, e, cd: e * gain / Math.PI,
+      contraste: amb > 0 ? (e + amb) / amb : null,
+      pile: Math.ceil(r.lumiere.besoin / lm) });
+  }
+
+  if(px > 0 && py > 0){
+    const pxTot = Math.round(n * px - (n - 1) * rec * px);
+    const pas = Math.max(g.wp / px, g.h / py);              // l'image tient dans la matrice
+    r.public = { pxTot, py, pas, premier: pas / Math.tan(MINUTE),
+                 d4: 4 * g.h, d6: 6 * g.h, d8: 8 * g.h };
+  }
+  return r;
 }
 
-function peindreDist(zone){
+function peindreDist(zone, zl, zp){
   const c = DIST, r = calculDist(c);
   const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
-  const titre = c.sens === "d" ? "Distance de projection" : "Largeur de l'image";
+  const titre = { d:"Distance de projection", i:"Largeur de l'image", o:"Rapport de projection" }[c.sens];
   if(r.manque){
     zone.innerHTML = `<div class="kick">${titre}</div>
-      <div class="big"><b>—</b><span>m</span></div><p>${r.manque}</p>`;
+      <div class="big"><b>—</b><span>${c.sens === "o" ? ": 1" : "m"}</span></div><p>${r.manque}</p>`;
+    zl.innerHTML = zp.innerHTML = "";
     return;
   }
   const [a, b] = r.imgs, ab = (f, n) => fourch(f(a), b ? f(b) : null, n);
-  const big = c.sens === "d" ? fourch(r.dist[0], r.dist[1]) : ab(i => i.w);
-  const pied = c.sens === "d"
-    ? (r.dist[1] ? "De l'objectif à l'écran, zoom au plus large puis au plus serré." : "De l'objectif à l'écran.")
-    : (b ? "Zoom au plus serré puis au plus large, à " + mDist(r.dist[0]) + " m." : "À " + mDist(r.dist[0]) + " m de l'écran.");
-  let lum = "";
-  if(r.lum){
-    const [la, lb] = r.lum, lf = (f, n) => fourch(f(la), lb ? f(lb) : null, n);
-    lum = kv("Éclairement", lf(x => x.lux, 0) + " lux")
-        + kv("Luminance" + (r.gain !== 1 ? " · gain " + vg(r.gain) : ""), lf(x => x.cd, 0) + " cd/m²")
-        + kv("En foot-lamberts", lf(x => x.cd / 3.426, 1) + " ft-L");
+  const fmt = r.n > 1 ? r.n + " projecteurs" : esc(c.fmt);
+  let big, unite = "m", pied;
+  if(c.sens === "d"){
+    big = fourch(r.dist[0], r.dist[1]);
+    pied = r.dist[1] ? "De l'objectif à l'écran, zoom au plus large puis au plus serré." : "De l'objectif à l'écran.";
+  } else if(c.sens === "i"){
+    big = ab(i => i.w);
+    pied = b ? "Zoom au plus serré puis au plus large, à " + mDist(r.dist[0]) + " m." : "À " + mDist(r.dist[0]) + " m de l'écran.";
+  } else {
+    big = mDist(r.besoin); unite = ": 1";
+    const ok = r.trA && r.besoin >= r.trA - 0.005 && r.besoin <= (r.trB || r.trA) + 0.005;
+    pied = "Une optique " + classeOptique(r.besoin) + ". "
+         + (!r.trA ? "Renseignez l'optique du projecteur pour savoir si elle convient."
+            : ok ? "L'optique du projecteur y arrive."
+            : "Hors de l'optique du projecteur (" + fourch(r.trA, r.trB) + " : 1) : "
+              + (r.besoin < r.trA ? "rapprocher l'image demande une focale plus courte, ou reculer le projecteur à "
+                                    + mDist(r.trA * a.wp) + " m."
+                                  : "il faut une focale plus longue, ou avancer le projecteur à "
+                                    + mDist((r.trB || r.trA) * a.wp) + " m."));
   }
-  zone.innerHTML = `<div class="kick">${titre} · ${esc(c.fmt)}</div>
-    <div class="big"><b>${big}</b><span>m</span></div>
-    <p>${pied}</p>
-    ${c.sens === "i" ? "" : kv("Largeur", ab(i => i.w) + " m")}
-    ${kv("Hauteur", ab(i => i.h) + " m")}
-    ${kv("Diagonale", ab(i => i.diag) + " m · " + ab(i => i.diag / POUCE, 0) + " po")}
-    ${kv("Surface", ab(i => i.w * i.h) + " m²")}
-    ${lum}`;
+  const geo = (c.sens === "i" ? "" : kv("Largeur", ab(i => i.w) + " m"))
+    + (r.n > 1 ? kv("Largeur par projecteur", ab(i => i.wp) + " m") : "")
+    + kv("Hauteur", ab(i => i.h) + " m")
+    + kv("Diagonale", ab(i => i.diag) + " m · " + ab(i => i.diag / POUCE, 0) + " po")
+    + (r.n > 1 ? kv("Format obtenu", mDist(a.w / a.h) + " : 1") : "")
+    + kv("Surface", ab(i => i.w * i.h) + " m²");
+  zone.innerHTML = `<div class="kick">${titre} · ${fmt}</div>
+    <div class="big"><b>${big}</b><span>${unite}</span></div>
+    <p>${pied}</p>${geo}`;
+
+  const L = r.lumiere, par = r.n > 1 ? " par projecteur" : "";
+  let lum = `<div class="kick">Lumens nécessaires${par}</div>
+    <div class="big"><b>${entier(L.besoin)}</b><span>lm</span></div>
+    <p>${L.parContraste ? "Pour tenir " + vg(L.ctr) + ":1 face à " + vg(L.amb) + " lux sur l'écran"
+                        : "Pour atteindre " + LUM_MIN + " cd/m², le plancher en salle noire"}${L.marge ? ", marge de " + vg(Math.round(L.marge * 100)) + " % comprise" : ""}.</p>
+    ${kv("Éclairement visé", entier(L.eReq) + " lux")}
+    ${kv("Luminance visée", entier(L.eReq * L.gain / Math.PI) + " cd/m²")}`;
+  if(L.lm){
+    const ok = L.lm >= L.besoin;
+    lum += kv("Avec " + entier(L.lm) + " lm", entier(L.e) + " lux · " + entier(L.cd) + " cd/m²")
+         + kv("En foot-lamberts", mDist(L.cd / FTL, 1) + " ft-L")
+         + (L.contraste ? kv("Contraste obtenu", mDist(L.contraste, 1) + ":1") : "")
+         + `<p class="${ok ? "muted" : "alert"}" style="margin:10px 0 0">${ok
+              ? "Le projecteur suffit" + (L.lm < L.besoin * 1.1 ? ", de peu." : ".")
+              : "Pas assez : il manque " + entier(L.besoin - L.lm) + " lm" + par + ". "
+                + (L.pile > 1 ? L.pile + " projecteurs empilés y arriveraient." : "")}</p>`;
+  }
+  zl.innerHTML = lum;
+
+  const P = r.public;
+  zp.innerHTML = P ? `${kv("Définition", entier(P.pxTot) + " × " + entier(P.py) + " px")}
+    ${kv("Taille d'un pixel", mDist(P.pas * 1000, 1) + " mm")}
+    ${kv("Premier rang, pixels invisibles", "≥ " + mDist(P.premier, 1) + " m")}
+    ${kv("Dernier rang, image à regarder", "≤ " + mDist(P.d8, 1) + " m")}
+    ${kv("Dernier rang, texte à lire", "≤ " + mDist(P.d6, 1) + " m")}
+    ${kv("Dernier rang, détail à inspecter", "≤ " + mDist(P.d4, 1) + " m")}` : "";
 }
 
 function vDist(){
@@ -3449,6 +3553,8 @@ function vDist(){
   const res = el("div", "res");
   d.append(res);
   const garder = () => ecrireLocal(CLE_DIST, c);
+  const zl = el("div", "res"), zp = el("div");
+  const peindre = () => peindreDist(res, zl, zp);
 
   /* Les choix fermés refont l'écran : les champs affichés en dépendent. */
   const choix = (lab, cle, vals) => {
@@ -3457,65 +3563,95 @@ function vDist(){
     const t = el("div", "tri");
     vals.forEach(([v, txt]) => {
       const b = el("button", null, esc(txt));
-      b.setAttribute("aria-pressed", String(c[cle] === v));
+      b.setAttribute("aria-pressed", String(String(c[cle]) === String(v)));
       b.onclick = () => { toucher(); c[cle] = v; garder(); render(); };
       t.append(b);
     });
     f.append(t);
     return f;
   };
-  /* Les nombres ne refont que la carte du résultat : un rendu complet
-     fermerait le clavier. */
+  /* Les nombres ne refont que les résultats : un rendu complet fermerait le
+     clavier. */
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="dpj-${cle}">${esc(lab)}</label>
       <input id="dpj-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
-      c[cle] = e.target.value; garder(); peindreDist(res);
+      c[cle] = e.target.value; garder(); peindre();
     });
     return f;
   };
+  const note = (txt, bas) => `<p class="muted" style="margin:-4px 0 ${bas ?? 12}px">${txt}</p>`;
 
   const cs = el("div", "card");
   cs.innerHTML = `<h4>Je cherche</h4>`;
-  cs.append(choix("", "sens", [["d", "La distance"], ["i", "La taille d'image"]]));
+  cs.append(choix("", "sens", [["d", "La distance"], ["i", "L'image"], ["o", "L'optique"]]));
   d.append(cs);
 
   const ci = el("div", "card");
   ci.innerHTML = `<h4>Image</h4>`;
-  ci.append(choix("Format", "fmt", FORMATS.map(f => [f[0], f[0]])));
-  if(c.sens === "d"){
+  if(c.n > 1) ci.insertAdjacentHTML("beforeend", note("En mosaïque, le format vient des projecteurs.", 12)
+                                                   .replace("margin:-4px", "margin:0"));
+  else ci.append(choix("Format", "fmt", FORMATS.map(f => [f[0], f[0]])));
+  if(c.sens !== "i"){
     ci.append(choix("Taille connue par", "base", [["l", "Largeur"], ["d", "Diagonale"]]));
     ci.append(c.base === "l" ? champ("Largeur de l'image (m)", "l", "4")
                              : champ("Diagonale (pouces)", "diag", "150"));
-  } else {
-    ci.append(champ("Distance objectif – écran (m)", "d", "8"));
   }
+  if(c.sens !== "d") ci.append(champ("Distance objectif – écran (m)", "d", "8"));
   d.append(ci);
 
   const co = el("div", "card");
-  co.innerHTML = `<h4>Projecteur</h4>`;
+  co.innerHTML = `<h4>Optique</h4>`;
   const ff = el("div", "ff");
   ff.append(champ("Rapport mini", "tr", "1,5"), champ("Rapport maxi", "trx", "2"));
   co.append(ff);
-  co.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:-4px 0 12px">Sur la fiche
-    de l'objectif, écrit 1,5 – 2 : 1. Le maxi est pour un zoom ; on le laisse vide avec une
-    optique fixe.</p>`);
-  const fl = el("div", "ff");
-  fl.append(champ("Flux (lumens)", "lm", "10000"), champ("Gain d'écran", "gain", "1"));
-  co.append(fl);
-  co.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:-4px 0 0">Facultatif, pour
-    la luminosité. Repère : 48 cd/m² (14 ft-L) en salle noire, norme cinéma SMPTE.</p>`);
+  co.insertAdjacentHTML("beforeend", note(c.sens === "o"
+    ? "Facultatif : l'optique du projecteur, pour savoir si elle couvre le rapport trouvé."
+    : "Sur la fiche de l'objectif, écrit 1,5 – 2 : 1. Le maxi est pour un zoom ; on le laisse vide avec une optique fixe.", 0));
   d.append(co);
 
+  const cm = el("div", "card");
+  cm.innerHTML = `<h4>Projecteurs</h4>`;
+  cm.append(choix("Côte à côte", "n", [[1, "Un seul"], [2, "2"], [3, "3"], [4, "4"]]));
+  if(c.n > 1) cm.append(champ("Recouvrement (%)", "rec", "15",
+    "La part de l'image d'un projecteur qui chevauche la voisine pour le fondu (edge blending)."));
+  cm.append(choix("Définition", "res", RESOLUTIONS.map(([v, t]) => [v, t])));
+  d.append(cm);
+
+  const cl = el("div", "card");
+  cl.innerHTML = `<h4>Luminosité</h4>`;
+  cl.append(choix("Lumière ambiante", "amb", AMBIANCES));
+  cl.append(champ("Ambiant sur l'écran (lux)", "amb", "50",
+    "Des ordres de grandeur : mesurez au luxmètre, capteur tourné vers le public, projecteur éteint."));
+  cl.append(choix("Contraste visé", "ctr", CONTRASTES.map(([v, t]) => [v, t])));
+  cl.insertAdjacentHTML("beforeend", note(CONTRASTES.map(([, t, s]) => t + " " + s).join(" · ")
+    + " (ANSI/INFOCOMM 3M-2011)."));
+  const fl = el("div", "ff");
+  fl.append(champ("Gain d'écran", "gain", "1"), champ("Marge (%)", "marge", "20"));
+  cl.append(fl);
+  cl.insertAdjacentHTML("beforeend", note("La marge couvre le vieillissement de la lampe ou du laser et les modes éco."));
+  cl.append(champ("Flux du projecteur (lm)", "lm", "10000", "Facultatif : pour vérifier un projecteur donné."));
+  cl.append(zl);
+  d.append(cl);
+
+  const cp = el("div", "card");
+  cp.innerHTML = `<h4>Public</h4>`;
+  cp.append(zp);
+  cp.insertAdjacentHTML("beforeend", note("Dernier rang : règle 4-6-8, en hauteurs d'image. Premier rang : "
+    + "là où l'œil ne distingue plus un pixel (une minute d'arc).", 0).replace("margin:-4px", "margin:10px"));
+  d.append(cp);
+
   const fo = el("div", "card");
-  fo.innerHTML = `<h4>Formules</h4><p class="formule">distance = rapport × largeur<br>
-    largeur = diagonale × r / √(r² + 1)<br>lux = lumens / surface<br>
-    cd/m² = lux × gain / π</p>`;
+  fo.innerHTML = `<h4>Formules</h4><p class="formule">rapport = distance / largeur d'un projecteur<br>
+    largeur = diagonale × r / √(r² + 1)<br>mosaïque : largeur = l × (n − (n − 1) × recouvrement)<br>
+    lux = lumens / surface d'un projecteur<br>cd/m² = lux × gain / π<br>
+    contraste = (lux projeté + ambiant) / ambiant<br>lumens = max(ambiant × (contraste − 1), 48 π / gain)<br>
+    &nbsp;&nbsp;× surface × (1 + marge)<br>premier rang = pixel / tan(1′)</p>`;
   d.append(fo);
 
-  peindreDist(res);
+  peindre();
   return d;
 }
 

@@ -70,7 +70,7 @@ Quelques détails qui ont leur importance :
 | Réseau | Balayage du /24 : ICMP quand le système l'autorise, sinon TCP |
 | Art-Net / sACN | Découverte des nœuds, recensement des univers, niveaux en direct |
 | Flux NDI | Découverte mDNS `_ndi._tcp` : nom, machine, adresse, port |
-| Projection | Distance de projection d'après la taille d'image et le rapport de projection (mini et maxi pour un zoom), ou taille d'image d'après la distance ; format 16:9, 16:10, 4:3 ou 2,39:1 ; éclairement et luminance d'après les lumens et le gain d'écran |
+| Projection | Distance, taille d'image ou rapport d'optique à trouver (avec la classe d'optique et le contrôle du zoom) ; mosaïque de 2 à 4 projecteurs avec recouvrement ; lumens nécessaires d'après la lumière ambiante, le contraste visé (ANSI/INFOCOMM 3M-2011), le gain et une marge ; définition, taille de pixel et distances du public (règle 4-6-8, acuité d'une minute d'arc) |
 | Onduleur | Capacité d'UPS (VA) et de batterie (VAh) d'après la puissance, le facteur de puissance, le rendement et l'autonomie voulue |
 | Testeur d'adresse | Émission d'une trame Art-Net sur un canal, sans console |
 
