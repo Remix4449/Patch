@@ -155,6 +155,16 @@
   .bar .cnt{font:500 12px/1 var(--mono);color:var(--ink3)}
 
   .rowlist{display:flex;flex-direction:column;gap:8px}
+  .ndivue{padding:12px}
+  .ndihaut{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .ndihaut b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ndicadre{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}
+  .ndicadre img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+  .ndicadre img:not([src]){visibility:hidden}
+  .ndicadre.fige img{opacity:.35}
+  .ndimsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;
+    text-align:center;color:#fff;font:600 13px/1.4 var(--body)}
+  .ndipied{margin:10px 0 0;font-size:12px}
   .row{display:flex;align-items:center;gap:12px;background:var(--sur);border:1px solid transparent;
        border-radius:14px;padding:12px 14px;cursor:pointer;text-align:left;width:100%}
   .row:hover{border-color:var(--line)}
@@ -4359,26 +4369,83 @@ function marque(demo){ return demo ? `<span class="chipdemo">Démo</span>`
 function vNdi(){
   const d = el("div");
   d.append(bar("Flux NDI"));
+  const vue = el("div", "card ndivue");
+  vue.hidden = true;
+  d.append(vue);
   const info = el("p");
   info.style.margin = "0 0 12px";
   d.append(info);
   const l = el("div", "rowlist");
   d.append(l);
-  poser(NET.ndi(e => {
-    const src = e.sources || [];
+  let arretVue = null, choisie = null;
+
+  const fermerVue = () => {
+    if(arretVue){ arretVue(); arretVue = null; }
+    choisie = null;
+    vue.hidden = true;
+    vue.replaceChildren();
+  };
+
+  /* Aperçu d'une source : le téléphone demande le flux basse qualité et le décode
+     lui-même. Tant qu'aucune image n'est arrivée, on dit où on en est. */
+  const ouvrirVue = n => {
+    fermerVue();
+    choisie = n.nom + "@" + n.ip + ":" + n.port;
+    vue.hidden = false;
+    const tete = el("div", "ndihaut");
+    const titre = el("b", null, esc(n.nom));
+    const fermer = el("button", "pill", "Fermer");
+    fermer.onclick = () => { fermerVue(); peindreListe(); };
+    tete.append(titre, fermer);
+    const cadre = el("div", "ndicadre");
+    const img = el("img");
+    img.alt = "Image de " + n.nom;
+    const msg = el("span", "ndimsg", "Connexion à la source…");
+    cadre.append(img, msg);
+    const pied = el("p", "muted ndipied", "");
+    vue.append(tete, cadre, pied);
+    let vue1 = false;
+    arretVue = NET.ndiVoir(n, e => {
+      if(e.aspect) cadre.style.aspectRatio = String(e.aspect);
+      if(e.img){ img.src = e.img; vue1 = true; }
+      const erreur = e.etat === "erreur" ? (e.erreur || "réception interrompue") : "";
+      msg.textContent = erreur ? "Pas d'image : " + erreur
+        : e.etat === "connexion" ? "Connexion à la source…"
+        : !vue1 ? "Connectée, en attente de la première image…" : "";
+      msg.hidden = !msg.textContent;
+      cadre.classList.toggle("fige", !!erreur && vue1);
+      const faits = [];
+      if(e.l) faits.push(`${e.l}×${e.h}`);
+      if(e.cadence) faits.push(`${vg(e.cadence)} i/s en source`);
+      if(e.l) faits.push(`${vg(e.ips || 0)} i/s affichées`, `${vg(e.mbps || 0)} Mb/s`);
+      faits.push("aperçu basse qualité");
+      if(e.erreur && !erreur) faits.push(esc(e.erreur));
+      pied.innerHTML = (e.demo || e.etat === "direct" ? `${marque(e.demo)} ` : "") + faits.join(" · ");
+    });
+  };
+
+  let dernier = { sources:[] };
+  const peindreListe = () => {
+    const e = dernier, src = e.sources || [];
     info.innerHTML = `${marque(e.demo)} <span class="muted"> ${src.length} source${src.length > 1 ? "s" : ""}
-      annoncée${src.length > 1 ? "s" : ""} en mDNS${e.encours ? " · recherche en cours…" : ""}</span>`;
+      annoncée${src.length > 1 ? "s" : ""} en mDNS${e.encours ? " · recherche en cours…" : ""}
+      ${src.length ? " · touche une source pour la voir" : ""}</span>`;
     l.replaceChildren(...src.map(n => {
       const b = el("button", "row");
+      const cle = n.nom + "@" + n.ip + ":" + n.port;
       b.style.setProperty("--c", n.ok === false ? "var(--ink3)" : "var(--ndi)");
       b.innerHTML = `<span class="av">${ic("ndi")}</span>
         <span class="g"><b>${esc(n.nom)}</b><span>${esc(n.machine || n.ip || "")}${n.port ? " : " + n.port : ""}${n.fmt ? " · " + esc(n.fmt) : ""}</span></span>
-        <span class="r">${n.mbps ? n.mbps + " Mb/s" : "—"}<i>${esc(n.tally || "")}</i></span>`;
+        <span class="r">${cle === choisie ? "à l'écran" : (n.mbps ? n.mbps + " Mb/s" : "Voir")}<i>${esc(n.tally || "")}</i></span>`;
+      b.onclick = () => { ouvrirVue(n); peindreListe(); vue.scrollIntoView({ block:"nearest" }); };
       return b;
     }));
     if(!src.length && !e.encours)
       l.replaceChildren(el("p", "muted", "Aucune source NDI sur ce réseau."));
-  }));
+  };
+
+  const arretListe = NET.ndi(e => { dernier = e; peindreListe(); });
+  poser(() => { arretListe(); fermerVue(); });
   return d;
 }
 

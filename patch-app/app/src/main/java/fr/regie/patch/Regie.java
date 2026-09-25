@@ -25,6 +25,7 @@ public class Regie {
     private final Rdmnet rdmnet = new Rdmnet(rdm);
     private final Llrp llrp = new Llrp();
     private final Ndi ndi;
+    private final NdiFlux flux = new NdiFlux();
     private final Maj maj;
 
     private volatile String proto = "Art-Net";
@@ -240,6 +241,46 @@ public class Regie {
             JSONObject o = new JSONObject();
             o.put("encours", ndi.encours);
             o.put("sources", a);
+            return o.toString();
+        } catch (Exception e) { return "{}"; }
+    }
+
+    /** Ouvre la réception d'une source : flux basse qualité, décodé dans l'application. */
+    @JavascriptInterface
+    public void ndiVoir(String ip, int port, String nom) { flux.ouvrir(ip, port, nom); }
+
+    @JavascriptInterface
+    public void ndiFermer() { flux.fermer(); }
+
+    /**
+     * État de la réception et, si une image nouvelle est prête, la même en
+     * JPEG (data URL). Rien de neuf : img vide, l'écran garde l'image affichée.
+     */
+    @JavascriptInterface
+    public String ndiImage() {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("etat", flux.etat);
+            o.put("erreur", flux.erreur);
+            o.put("source", flux.source);
+            o.put("fourcc", flux.fourcc);
+            o.put("l", flux.largeur);
+            o.put("h", flux.hauteur);
+            o.put("aspect", flux.aspect);
+            o.put("cadence", flux.cadence);
+            o.put("ips", flux.affichees);
+            o.put("mbps", flux.mbps);
+            String img = "";
+            Object[] im = flux.nouvelleImage();
+            if (im != null) {
+                android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(
+                        (int[]) im[0], (Integer) im[1], (Integer) im[2], android.graphics.Bitmap.Config.ARGB_8888);
+                java.io.ByteArrayOutputStream j = new java.io.ByteArrayOutputStream();
+                b.compress(android.graphics.Bitmap.CompressFormat.JPEG, 75, j);
+                b.recycle();
+                img = "data:image/jpeg;base64," + Base64.encodeToString(j.toByteArray(), Base64.NO_WRAP);
+            }
+            o.put("img", img);
             return o.toString();
         } catch (Exception e) { return "{}"; }
     }
@@ -466,6 +507,7 @@ public class Regie {
         rdmnet.toutArreter();
         scan.arreter();
         ndi.arreter();
+        flux.fermer();
         art.arreter();
         sacn.arreter();
         reseau.liberer();
