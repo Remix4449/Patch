@@ -67,12 +67,15 @@
   /* L'état du réseau : c'est ce qu'on vient vérifier d'un coup d'œil avant
      d'envoyer du sACN, donc il porte sa couleur, et il s'ouvre sur l'outil
      Réseau. Hauteur 44 px : c'est une cible, pas une étiquette. */
-  .head .badge{margin-left:auto;font:700 10px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;
-       background:var(--sur2);color:var(--ink2);border:1.5px solid transparent;padding:0 13px;
+  .head .badge{margin-left:auto;font:600 12.5px/1 var(--mono);background:var(--sur2);color:var(--ink2);
+       border:0;padding:0 14px 0 12px;gap:7px;
        min-height:44px;display:inline-flex;align-items:center;border-radius:99px;white-space:nowrap;
        cursor:pointer;flex:none}
-  .head .badge.ok{color:var(--ok);border-color:var(--ok)}
-  .head .badge.ko{color:var(--ko);border-color:var(--ko)}
+  /* Un point de couleur devant l'adresse : vert en réseau, rouge hors réseau,
+     gris en démo — la pastille grise seule passait pour un bouton éteint. */
+  .head .badge::before{content:"";width:8px;height:8px;border-radius:99px;background:currentColor;flex:none}
+  .head .badge.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--bg))}
+  .head .badge.ko{color:var(--ko);background:color-mix(in srgb,var(--ko) 12%,var(--bg))}
   .head .badge:active{transform:scale(.97)}
   .head p{margin:0;color:var(--ink2);font-size:13.5px}
   .head p b{font-weight:700;color:var(--ink)}
@@ -166,13 +169,34 @@
   .encours i{font:700 13px/1 var(--body);font-style:normal;background:rgba(0,0,0,.2);
        padding:11px 14px;border-radius:99px;white-space:nowrap;flex:none}
   .encours:active{transform:scale(.99)}
-  @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]) .encours{background:var(--sur);color:var(--ink);box-shadow:inset 3px 0 0 var(--dmx)}
-    :root:not([data-theme="light"]) .encours i{background:var(--dmx);color:var(--bg)}
-  }
-  :root[data-theme="dark"] .encours{background:var(--sur);color:var(--ink);box-shadow:inset 3px 0 0 var(--dmx)}
-  :root[data-theme="dark"] .encours i{background:var(--dmx);color:var(--bg)}
+  /* Pleine dans les deux thèmes, comme sur la maquette de l'audit : c'est la
+     carte qu'on vient toucher. En sombre elle prend un orange un peu éteint,
+     assez foncé pour garder le blanc lisible (5,1:1). */
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .encours{background:#A9581A} }
+  :root[data-theme="dark"] .encours{background:#A9581A}
   .astuce{margin:10px 2px 0;font-size:12.5px}
+
+  /* La journée : l'heure à gauche, le titre, le genre à droite. */
+  .jour{display:flex;flex-direction:column;gap:6px}
+  .jl{display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--sur);color:inherit;
+      border-radius:14px;padding:12px 14px;min-height:52px;cursor:pointer;text-align:left}
+  .jl:active{transform:scale(.99)}
+  .jl .h{flex:none;width:46px;font:600 13px/1.2 var(--mono);color:var(--ink2);font-variant-numeric:tabular-nums}
+  .jl .h i{display:block;width:8px;height:8px;border-radius:99px;background:var(--c)}
+  .jl .g{flex:1;min-width:0}
+  .jl .g b{display:block;font:600 14.5px/1.3 var(--body)}
+  .jl .g span{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
+  .jl .t{flex:none;font:700 10.5px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .jl.retard .t{color:var(--ko)}
+
+  /* Épinglés : une pastille de couleur et un nom, deux par rangée. */
+  .epgl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ep{display:flex;align-items:center;gap:10px;border:0;background:var(--sur);color:var(--ink);
+      border-radius:14px;padding:14px;min-height:54px;cursor:pointer;text-align:left;
+      font:700 15px/1.2 var(--body)}
+  .ep:active{transform:scale(.98)}
+  .ep i{width:11px;height:11px;border-radius:3px;background:var(--c);flex:none}
+  .ep span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .signal{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;
        transform:translate(-50%,12px);opacity:0;pointer-events:none;transition:.18s;
@@ -371,6 +395,9 @@
   .mark{width:36px;height:36px;border-radius:12px;flex:none;display:grid;place-items:center;color:#fff;
         background:linear-gradient(140deg,var(--proj),var(--haut))}
   .mark .ic{width:21px;height:21px;stroke-width:1.6}
+  .mark.patch{background:var(--dmx)}
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .mark.patch{background:#A9581A} }
+  :root[data-theme="dark"] .mark.patch{background:#A9581A}
   .tile .ic{width:27px;height:27px;opacity:.92;stroke-width:1.6;color:var(--t-ico)}
   .tile.sm .ic{width:23px;height:23px}
   .tile .tx{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -1137,11 +1164,11 @@ function home(){
   const d = el("div");
   const nb = adresser(P.lignes).length;
   const nom = (P.nom || "").trim();
-  d.innerHTML = `<div class="head"><span class="mark">${ic("dmx")}</span>
+  d.innerHTML = `<div class="head"><span class="mark patch">${ic("dmx")}</span>
       <div><h1>Patch</h1><p>${nom ? `<b>${esc(nom)}</b> · ` : ""}${nb} appareil${nb > 1 ? "s" : ""}</p></div>
       <button class="badge" id="etat-res" aria-label="État du réseau">hors réseau</button></div>
     <label class="sbar">${ic("search")}
-      <input id="q" value="${esc(S.q)}" placeholder="dmx, palan, L201, Ghibli, IP…" autocomplete="off"></label>
+      <input id="q" value="${esc(S.q)}" placeholder="Chercher : dmx, palan, L201, IP…" autocomplete="off"></label>
     <div id="maj-zone"></div>`;
   const badge = d.querySelector("#etat-res");
   if(badge) badge.onclick = () => { toucher(); go({ v:"net" }); };
@@ -1163,16 +1190,10 @@ function home(){
     d.insertAdjacentHTML("beforeend", `<h2 class="sec">Aujourd'hui</h2>`);
     let jour = [];
     try { jour = logDuJour(); } catch(e){ jour = []; }
-    const l = el("div", "rowlist");
+    const l = el("div", "jour");
     if(jour.length){
       charge = true;
-      jour.slice(0, 4).forEach(o => {
-        let r;
-        try { r = rowLog(o.fiche, logEtat(o.fiche, logAuj())); }
-        catch(e){ r = rowSimple(o.titre, o.sous, o.quand || "", o.detail || "", "var(--log)", "log");
-                  r.onclick = () => { toucher(); go({ v:"logf", i:o.fiche.id }); }; }
-        l.append(r);
-      });
+      jour.slice(0, 4).forEach(o => l.append(ligneJour(o)));
     } else l.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0 2px">Rien de prévu aujourd'hui.</p>`);
     const tout = el("button", "voir", jour.length > 4 ? `Voir les ${jour.length} du jour dans l'agenda` : "Ouvrir l'agenda");
     tout.onclick = () => { toucher(); go({ v:"log" }); };
@@ -1180,18 +1201,42 @@ function home(){
     d.append(l);
   }
 
-  d.insertAdjacentHTML("beforeend", `<h2 class="sec">Raccourcis</h2>`);
-  const g = el("div", "tiles");
+  d.insertAdjacentHTML("beforeend", `<h2 class="sec">${EPINGLES.length ? "Épinglés" : "Récents"}</h2>`);
+  const g = el("div", "epgl");
   /* Quatre quand la journée est chargée, pour que l'accueil tienne encore. */
   raccourcis(charge ? 4 : 6).forEach(c => {
-    const grp = TOOL_GROUPES.find(x => x.cles.includes(c.k));
-    g.append(tuile(c, true, grp && COULEUR_GROUPE[grp.t]));
+    /* La couleur propre de l'outil, pas celle du groupe : quatre pastilles
+       orange côte à côte ne se distinguaient plus. */
+    const b = el("button", "ep", `<i></i><span>${esc(c.t)}</span>`);
+    b.style.setProperty("--c", c.c);
+    b.setAttribute("aria-label", c.t + " : " + c.s);
+    b.onclick = () => { toucher(); go({ v:c.k }); };
+    g.append(b);
   });
   d.append(g);
   d.insertAdjacentHTML("beforeend", `<p class="muted astuce">${EPINGLES.length
     ? "Les outils épinglés d'abord, puis les derniers ouverts."
     : "Les derniers outils ouverts. Un appui long sur un outil, dans Outils, l'épingle ici."}</p>`);
   return d;
+}
+
+/* Une ligne de la journée : l'heure quand il y en a une, sinon un point de la
+   couleur du carnet ; le titre et où on en est ; le genre en petites
+   capitales à droite, en rouge pour un retard. */
+function ligneJour(o){
+  const x = o.fiche || {};
+  const def = (typeof LOG_TYPES === "object" && LOG_TYPES[x.type]) || {};
+  const heure = x.hdebut && /^\d{1,2}:\d{2}/.test(x.hdebut) ? x.hdebut.slice(0, 5).padStart(5, "0") : "";
+  const b = el("button", "jl" + (o.groupe === "retard" ? " retard" : ""));
+  b.style.setProperty("--c", def.c || "var(--log)");
+  const sous = [o.quand && o.quand !== "ce jour" && !/^\d+ h/.test(o.quand) ? o.quand : "",
+                o.sous !== def.t ? o.sous : ""]
+    .filter(Boolean).join(" · ");
+  b.innerHTML = `<span class="h">${heure ? esc(heure) : "<i></i>"}</span>
+    <span class="g"><b>${esc(o.titre)}</b>${sous ? `<span>${esc(sous)}</span>` : ""}</span>
+    <span class="t">${esc(o.groupe === "retard" ? "Retard" : def.t || "")}</span>`;
+  b.onclick = () => { toucher(); go({ v:"logf", i:x.id }); };
+  return b;
 }
 
 /* Les deux onglets du bas tombaient sur le premier élément de leur famille —
