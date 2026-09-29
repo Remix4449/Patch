@@ -139,6 +139,17 @@ function logEtat(x, j){
            r2:[h, x.fin && x.fin !== x.debut ? "→ " + jourCourt(x.fin) : ""].filter(Boolean).join(" ") };
 }
 
+/* Ce qui concerne la journée, pour qui veut l'afficher ailleurs (un bloc
+   « Aujourd'hui » à l'accueil) : les retards d'abord, puis ce qui a lieu ou
+   court aujourd'hui. Chaque entrée garde la fiche, son état et ses libellés. */
+function logDuJour(){
+  const j = logAuj(), ordre = ["retard", "auj", "cours"];
+  return logVivants().map(x => ({ x, e:logEtat(x, j) }))
+    .filter(o => ordre.includes(o.e.g))
+    .sort((a, b) => ordre.indexOf(a.e.g) - ordre.indexOf(b.e.g) || String(a.e.cle).localeCompare(b.e.cle))
+    .map(({ x, e }) => ({ fiche:x, groupe:e.g, titre:logTitre(x), sous:logSous(x), quand:e.r, detail:e.r2 }));
+}
+
 function logSous(x){
   if(x.type === "pret")
     return [(x.sens || "Prêté à") + " " + (x.tiers || "?"), x.spectacle].filter(Boolean).join(" · ");
