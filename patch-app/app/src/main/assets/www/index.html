@@ -15,11 +15,13 @@
 
   :root{
     --bg:#FFFFFF; --sur:#F3F4F7; --sur2:#E8EAF0; --line:#DDE0E8;
-    --ink:#0F1116; --ink2:#5A6070; --ink3:#8990A0;
-    --proj:#2F4BFF; --mach:#00998D; --haut:#E0218A; --mdg:#7A3FF2;
-    --dmx:#E2761C; --gel:#C2185B; --ndi:#0E7BC4; --net:#128A45; --art:#5B3FD6;
+    --ink:#0F1116; --ink2:#5A6070; --ink3:#666D7D;
+    /* Tous à 4,5:1 au moins sous du texte blanc : l'orange du Patch, l'outil
+       qu'on ouvre le plus, tombait à 3,1:1. */
+    --proj:#2F4BFF; --mach:#008379; --haut:#D92085; --mdg:#7A3FF2;
+    --dmx:#B45E16; --gel:#C2185B; --ndi:#0E7BC4; --net:#118542; --art:#5B3FD6;
     --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757; --cab:#A34E1D; --rig:#3C5A73;
-    --bil:#8A1F2B; --led:#3F8F00; --elec:#243B6B; --sub:#0A6E7C;
+    --bil:#8A1F2B; --led:#3A8400; --elec:#243B6B; --sub:#0A6E7C;
     /* Assombris : en petites capitales sur une surface claire, ils passaient
        sous le seuil lisible — ici et partout où ils servent de texte. */
     --ok:#0C6E36; --ko:#B01F1A;
@@ -51,6 +53,9 @@
   body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);
        -webkit-font-smoothing:antialiased}
   button,input{font:inherit;color:inherit}
+  /* Un exemple ne doit pas se lire comme une valeur : police du texte, plus
+     pâle, et « ex. » devant. La mono reste aux vraies données. */
+  input::placeholder{font-family:var(--body);color:var(--ink3);opacity:.7}
   :focus-visible{outline:2px solid var(--proj);outline-offset:2px}
 
   .shell{max-width:560px;margin:0 auto;padding:0 16px
@@ -87,14 +92,22 @@
      couleur de famille, qui n'est posée que sur l'élément — déclarés plus haut
      ils se résoudraient contre un `--c` inexistant, et la tuile n'aurait plus
      de fond du tout. */
-  .tile{--t-fond:var(--c); --t-ink:#fff; --t-ink2:rgba(255,255,255,.9);
-        --t-n:rgba(255,255,255,.55); --t-filet:transparent; --t-ico:currentColor}
+  /* En clair aussi, désormais : vingt pavés de vingt couleurs ne disaient
+     plus rien. La tuile est neutre dans les deux thèmes, la couleur (celle du
+     groupe) passe sur le pictogramme et le filet. Seul le Patch garde un fond
+     plein en clair — c'est l'outil qu'on ouvre le plus. */
+  .tile{--t-fond:var(--sur); --t-ink:var(--ink); --t-ink2:var(--ink2);
+        --t-n:var(--ink3); --t-filet:var(--c); --t-ico:var(--c)}
+  .tile.plein{--t-fond:var(--c); --t-ink:#fff; --t-ink2:rgba(255,255,255,.9);
+        --t-n:rgba(255,255,255,.7); --t-filet:transparent; --t-ico:currentColor}
   @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]) .tile{--t-fond:var(--sur); --t-ink:var(--ink);
+    :root:not([data-theme="light"]) .tile.plein{--t-fond:var(--sur); --t-ink:var(--ink);
       --t-ink2:var(--ink2); --t-n:var(--ink3); --t-filet:var(--c); --t-ico:var(--c)}
   }
-  :root[data-theme="dark"] .tile{--t-fond:var(--sur); --t-ink:var(--ink);
+  :root[data-theme="dark"] .tile.plein{--t-fond:var(--sur); --t-ink:var(--ink);
     --t-ink2:var(--ink2); --t-n:var(--ink3); --t-filet:var(--c); --t-ico:var(--c)}
+  .tile .epingle{position:absolute;right:11px;top:10px;width:8px;height:8px;border-radius:99px;
+        background:var(--t-ico)}
 
   .tile{border:0;border-radius:18px;padding:16px;cursor:pointer;text-align:left;
         color:var(--t-ink);box-shadow:inset 3px 0 0 var(--t-filet);
@@ -144,6 +157,30 @@
   h3.sous{font:600 12.5px/1 var(--body);color:var(--ink2);margin:16px 2px 8px}
   h3.sous:first-of-type{margin-top:2px}
 
+  /* Accueil : le patch en cours, la carte qu'on vient toucher. */
+  .encours{display:flex;align-items:center;gap:12px;width:100%;border:0;cursor:pointer;text-align:left;
+       background:var(--dmx);color:#fff;border-radius:18px;padding:16px;min-height:78px}
+  .encours .g{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .encours b{font:800 18px/1.15 var(--disp);letter-spacing:-.02em}
+  .encours span{font:500 13px/1.3 var(--body);opacity:.92}
+  .encours i{font:700 13px/1 var(--body);font-style:normal;background:rgba(0,0,0,.2);
+       padding:11px 14px;border-radius:99px;white-space:nowrap;flex:none}
+  .encours:active{transform:scale(.99)}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .encours{background:var(--sur);color:var(--ink);box-shadow:inset 3px 0 0 var(--dmx)}
+    :root:not([data-theme="light"]) .encours i{background:var(--dmx);color:var(--bg)}
+  }
+  :root[data-theme="dark"] .encours{background:var(--sur);color:var(--ink);box-shadow:inset 3px 0 0 var(--dmx)}
+  :root[data-theme="dark"] .encours i{background:var(--dmx);color:var(--bg)}
+  .astuce{margin:10px 2px 0;font-size:12.5px}
+
+  .signal{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;
+       transform:translate(-50%,12px);opacity:0;pointer-events:none;transition:.18s;
+       background:var(--ink);color:var(--bg);font:600 13px/1.3 var(--body);padding:10px 14px;border-radius:12px;
+       max-width:calc(100% - 32px)}
+  .signal.vu{opacity:1;transform:translate(-50%,0)}
+  @media (prefers-reduced-motion:reduce){ .signal{transition:none} }
+
   .bar{display:flex;align-items:center;gap:10px;padding:14px 0 12px;position:sticky;
        top:env(safe-area-inset-top,0px);background:var(--bg);z-index:4;border-bottom:1px solid var(--line);
        margin-bottom:14px}
@@ -151,8 +188,10 @@
      et il était sous le minimum touchable. */
   .bk{border:0;background:var(--sur);border-radius:99px;width:44px;height:44px;cursor:pointer;
       display:grid;place-items:center;flex:none;font-size:17px;line-height:1}
+  .bar.racine{padding-top:20px}
+  .bar.racine h2{font-size:24px}
   .bar h2{font:800 20px/1.1 var(--disp);letter-spacing:-.02em;margin:0;flex:1;min-width:0}
-  .bar .cnt{font:500 12px/1 var(--mono);color:var(--ink3)}
+  .bar .cnt{font:500 12.5px/1.2 var(--body);color:var(--ink3);text-align:right}
 
   .rowlist{display:flex;flex-direction:column;gap:8px}
   .row{display:flex;align-items:center;gap:12px;background:var(--sur);border:1px solid transparent;
@@ -376,7 +415,7 @@
   .tl .led.on{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
   .tl .ap{display:flex;align-items:baseline;gap:6px;min-width:92px}
   .tl .ap b{font:600 20px/1 var(--mono);color:var(--tel);font-variant-numeric:tabular-nums}
-  .tl .ap span{font:500 10.5px/1.2 var(--mono);color:var(--ink3)}
+  .tl .ap span{font:500 11.5px/1.2 var(--body);color:var(--ink3)}
   .tl .niv{font:600 15px/1 var(--mono);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
   .tl button{border:1.5px solid var(--line);background:var(--bg);border-radius:9px;padding:6px 8px;
       font:600 11.5px/1 var(--body);color:var(--ink2);min-width:34px;cursor:pointer}
@@ -465,7 +504,7 @@
   .p-volet .tete{flex:none;display:flex;align-items:baseline;gap:10px;padding:2px 16px 10px;
       border-bottom:1px solid var(--line)}
   .p-volet .tete h3{font:800 17px/1.1 var(--disp);letter-spacing:-.02em;margin:0}
-  .p-volet .tete .cpt{margin-left:auto;font:500 11.5px/1 var(--mono);color:var(--ink3)}
+  .p-volet .tete .cpt{margin-left:auto;font:500 12.5px/1 var(--body);color:var(--ink3)}
   .p-volet .tete .x{border:0;background:var(--sur2);border-radius:99px;width:30px;height:30px;
       color:var(--ink2);font-size:15px;line-height:1;cursor:pointer}
   .p-volet .corps{flex:1;min-height:0;overflow-y:auto;padding:12px 16px
@@ -811,6 +850,7 @@
 <div class="shell" id="app"></div>
 <nav class="tabbar"><div class="in">
   <button class="tb" data-t="home"><svg class="ic"><use href="#i-home"/></svg>Accueil</button>
+  <button class="tb" data-t="agenda" hidden><svg class="ic"><use href="#i-agenda"/></svg>Agenda</button>
   <button class="tb" data-t="parc"><svg class="ic"><use href="#i-parc"/></svg>Parc</button>
   <button class="tb" data-t="tools"><svg class="ic"><use href="#i-outils"/></svg>Outils</button>
 </div></nav>
@@ -861,8 +901,8 @@ const CATS = [
    mais reste celui de la recherche et sert de liste de référence. */
 const TOOLS = [
   { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx", large:true },
-  { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
-  { k:"tcd", t:"Canal DMX", s:"Un canal à la main", c:"var(--tcd)", i:"fader" },
+  { k:"tel", t:"Relevé", s:"Gradateurs → circuits", c:"var(--tel)", i:"remote" },
+  { k:"tcd", t:"Pupitre", s:"Commande façon Eos, canal à la main", c:"var(--tcd)", i:"fader" },
   { k:"gel", t:"Gélatines", s:"Lee, GAM, Rosco → LED", c:"var(--gel)", i:"gel" },
   { k:"led", t:"LED", s:"Ruban : alim, résistance", c:"var(--led)", i:"led" },
   { k:"dist", t:"Projection", s:"Distance, optique, lumens", c:"var(--dpj)", i:"projo" },
@@ -879,6 +919,29 @@ const TOOLS = [
   { k:"log", t:"Logistique", s:"Événements, prêts, stagiaires", c:"var(--log)", i:"log", large:true,
     n:() => logVivants().filter(x => logEtat(x, logAuj()).g !== "fini").length || "" }
 ];
+/* La recherche ne lisait que le titre et le sous-titre : « dmx » ne trouvait
+   ni le Patch ni le Relevé, « ampère » ni Électricité ni Section câble. */
+const MOTS = {
+  dmx:"dmx adresse univers patch pdf feuille gdtf mode empreinte",
+  tel:"dmx gradateur circuit releve sacn artnet",
+  tcd:"dmx pupitre eos console canal commande thru at full sneak",
+  gel:"filtre couleur lee gam rosco rgb rgbw cmy led",
+  led:"ruban bande alimentation resistance ohm volt",
+  dist:"videoprojecteur projecteur video optique focale ecran lux lumen",
+  ndi:"video flux reseau camera",
+  ups:"onduleur batterie autonomie va watt",
+  cab:"cable section chute tension ampere mm2 longueur",
+  bil:"phase multi triphase puissance watt repartition",
+  elec:"ampere courant phase tri mono groupe electrogene cos phi disjoncteur kw",
+  rig:"cmu charge palan elingue elingage angle accroche moteur",
+  net:"ip ping wifi reseau hote",
+  sub:"ip masque cidr reseau broadcast plage",
+  art:"dmx artnet sacn univers ecoute noeud node",
+  rdm:"dmx adresse node noeud rdmnet llrp",
+  proj:"lumiere lyre decoupe pc wash", mach:"structure accroche moteur pendrillon frise",
+  haut:"nacelle pemp passerelle", mdg:"notice manuel fiche",
+  maj:"version theme sombre clair mise a jour apk"
+};
 /* Tout ce que l'accueil sait ouvrir, y compris les outils : taper « réseau »
    ou « patch » répondait « rien pour… » alors que la tuile était juste dessous. */
 const DESTINATIONS = () => [...CATS, ...TOOLS,
@@ -894,6 +957,43 @@ const TOOL_GROUPES = [
   { t:"Réseau", cles:["net", "sub", "art", "rdm"] },
   { t:"Organisation", cles:["log"] }
 ];
+
+/* Une couleur par métier, sur les tuiles : elle dit à quel groupe on touche.
+   Un groupe absent d'ici garde la couleur propre de ses outils. */
+const COULEUR_GROUPE = {
+  "Éclairage & vidéo":"var(--dmx)", "Électricité & structure":"var(--elec)", "Réseau":"var(--net)"
+};
+
+/* Accueil : les outils épinglés d'abord, puis les derniers ouverts. */
+const CLE_EPINGLES = "epingles.v1", CLE_RECENTS = "recents.v1";
+let EPINGLES = [], RECENTS = [];
+try { EPINGLES = JSON.parse(localStorage.getItem(CLE_EPINGLES)) || []; } catch(e){ }
+try { RECENTS = JSON.parse(localStorage.getItem(CLE_RECENTS)) || []; } catch(e){ }
+function basculerEpingle(k){
+  EPINGLES = EPINGLES.includes(k) ? EPINGLES.filter(x => x !== k) : [...EPINGLES, k];
+  try { localStorage.setItem(CLE_EPINGLES, JSON.stringify(EPINGLES)); } catch(e){ }
+  const o = TOOLS.find(x => x.k === k);
+  render();
+  signaler(o ? o.t + (EPINGLES.includes(k) ? " épinglé à l'accueil" : " retiré de l'accueil") : "");
+}
+function noterRecent(k){
+  if(!TOOLS.some(o => o.k === k)) return;
+  RECENTS = [k, ...RECENTS.filter(x => x !== k)].slice(0, 8);
+  try { localStorage.setItem(CLE_RECENTS, JSON.stringify(RECENTS)); } catch(e){ }
+}
+function raccourcis(n){
+  const cles = [...EPINGLES, ...RECENTS, "tel", "gel", "elec", "net", "rig", "cab"];
+  return [...new Set(cles)].filter(k => k !== "dmx")
+    .map(k => TOOLS.find(o => o.k === k)).filter(Boolean).slice(0, n);
+}
+/* Une ligne qui passe en bas de l'écran et s'en va. */
+function signaler(txt){
+  if(!txt) return;
+  let n = $("#signal");
+  if(!n){ n = el("div", "signal"); n.id = "signal"; n.setAttribute("role", "status"); document.body.append(n); }
+  n.textContent = txt; n.classList.add("vu");
+  clearTimeout(signaler.t); signaler.t = setTimeout(() => n.classList.remove("vu"), 2200);
+}
 
 /* --------------------------- aller et revenir ---------------------------- */
 /* Le geste de retour d'Android fermait l'application depuis n'importe quel
@@ -920,6 +1020,7 @@ const go = r => {
   if(!peutQuitterPatch(r.v)) return;
   PILE.push({ r:S.route, y:window.scrollY });
   try { history.pushState({ n:PILE.length }, ""); } catch(e){ }
+  noterRecent(r.v);
   S.route = r; window.scrollTo(0, 0); render();
 };
 
@@ -947,18 +1048,29 @@ window.addEventListener("popstate", () => {
 /* Dans le noir, avec un gant, un appui se sent mieux qu'il ne se voit. */
 function toucher(){ try { if(navigator.vibrate) navigator.vibrate(8); } catch(e){ } }
 
-function tuile(c, petite){
-  const b = el("button", "tile" + (c.large ? " wide" : petite ? " sm" : ""));
-  b.style.setProperty("--c", c.c);
+function tuile(c, petite, couleur){
+  const b = el("button", "tile" + (c.large ? " wide" : petite ? " sm" : "") + (c.k === "dmx" ? " plein" : ""));
+  b.style.setProperty("--c", couleur || c.c);
   const coin = c.n ? `<span class="n">${c.n()}</span>`
-             : c.mot ? `<span class="n mot">${esc(c.mot)}</span>` : "";
+             : c.mot ? `<span class="n mot">${esc(c.mot)}</span>`
+             : EPINGLES.includes(c.k) ? `<span class="epingle" title="Épinglé à l'accueil"></span>` : "";
   b.innerHTML = `${coin}${ic(c.i)}<span class="tx"><b>${esc(c.t)}</b><span>${esc(c.s)}</span></span>`;
-  b.onclick = () => { toucher(); go({ v:c.k }); };
+  /* Un appui long épingle l'outil à l'accueil (ou l'en retire) ; le toucher
+     qui suit ne doit pas l'ouvrir en plus. */
+  let tenu = null, long = false;
+  if(TOOLS.some(o => o.k === c.k)){
+    const lacher = () => { clearTimeout(tenu); tenu = null; };
+    b.addEventListener("pointerdown", () => { long = false;
+      tenu = setTimeout(() => { long = true; toucher(); basculerEpingle(c.k); }, 550); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, lacher));
+    b.addEventListener("contextmenu", e => e.preventDefault());
+  }
+  b.onclick = () => { if(long){ long = false; return; } toucher(); go({ v:c.k }); };
   return b;
 }
-function grille(liste, petite){
+function grille(liste, petite, couleur){
   const g = el("div", "tiles");
-  liste.forEach(c => g.append(tuile(c, petite)));
+  liste.forEach(c => g.append(tuile(c, petite, couleur)));
   /* Une petite tuile seule sur sa rangée laissait un trou dans la grille :
      elle prend la largeur. */
   const seules = [...g.children].filter(t => !t.classList.contains("wide"));
@@ -971,7 +1083,7 @@ function grilleOutils(){
   TOOL_GROUPES.forEach(g => {
     const items = g.cles.map(k => TOOLS.find(o => o.k === k)).filter(Boolean);
     if(!items.length) return;
-    f.append(el("h3", "sous", g.t), grille(items, true));
+    f.append(el("h3", "sous", g.t), grille(items, true, COULEUR_GROUPE[g.t]));
   });
   return f;
 }
@@ -1017,24 +1129,68 @@ function zoneAppli(){
   return z;
 }
 
+/* L'accueil recopiait Parc et Outils en entier : vingt tuiles, trois écrans
+   et demi. Il montre maintenant ce qu'on vient chercher en ouvrant l'app —
+   le patch en cours, la journée, ses outils — et tient dans un écran. Les
+   grilles complètes restent dans leurs onglets. */
 function home(){
   const d = el("div");
   const nb = adresser(P.lignes).length;
-  /* L'accroche de vitrine passait à deux ou trois lignes sur un téléphone pour
-     ne rien dire : à sa place, le patch ouvert, qui est ce qu'on vient voir. */
+  const nom = (P.nom || "").trim();
   d.innerHTML = `<div class="head"><span class="mark">${ic("dmx")}</span>
-      <div><h1>Patch</h1><p><b>${esc(P.nom || "Sans titre")}</b> · ${nb} appareil${nb > 1 ? "s" : ""}</p></div>
+      <div><h1>Patch</h1><p>${nom ? `<b>${esc(nom)}</b> · ` : ""}${nb} appareil${nb > 1 ? "s" : ""}</p></div>
       <button class="badge" id="etat-res" aria-label="État du réseau">hors réseau</button></div>
     <label class="sbar">${ic("search")}
-      <input id="q" value="${esc(S.q)}" placeholder="Ghibli, moteur, passerelle, L201, réseau…" autocomplete="off"></label>
+      <input id="q" value="${esc(S.q)}" placeholder="dmx, palan, L201, Ghibli, IP…" autocomplete="off"></label>
     <div id="maj-zone"></div>`;
   const badge = d.querySelector("#etat-res");
   if(badge) badge.onclick = () => { toucher(); go({ v:"net" }); };
   if(S.q.trim()) { d.append(resultats()); return d; }
-  d.insertAdjacentHTML("beforeend", `<h2 class="sec">Inventaire</h2>`);
-  d.append(grille(CATS));
-  d.insertAdjacentHTML("beforeend", `<h2 class="sec">Outils</h2>`);
-  d.append(grilleOutils(), zoneAppli());
+
+  /* Le patch en cours, avec ce qu'il reste à faire. */
+  d.insertAdjacentHTML("beforeend", `<h2 class="sec">En cours</h2>`);
+  const reste = restantsG();
+  const cur = el("button", "encours");
+  cur.innerHTML = `<span class="g"><b>${esc(nom || "Patch sans titre")}</b>
+      <span>${nb} appareil${nb > 1 ? "s" : ""} · ${reste ? reste + " gradateur" + (reste > 1 ? "s" : "") + " à relever"
+        : "tous les gradateurs relevés"}</span></span><i>Reprendre</i>`;
+  cur.onclick = () => { toucher(); go({ v:"dmx" }); };
+  d.append(cur);
+
+  /* La journée : ce que la logistique a pour aujourd'hui, retards d'abord. */
+  let charge = false;
+  if(VIEWS.log && typeof logDuJour === "function"){
+    d.insertAdjacentHTML("beforeend", `<h2 class="sec">Aujourd'hui</h2>`);
+    let jour = [];
+    try { jour = logDuJour(); } catch(e){ jour = []; }
+    const l = el("div", "rowlist");
+    if(jour.length){
+      charge = true;
+      jour.slice(0, 4).forEach(o => {
+        let r;
+        try { r = rowLog(o.fiche, logEtat(o.fiche, logAuj())); }
+        catch(e){ r = rowSimple(o.titre, o.sous, o.quand || "", o.detail || "", "var(--log)", "log");
+                  r.onclick = () => { toucher(); go({ v:"logf", i:o.fiche.id }); }; }
+        l.append(r);
+      });
+    } else l.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0 2px">Rien de prévu aujourd'hui.</p>`);
+    const tout = el("button", "voir", jour.length > 4 ? `Voir les ${jour.length} du jour dans l'agenda` : "Ouvrir l'agenda");
+    tout.onclick = () => { toucher(); go({ v:"log" }); };
+    l.append(tout);
+    d.append(l);
+  }
+
+  d.insertAdjacentHTML("beforeend", `<h2 class="sec">Raccourcis</h2>`);
+  const g = el("div", "tiles");
+  /* Quatre quand la journée est chargée, pour que l'accueil tienne encore. */
+  raccourcis(charge ? 4 : 6).forEach(c => {
+    const grp = TOOL_GROUPES.find(x => x.cles.includes(c.k));
+    g.append(tuile(c, true, grp && COULEUR_GROUPE[grp.t]));
+  });
+  d.append(g);
+  d.insertAdjacentHTML("beforeend", `<p class="muted astuce">${EPINGLES.length
+    ? "Les outils épinglés d'abord, puis les derniers ouverts."
+    : "Les derniers outils ouverts. Un appui long sur un outil, dans Outils, l'épingle ici."}</p>`);
   return d;
 }
 
@@ -1042,12 +1198,12 @@ function home(){
    « Outils » ouvrait le patch — et n'avaient donc aucun écran où ramener. */
 function vParc(){
   const d = el("div");
-  d.append(bar("Parc"), grille(CATS));
+  d.append(bar("Parc", null, false), grille(CATS, false, "var(--proj)"));
   return d;
 }
 function vOutils(){
   const d = el("div");
-  d.append(bar("Outils"), grilleOutils(), zoneAppli());
+  d.append(bar("Outils", null, false), grilleOutils(), zoneAppli());
   return d;
 }
 
@@ -1058,7 +1214,7 @@ const plat = s => String(s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ
 function resultats(){
   const q = plat(S.q);
   const d = el("div");
-  const ecr = DESTINATIONS().filter(x => plat(x.t + " " + x.s).includes(q));
+  const ecr = DESTINATIONS().filter(x => plat(x.t + " " + x.s + " " + (MOTS[x.k] || "")).includes(q));
   const proj = PROJECTEURS.filter(p => plat(p.nom + " " + p.marque + " " + p.fam).includes(q));
   const mach = MACHINERIE.filter(m => plat(m.nom + " " + m.type).includes(q));
   const haut = HAUTEURS.filter(h => plat(h.nom).includes(q));
@@ -1121,12 +1277,17 @@ function rowHaut(h){
     metres(h.h) + " m", h.charge ? h.charge + " kg" : "",
     "var(--haut)", ICO_HAUT[h.type] || "passerelle");
 }
+/* `back === false` : écran racine d'un onglet, sans chevron — Parc et Outils
+   en portaient un, qui ramenait à l'écran d'avant et non « au-dessus ». */
 function bar(titre, cnt, back){
-  const d = el("div", "bar");
-  const b = el("button", "bk", ic("back"));
-  b.setAttribute("aria-label", "Retour");
-  b.onclick = back || (() => retour());
-  d.append(b, el("h2", null, esc(titre)));
+  const d = el("div", "bar" + (back === false ? " racine" : ""));
+  if(back !== false){
+    const b = el("button", "bk", ic("back"));
+    b.setAttribute("aria-label", "Retour");
+    b.onclick = back || (() => retour());
+    d.append(b);
+  }
+  d.append(el("h2", null, esc(titre)));
   if(cnt) d.append(el("span", "cnt", cnt));
   return d;
 }
@@ -1148,7 +1309,7 @@ function vProj(){
 
 function vFiche(p){
   const d = el("div");
-  d.append(bar(p.marque, null, () => retour({ v:"proj" })));
+  d.append(bar(p.nom, p.marque, () => retour({ v:"proj" })));
   const h = el("div", "hero");
   h.style.setProperty("--c", "var(--proj)");
   h.innerHTML = `<div class="kick">${esc(p.fam)}</div><h3>${esc(p.nom)}</h3>
@@ -1198,9 +1359,9 @@ function carteModes(p){
 
   const form = el("div", "ff");
   form.innerHTML = `<div class="f"><label for="m-nom">Nom du mode</label>
-      <input id="m-nom" placeholder="Standard"></div>
+      <input id="m-nom" placeholder="ex. Standard"></div>
     <div class="f"><label for="m-ch">Canaux</label>
-      <input id="m-ch" type="text" inputmode="numeric" placeholder="20"></div>`;
+      <input id="m-ch" type="text" inputmode="numeric" placeholder="ex. 20"></div>`;
   c.append(form);
 
   const add = el("button", "pill");
@@ -1421,6 +1582,16 @@ function lireLocal(cle, defaut){
 function ecrireLocal(cle, val){
   try { localStorage.setItem(cle, JSON.stringify(val)); } catch(e){ }
 }
+/* Les calculateurs s'ouvraient sur des champs vides dont l'exemple gris
+   passait pour une valeur saisie : 250, 500… à l'écran, et un résultat « — »
+   qui réclamait la charge. Ils partent maintenant de valeurs réelles, donc
+   d'un résultat lisible ; un champ laissé vide reprend la sienne au lancement
+   suivant. */
+function lireCalcul(cle, depart){
+  const lu = lireLocal(cle, {});
+  Object.keys(lu).forEach(k => { if(lu[k] === "" && depart[k]) delete lu[k]; });
+  return Object.assign(depart, lu);
+}
 
 /* Le CSS savait déjà lire `data-theme`, mais rien ne le posait : le thème
    suivait Android, et on ne pouvait pas le tenir en sombre le temps d'un
@@ -1534,7 +1705,7 @@ function filtrer(k, garde){
 function recherche(k, ph){
   const lab = el("label", "sbar inv");
   lab.innerHTML = `${ic("search")}<input data-focus="q-${k}" value="${esc(S.qs[k])}"
-      placeholder="${esc(ph)}" autocomplete="off" aria-label="Rechercher">`;
+      placeholder="ex. ${esc(ph)}" autocomplete="off" aria-label="Rechercher">`;
   lab.querySelector("input").addEventListener("input", e => {
     S.qs[k] = e.target.value; render();
   });
@@ -2123,9 +2294,9 @@ function barreTele(){
   const lgo = el("button", "lgo" + (tenus.length ? " on" : ""), ic("remote"));
   lgo.dataset.a = "tcd";
   lgo.setAttribute("aria-label", tenus.length
-    ? `Télécommande DMX — ${tenus.length} adresse${tenus.length > 1 ? "s tenues" : " tenue"}`
-    : "Ouvrir la télécommande DMX");
-  lgo.title = "Télécommande DMX";
+    ? `Pupitre — ${tenus.length} adresse${tenus.length > 1 ? "s tenues" : " tenue"}`
+    : "Ouvrir le pupitre");
+  lgo.title = "Pupitre";
   d.prepend(lgo);
 
   const niveau = pct => {
@@ -2224,7 +2395,7 @@ function pileGradas(){
   const b = el("button", null, MASQUE ? `tout voir · ${caches}` : "masquer les vides");
   b.onclick = () => { MASQUE = !MASQUE; peindre(); };
   return pile("Gradateurs", `${relevesG()} relevés / ${tous.length}`, rangs,
-              "Aucun gradateur relevé : ouvrir « Relever gradateurs ».", b);
+              "Aucun gradateur relevé : touchez « Relever » en bas.", b);
 }
 
 function pileApps(){
@@ -2244,7 +2415,7 @@ function pileApps(){
     });
   });
   return pile("Appareils", `${liste.length} · ${puissanceTotale(liste)}`, rangs,
-              "Aucune ligne : ouvrir « Ajouter appareils ».");
+              "Aucune ligne : touchez « Ajouter » en bas.");
 }
 
 /* Mettre un appareil en évidence : le geste des gradateurs, appliqué au patch. */
@@ -2327,7 +2498,7 @@ function majVoletRelever(){
   const lv = n ? (NIV[n] || 0) : 0;
   const faits = relevesG();
 
-  volet.querySelector(".tete h3").textContent = "Relever les gradateurs";
+  volet.querySelector(".tete h3").textContent = "Relevé des gradateurs";
   volet.querySelector(".tete .cpt").textContent = `${faits} / ${l.length} relevés`;
   const c = volet.querySelector(".corps");
 
@@ -2651,7 +2822,7 @@ function majVoletDmx(){
   const v = DMX[cle] | 0;
   const tenus = adressesTenues();
   const nsel = DSEL.length;
-  volet.querySelector(".tete h3").textContent = "Télécommande DMX";
+  volet.querySelector(".tete h3").textContent = "Pupitre";
   volet.querySelector(".tete .cpt").textContent = tenus.length
     ? `${tenus.length} adresse${tenus.length > 1 ? "s tenues" : " tenue"}` : "plateau noir";
   const c = volet.querySelector(".corps");
@@ -3547,8 +3718,8 @@ const K1 = { 30:1, 40:0.87, 50:0.71, 60:0.58 };                   // températur
 const K2 = [1, 0.80, 0.70, 0.65, 0.60, 0.57, 0.54, 0.52, 0.50];   // 1 à 9 câbles et plus
 
 const CLE_CAB = "section.v1";
-const CAB = Object.assign({ mode:"W", q:"", reseau:"mono", l:"", dv:"3", mat:"cu",
-                            cos:"1", t:30, n:1 }, lireLocal(CLE_CAB, {}));
+const CAB = lireCalcul(CLE_CAB, { mode:"W", q:"3500", reseau:"mono", l:"25", dv:"3", mat:"cu",
+                            cos:"1", t:30, n:1 });
 
 /* Sur un clavier de téléphone français, la virgule vient avant le point. */
 const nombre = v => parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", "."));
@@ -3638,7 +3809,7 @@ function vCable(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="cab-${cle}">${esc(lab)}</label>
-      <input id="cab-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="cab-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; garder(); peindreSection(res);
@@ -3695,12 +3866,12 @@ function vCable(){
    l'approximation d'usage pour un pré-calcul ; le partage réel dépend du
    point d'équilibre et se vérifie au dynamomètre. */
 const CLE_RIG = "rigging.v1";
-const RIG = Object.assign({ onglet:"wll",
-  chCharge:"", chCmu:"", chMarge:"0",
-  bMasse:"", bAngle:"60",
+const RIG = lireCalcul(CLE_RIG, { onglet:"wll",
+  chCharge:"250", chCmu:"500", chMarge:"0",
+  bMasse:"400", bAngle:"60",
   aAngle:"45",
-  nMasse:"", nPts:"3", nAngle:"60",
-  pCharge:"", pMarge:"25" }, lireLocal(CLE_RIG, {}));
+  nMasse:"800", nPts:"3", nAngle:"60",
+  pCharge:"600", pMarge:"25" });
 
 /* Capacités courantes de palan à chaîne, en kg. */
 const PALANS = [125, 250, 500, 1000, 1600, 2000, 3200, 5000, 10000];
@@ -3817,7 +3988,7 @@ function vRig(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="rig-${cle}">${esc(lab)}</label>
-      <input id="rig-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="rig-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; garder(); peindre();
@@ -3957,7 +4128,7 @@ function vBil(){
   const ff = el("div", "ff");
   const fw = el("div", "f");
   fw.innerHTML = `<label for="bil-w">Puissance (W)</label>
-    <input id="bil-w" inputmode="decimal" autocomplete="off" value="${esc(c.w)}" placeholder="1500">`;
+    <input id="bil-w" inputmode="decimal" autocomplete="off" value="${esc(c.w)}" placeholder="ex. 1500">`;
   fw.querySelector("input").addEventListener("input", e => { c.w = e.target.value; garder(); });
   const fp = el("div", "f");
   fp.innerHTML = `<label>Phase</label>`;
@@ -4011,10 +4182,10 @@ function vBil(){
    le code couleur d'une résistance (4 anneaux, norme E12, sans rien de
    spécifique à el8 : ce sont des valeurs normalisées). */
 const CLE_LED = "led.v1";
-const LED = Object.assign({ onglet:"ali",
-  longueur:"", conso:"14.4", tension:"24",
+const LED = lireCalcul(CLE_LED, { onglet:"ali",
+  longueur:"5", conso:"14.4", tension:"24",
   vs:"12", vled:"3.2", iled:"20",
-  ohms:"" }, lireLocal(CLE_LED, {}));
+  ohms:"220" });
 
 const E12 = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
 const COULEURS_R = [
@@ -4109,7 +4280,7 @@ function vLed(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="led-${cle}">${esc(lab)}</label>
-      <input id="led-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="led-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => { c[cle] = e.target.value; garder(); peindre(); });
     return f;
@@ -4171,12 +4342,12 @@ function vLed(){
    réseau équilibré ou d'une répartition égale : le détail réel se mesure
    sur place. */
 const CLE_ELEC = "electricite.v1";
-const ELEC = Object.assign({ onglet:"conv",
-  cSens:"i", cReseau:"mono", cCos:"1", cP:"", cI:"",
-  phP:"", phCos:"1",
-  chP:"", chN:"4",
-  gP:"", gFois:"100", gMarge:"30", gCos:"0.8",
-  fkw:"", fCos:"0.8" }, lireLocal(CLE_ELEC, {}));
+const ELEC = lireCalcul(CLE_ELEC, { onglet:"conv",
+  cSens:"i", cReseau:"mono", cCos:"1", cP:"3500", cI:"16",
+  phP:"9000", phCos:"1",
+  chP:"6000", chN:"4",
+  gP:"12000", gFois:"100", gMarge:"30", gCos:"0.8",
+  fkw:"8", fCos:"0.8" });
 
 const DISJONCTEURS = [10, 16, 20, 25, 32, 40, 50, 63, 80, 100];
 const GROUPES = [2, 3, 5, 6.5, 8, 10, 15, 20, 30, 45, 60, 80, 100, 125, 150];
@@ -4272,8 +4443,8 @@ function vElec(){
 
   const menu = el("div", "onglets");
   menu.setAttribute("role", "tablist");
-  [["conv", "Puissance/courant"], ["phase", "Par phase"], ["charge", "Répartition"],
-   ["groupe", "Groupe"], ["fp", "Facteur"]].forEach(([v, t]) => {
+  [["conv", "Courant"], ["phase", "Phase"], ["charge", "Répartition"],
+   ["groupe", "Groupe"], ["fp", "cos φ"]].forEach(([v, t]) => {
     const b = el("button", null, t);
     b.setAttribute("role", "tab");
     b.setAttribute("aria-selected", String(c.onglet === v));
@@ -4287,7 +4458,7 @@ function vElec(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="elec-${cle}">${esc(lab)}</label>
-      <input id="elec-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="elec-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => { c[cle] = e.target.value; garder(); peindre(); });
     return f;
@@ -4491,7 +4662,7 @@ function vSub(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="sub-${cle}">${esc(lab)}</label>
-      <input id="sub-${cle}" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="sub-${cle}" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; garder(); peindreSub(res);
@@ -4627,7 +4798,7 @@ function testeur(){
      capacité de la batterie (VAh) = capacité de l'onduleur × autonomie (min) / 60
    Les valeurs par défaut sont celles de la page : 0,8 et 90 %. */
 const CLE_UPS = "onduleur.v1";
-const UPS = Object.assign({ w:"", fp:"0,8", rdt:"90", min:"" }, lireLocal(CLE_UPS, {}));
+const UPS = lireCalcul(CLE_UPS, { w:"1200", fp:"0,8", rdt:"90", min:"10" });
 
 /* Sur un clavier de téléphone français, la virgule vient avant le point. */
 const nbUps = v => parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", "."));
@@ -4675,7 +4846,7 @@ function vUps(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="ups-${cle}">${esc(lab)}</label>
-      <input id="ups-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="ups-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; ecrireLocal(CLE_UPS, c); peindreUps(res);
@@ -4726,9 +4897,9 @@ function vUps(){
    Public : dernier rang selon la règle 4-6-8 (en hauteurs d'image) ; premier
    rang là où un pixel sous-tend une minute d'arc, la limite de l'œil. */
 const CLE_DIST = "projection.v1";
-const DIST = Object.assign({ sens:"d", fmt:"16:9", base:"l", l:"", diag:"", d:"",
-                             tr:"", trx:"", lm:"", gain:"1", amb:"50", ctr:"15", marge:"20",
-                             n:1, rec:"15", res:"1920x1080", onglet:"geo" }, lireLocal(CLE_DIST, {}));
+const DIST = lireCalcul(CLE_DIST, { sens:"d", fmt:"16:9", base:"l", l:"4", diag:"150", d:"8",
+                             tr:"1,5", trx:"", lm:"", gain:"1", amb:"50", ctr:"15", marge:"20",
+                             n:1, rec:"15", res:"1920x1080", onglet:"geo" });
 const FORMATS = [["16:9", 16 / 9], ["16:10", 16 / 10], ["4:3", 4 / 3], ["2,39:1", 2.39]];
 const RESOLUTIONS = [["1920x1080", "HD"], ["1920x1200", "WUXGA"], ["3840x2160", "4K UHD"], ["1024x768", "XGA"]];
 /* ANSI/INFOCOMM 3M-2011, contraste d'une image projetée. */
@@ -4938,7 +5109,7 @@ function vDist(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="dpj-${cle}">${esc(lab)}</label>
-      <input id="dpj-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="dpj-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; garder(); peindre();
@@ -5212,6 +5383,7 @@ function render(){
       const n = $("#q"); if(n){ n.focus({ preventScroll:true }); n.setSelectionRange(pos, pos); } });
   }
   const t = ["parc", "proj", "mach", "haut", "mdg", "manuel", "fiche", "edit"].includes(r.v) ? "parc"
+          : ["log", "logf"].includes(r.v) ? "agenda"
           : r.v === "home" ? "home" : "tools";
   document.querySelectorAll(".tb").forEach(b => b.setAttribute("aria-current", b.dataset.t === t ? "true" : "false"));
   peindreMaj();          // le rendu a jeté le bandeau : on le repose s'il a lieu d'être
@@ -5219,10 +5391,15 @@ function render(){
 }
 /* Chaque onglet ouvre sa famille, pas son premier élément : « Outils » tombait
    sur l'écran du patch, et restait allumé sur des écrans où il ne ramenait pas. */
+/* L'onglet Agenda n'apparaît que si le module logistique est là ; son
+   pictogramme `i-agenda` vient avec lui. */
+const tbAgenda = document.querySelector('.tb[data-t="agenda"]');
+if(tbAgenda && VIEWS.log) tbAgenda.hidden = false;
 document.querySelectorAll(".tb").forEach(b => b.onclick = () => {
   S.q = "";
   toucher();
-  go({ v:b.dataset.t === "home" ? "home" : b.dataset.t === "parc" ? "parc" : "outils" });
+  const v = { home:"home", parc:"parc", agenda:"log" }[b.dataset.t] || "outils";
+  go({ v });
 });
 /* Un seul suivi pour toute l'application : le bandeau et l'écran s'y branchent
    quand ils existent. Il ne passe pas par poser(), qui est remis à zéro à
