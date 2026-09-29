@@ -1,0 +1,60 @@
+/* ------------------------------ logistique ------------------------------- */
+/* Une couleur par carnet, reprise par la pastille de la rangée et le bouton
+   d'ajout : on reconnaît un prêt d'un stagiaire avant d'avoir lu. */
+:root{--log:#5E4AE3; --pret:#A35A00; --stag:#1F7A4D}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A}
+}
+:root[data-theme="dark"]{--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A}
+
+/* Le point du jour : quatre chiffres, le retard en rouge s'il y en a. */
+.lg-point{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--sur);
+  border-radius:16px;padding:12px 8px;margin-bottom:10px;box-shadow:inset 3px 0 0 var(--log)}
+.lg-point div{text-align:center;min-width:0}
+.lg-point b{display:block;font:600 24px/1 var(--mono);font-variant-numeric:tabular-nums}
+.lg-point span{display:block;margin-top:5px;font-size:11px;line-height:1.2;color:var(--ink2)}
+.lg-point .ko b{color:var(--ko)}
+
+.lg-ajouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.lg-ajouts .ajout{margin-top:0;padding:12px 6px;border-color:var(--c);color:var(--c);min-height:48px}
+
+.lg .pill i{font-style:normal;font-family:var(--mono);opacity:.7;margin-left:3px}
+.lg h2.sec.lg-ko{color:var(--ko)}
+.lg-row{box-shadow:inset 3px 0 0 var(--c)}
+.lg-row.lg-retard .r{color:var(--ko)}
+.lg-row.lg-fini{opacity:.62}
+.lg-row .r{max-width:42%}
+
+/* La fiche. */
+.lg-fiche .f input:focus,.lg-fiche .f select:focus,.lg-fiche .f textarea:focus{border-color:var(--c)}
+.lg-fiche .f input[type="date"],.lg-fiche .f input[type="time"]{font:500 15px/1.2 var(--mono);min-height:46px}
+.lg-fiche .f textarea{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;
+  font:400 15px/1.45 var(--body);outline:none;width:100%;resize:vertical;color:inherit}
+.lg-coche{display:flex;align-items:center;gap:10px;padding:6px 0 2px;cursor:pointer;
+  font:700 14px/1 var(--body)}
+.lg-coche input{width:24px;height:24px;accent-color:var(--c)}
+.lg-agenda{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:6px 0 10px;
+  border:1.5px solid var(--line);background:var(--bg);border-radius:14px;padding:13px;cursor:pointer;
+  font:700 13.5px/1 var(--body);color:var(--ink)}
+.lg-agenda .ic{width:18px;height:18px}
+
+/* L'échange de fichiers. */
+.lg-ech{margin-top:22px}
+.lg-ech>p{margin:0 0 12px}
+.lg-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lg-exp{grid-column:1 / -1;margin:8px 0 -2px;font:700 10.5px/1 var(--body);letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink3)}
+.lg-btns button{border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:12px 8px;
+  cursor:pointer;font:700 13px/1.2 var(--body);color:var(--ink);min-height:46px}
+.lg-btns button.prim{grid-column:1 / -1;background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.lg-btns button:active{transform:scale(.99)}
+.lg-msg{margin:12px 0 0;font-size:13.5px;color:var(--ink)}
+.lg-ech .lg-pied{margin:12px 0 0;font-size:12px}
+
+/* Un champ date a une largeur propre qui débordait de sa demi-colonne. */
+.lg-fiche .ff>.f{min-width:0}
+.lg-fiche .f input{min-width:0;max-width:100%}
+/* Le texte d'un menu déroulant ne suit pas la couleur de la page. */
+.lg-fiche .f select{color:var(--ink)}
+:root[data-theme="dark"] .lg-fiche .f input{color-scheme:dark}
+:root[data-theme="light"] .lg-fiche .f input{color-scheme:light}

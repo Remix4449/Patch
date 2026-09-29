@@ -135,6 +135,52 @@ const NET = {
     return stop;
   },
 
+  /* Fichiers texte (logistique). Dans l'application, les sélecteurs du
+     système ; dans un navigateur, un téléchargement et un <input type=file>.
+     cb reçoit { pret, texte } ou { erreur }. */
+  fichier: {
+    ouvrir(cb){
+      if(!PONT){
+        const i = document.createElement("input");
+        i.type = "file";
+        i.accept = ".json,.csv,.ics,.txt,application/json,text/csv,text/calendar,text/plain";
+        i.onchange = () => {
+          const f = i.files && i.files[0];
+          if(!f){ cb({ erreur:"annulé" }); return; }
+          const r = new FileReader();
+          r.onload = () => cb({ pret:true, texte:String(r.result || "") });
+          r.onerror = () => cb({ erreur:"lecture impossible" });
+          r.readAsText(f);
+        };
+        i.click();
+        return () => {};
+      }
+      try { PONT.fichierOuvrir(); } catch(e){ cb({ erreur:"sélecteur indisponible" }); return () => {}; }
+      return attendreFichier(cb);
+    },
+    enregistrer(nom, mime, texte, cb){
+      if(!PONT){
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([texte], { type:mime + ";charset=utf-8" }));
+        a.download = nom;
+        document.body.append(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        cb({ pret:true });
+        return () => {};
+      }
+      try { PONT.fichierEnregistrer(nom, mime, texte); }
+      catch(e){ cb({ erreur:"sélecteur indisponible" }); return () => {}; }
+      return attendreFichier(cb);
+    }
+  },
+
+  /* Ouvre l'agenda du téléphone sur un rendez-vous prérempli. */
+  agenda(o){
+    if(!PONT) return false;
+    try { return PONT.agenda(o.titre || "", o.lieu || "", o.note || "", o.debut, o.fin, !!o.journee); }
+    catch(e){ return false; }
+  },
+
   arreterTout(){ if(PONT){ try { PONT.stopAll(); } catch(e){} } }
 };
 
@@ -153,6 +199,19 @@ function sonder(lire, cb, ms){
   };
   setTimeout(tour, 0);   // jamais synchrone : l'appelant reçoit son arrêt d'abord
   return () => { vivant = false; };
+}
+
+/* Le sélecteur de fichiers vit hors de la page : on relit l'état du pont
+   jusqu'à une réponse, sans limite courte — choisir un dossier prend le temps
+   qu'il faut. */
+function attendreFichier(cb){
+  let fini = false, tours = 0;
+  const stop = sonder(() => JSON.parse(PONT.fichierEtat()), e => {
+    if(fini) return;
+    if(e.pret || e.erreur){ fini = true; stop(); cb(e); }
+    else if(++tours > 3000){ fini = true; stop(); cb({ erreur:"délai dépassé" }); }
+  }, 400);
+  return stop;
 }
 
 /* Rejoue une liste par petits paquets, pour que la démo ait l'allure d'un scan. */
