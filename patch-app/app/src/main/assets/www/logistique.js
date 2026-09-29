@@ -160,7 +160,7 @@ function logSous(x){
 const logTitre = x => x.type === "pret" && x.qte && x.qte !== "1" ? x.qte + " × " + x.titre : x.titre;
 
 /* ------------------------------- la liste ------------------------------- */
-const LOGV = { type:null, fini:false, msg:"" };
+const LOGV = { type:null, fini:false, msg:"", mois:null, jour:null, plus:false };
 
 function rowLog(x, e){
   const def = LOG_TYPES[x.type];
@@ -173,12 +173,223 @@ function rowLog(x, e){
   return b;
 }
 
+/* L'écran s'ouvre sur le mois, comme l'agenda du téléphone ; la liste par
+   urgence reste à un geste. Le choix est gardé d'une fois sur l'autre. */
+const CLE_LOG_VUE = "logistique.vue.v1";
 function vLog(){
   agendaAuto();
+  if(!LOGV.mode) LOGV.mode = lireLocal(CLE_LOG_VUE, "mois") === "liste" ? "liste" : "mois";
+  return LOGV.mode === "liste" ? vLogListe() : vLogMois();
+}
+
+/* En-tête commun aux deux vues : le mois ou le titre, la bascule, les réglages. */
+function teteLog(titre, nav){
+  const t = el("div", "cal-tete");
+  if(nav){
+    const pr = el("button", "cal-nav", ic("back"));
+    pr.setAttribute("aria-label", "Mois précédent");
+    pr.onclick = () => { toucher(); nav(-1); };
+    const sv = el("button", "cal-nav cal-suiv", ic("back"));
+    sv.setAttribute("aria-label", "Mois suivant");
+    sv.onclick = () => { toucher(); nav(1); };
+    t.append(pr, el("h2", null, esc(titre)), sv);
+  } else t.append(el("h2", null, esc(titre)));
+  const esp = el("span", "cal-esp");
+  t.append(esp);
+  if(nav){
+    const auj = el("button", "cal-auj", `<span>${new Date().getDate()}</span>`);
+    auj.setAttribute("aria-label", "Revenir à aujourd'hui");
+    auj.onclick = () => { toucher(); LOGV.mois = null; LOGV.jour = logAuj(); render(); };
+    t.append(auj);
+  }
+  const reg = el("button", "cal-reg", ic("sync"));
+  reg.setAttribute("aria-label", "Synchroniser : agenda du téléphone et fichiers");
+  reg.onclick = () => { toucher(); go({ v:"logr" }); };
+  t.append(reg);
+
+  const seg = el("div", "cal-seg");
+  [["mois", "Mois"], ["liste", "Liste"]].forEach(([k, l]) => {
+    const b = el("button", null, l);
+    b.setAttribute("aria-pressed", String(LOGV.mode === k));
+    b.onclick = () => { toucher(); LOGV.mode = k; ecrireLocal(CLE_LOG_VUE, k); window.scrollTo(0, 0); render(); };
+    seg.append(b);
+  });
+  const w = el("div", "cal-haut");
+  w.append(t, seg);
+  return w;
+}
+
+/* ------------------------------- le mois -------------------------------- */
+/* Sur le modèle de l'agenda Google en vue mois : une rangée par semaine avec
+   son numéro, sept colonnes, les fiches de plusieurs jours en barres qui
+   courent sur les jours, les autres en pastilles, aujourd'hui dans un rond.
+   Toucher un jour le choisit ; ce qu'il contient se lit dessous, et les
+   ajouts partent de cette date. */
+const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+              "septembre", "octobre", "novembre", "décembre"];
+const CAL_LIGNES = 4;                          // rangées de pastilles visibles par semaine
+
+const numSemaine = j => {
+  const [a, m, d] = j.split("-").map(Number);
+  const t = new Date(Date.UTC(a, m - 1, d));
+  const n = (t.getUTCDay() + 6) % 7;
+  t.setUTCDate(t.getUTCDate() - n + 3);
+  const p = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((t - p) / 864e5 - 3 + ((p.getUTCDay() + 6) % 7)) / 7);
+};
+const lundiDe = j => { const [a, m, d] = j.split("-").map(Number);
+  const n = (new Date(a, m - 1, d).getDay() + 6) % 7; return plusJours(j, -n); };
+const heureCourte = h => { if(!h) return ""; const [a, b] = h.split(":"); return +a + "h" + (b && b !== "00" ? b : ""); };
+
+/* La couleur d'une fiche : celle de son agenda si elle en vient, sinon celle
+   de son carnet ; un prêt en retard passe au rouge. */
+function couleurLog(x, e){
+  if(e && e.g === "retard") return "var(--ko)";
+  const src = String(x.source || "");
+  if(src.startsWith("agenda:")){
+    const c = (logCal().couleurs || {})[src.slice(7)];
+    if(c) return c;
+  }
+  return (LOG_TYPES[x.type] || LOG_TYPES.ev).c;
+}
+const etiquette = x => (x.type === "ev" && x.hdebut ? heureCourte(x.hdebut) + " " : "") + logTitre(x);
+const surJour = (x, j) => x.debut && x.debut <= j && (x.fin && x.fin >= x.debut ? x.fin : x.debut) >= j;
+
+function vLogMois(){
+  const j = logAuj();
+  if(!LOGV.jour) LOGV.jour = j;
+  const mois = LOGV.mois || LOGV.jour.slice(0, 7);
+  const [a, m] = mois.split("-").map(Number);
+  const d = el("div", "lg cal");
+  /* Changer de mois choisit aussi un jour de ce mois : aujourd'hui s'il y
+     est, sinon le premier. */
+  const aller = n => { const t = iso(new Date(a, m - 1 + n, 1)); LOGV.mois = t.slice(0, 7);
+    LOGV.jour = j.slice(0, 7) === LOGV.mois ? j : t; render(); };
+  d.append(teteLog(MOIS[m - 1].replace(/^./, c => c.toUpperCase()) + (a !== new Date().getFullYear() ? " " + a : ""), aller));
+
+  const tous = logVivants().filter(x => x.debut);
+  const etats = new Map(tous.map(x => [x.id, logEtat(x, j)]));
+  const retards = tous.filter(x => etats.get(x.id).g === "retard");
+  if(retards.length){
+    const b = el("button", "cal-alerte", `<b>${retards.length}</b> ${retards.length > 1 ? "prêts" : "prêt"} en retard`
+      + `<span>${esc(retards.map(logTitre).slice(0, 2).join(", "))}${retards.length > 2 ? "…" : ""}</span>`);
+    b.onclick = () => { toucher(); LOGV.mode = "liste"; render(); };
+    d.append(b);
+  }
+
+  const grille = el("div", "cal-grille");
+  const tete = el("div", "cal-jours");
+  tete.innerHTML = `<span></span>` + ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
+    .map((n, i) => `<span${i === (new Date().getDay() + 6) % 7 && mois === j.slice(0, 7) ? ' class="auj"' : ""}>${n}</span>`).join("");
+  grille.append(tete);
+
+  const premier = mois + "-01";
+  const dernier = iso(new Date(a, m, 0));
+  for(let l = lundiDe(premier); l <= dernier; l = plusJours(l, 7)){
+    const jours = [...Array(7)].map((_, i) => plusJours(l, i));
+    const dim = jours[6];
+    const sem = el("div", "cal-sem");
+    const num = el("span", "cal-num", String(numSemaine(l)));
+    sem.append(num);
+    /* Le fond des jours d'abord : c'est lui qu'on touche. */
+    jours.forEach((jj, i) => {
+      const f = el("button", "cal-fond" + (jj.slice(0, 7) !== mois ? " hors" : "")
+        + (jj === LOGV.jour ? " choisi" : ""));
+      f.style.gridColumn = String(i + 2);
+      f.setAttribute("aria-label", jourCourt(jj, true));
+      f.onclick = () => { toucher(); LOGV.jour = jj; if(jj.slice(0, 7) !== mois) LOGV.mois = jj.slice(0, 7); render(); };
+      const n = el("span", "cal-n" + (jj === j ? " auj" : ""), String(+jj.slice(8)));
+      f.append(n);
+      sem.append(f);
+    });
+
+    /* Les fiches de la semaine, rangées en lignes : les plus longues d'abord,
+       chacune sur la première ligne libre de son premier à son dernier jour. */
+    const items = tous.filter(x => x.debut <= dim && (x.fin && x.fin >= x.debut ? x.fin : x.debut) >= l)
+      .map(x => {
+        const fin = x.fin && x.fin >= x.debut ? x.fin : x.debut;
+        const cs = x.debut < l ? 0 : ecartJours(l, x.debut), ce = fin > dim ? 6 : ecartJours(l, fin);
+        return { x, cs, ce, long:fin !== x.debut, avant:x.debut < l, apres:fin > dim };
+      })
+      .sort((p, q) => (q.ce - q.cs) - (p.ce - p.cs) || p.cs - q.cs
+        || String(p.x.hdebut || "").localeCompare(q.x.hdebut || "") || p.x.titre.localeCompare(q.x.titre));
+    const lignes = [], cache = Array(7).fill(0);
+    let prises = 0;
+    items.forEach(it => {
+      let li = 0;
+      while(lignes[li] && lignes[li].slice(it.cs, it.ce + 1).some(Boolean)) li++;
+      if(li >= CAL_LIGNES){ for(let c = it.cs; c <= it.ce; c++) cache[c]++; return; }
+      (lignes[li] = lignes[li] || Array(7).fill(false)).fill(true, it.cs, it.ce + 1);
+      prises = Math.max(prises, li + 1);
+      const e = etats.get(it.x.id);
+      const p = el("span", "cal-ev" + (it.long ? " long" : "") + (it.avant ? " avant" : "") + (it.apres ? " apres" : "")
+        + (it.x.fait ? " fait" : ""), esc(etiquette(it.x)));
+      p.style.gridColumn = (it.cs + 2) + " / " + (it.ce + 3);
+      p.style.gridRow = String(li + 2);
+      p.style.setProperty("--c", couleurLog(it.x, e));
+      sem.append(p);
+    });
+    cache.forEach((n, i) => {
+      if(!n) return;
+      const p = el("span", "cal-plus", "+" + n);
+      p.style.gridColumn = String(i + 2);
+      p.style.gridRow = String(CAL_LIGNES + 2);
+      sem.append(p);
+    });
+    const rangs = 1 + Math.max(CAL_LIGNES - 1, prises) + (cache.some(Boolean) ? 1 : 0);
+    sem.style.gridTemplateRows = `var(--cal-t) repeat(${rangs - 1}, var(--cal-l))`;
+    num.style.gridRow = `1 / ${rangs + 1}`;
+    sem.querySelectorAll(".cal-fond").forEach(f => f.style.gridRow = `1 / ${rangs + 1}`);
+    grille.append(sem);
+  }
+  /* Un glissement du doigt change de mois, comme dans l'agenda. */
+  let x0 = null, y0 = null;
+  grille.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive:true });
+  grille.addEventListener("touchend", e => {
+    if(x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    if(Math.abs(dx) > 70 && Math.abs(dx) > 2 * Math.abs(dy)) aller(dx < 0 ? 1 : -1);
+  });
+  d.append(grille);
+
+  /* Le jour choisi : sa date, ce qu'il contient, et de quoi y ajouter. */
+  const jj = LOGV.jour;
+  const du = tous.filter(x => surJour(x, jj))
+    .sort((p, q) => String(p.hdebut || "").localeCompare(q.hdebut || "") || p.titre.localeCompare(q.titre));
+  const titreJour = new Date(...jj.split("-").map((v, i) => i === 1 ? v - 1 : +v))
+    .toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long" });
+  d.insertAdjacentHTML("beforeend", `<h2 class="sec cal-jour">${esc(titreJour)}${jj === j ? " · aujourd'hui" : ""}</h2>`);
+  if(du.length){
+    const l = el("div", "rowlist");
+    du.forEach(x => { const r = rowLog(x, etats.get(x.id)); r.style.setProperty("--c", couleurLog(x, etats.get(x.id)));
+      l.append(r); });
+    d.append(l);
+  } else d.append(el("p", "vide", "Rien ce jour-là."));
+  const aj = el("div", "lg-ajouts");
+  Object.entries(LOG_TYPES).forEach(([k, t]) => {
+    const b = el("button", "ajout", ic("plus") + "<span>" + esc(t.t) + "</span>");
+    b.style.setProperty("--c", t.c);
+    b.onclick = () => { toucher(); go({ v:"logf", i:null, k, p:jj }); };
+    aj.append(b);
+  });
+  d.append(aj);
+  return d;
+}
+
+/* ------------------------------ les réglages ---------------------------- */
+function vLogReglages(){
+  const d = el("div", "lg");
+  d.append(bar("Synchroniser", null, () => retour({ v:"log" })), carteAgenda(), carteEchange());
+  return d;
+}
+
+/* ------------------------------- la liste ------------------------------- */
+function vLogListe(){
   const d = el("div", "lg");
   const j = logAuj();
   const tous = logVivants();
-  d.append(bar("Logistique", tous.length ? tous.length + " fiche" + (tous.length > 1 ? "s" : "") : ""));
+  d.append(teteLog("Logistique"));
 
   const etats = tous.map(x => ({ x, e:logEtat(x, j) }));
   /* Le point du jour, en tête : ce qui presse se lit sans descendre. */
@@ -221,7 +432,7 @@ function vLog(){
 
   if(!tous.length){
     d.append(el("p", "vide", "Rien de noté pour l'instant. Ajoutez un événement, un prêt ou un stagiaire, "
-      + "reliez l'agenda du téléphone ou importez un fichier plus bas."));
+      + "ou reliez l'agenda du téléphone avec le bouton en haut à droite."));
   } else if(!vus.length){
     d.append(el("p", "vide", "Aucune fiche ne correspond."));
   }
@@ -243,7 +454,6 @@ function vLog(){
     d.append(l);
   });
 
-  d.append(carteAgenda(), carteEchange());
   return d;
 }
 
@@ -273,6 +483,8 @@ function syncAgenda(){
   const j = logAuj(), [a, m, d] = j.split("-").map(Number);
   const debut = new Date(a, m - 1, d - CAL_AVANT).getTime(), fin = new Date(a, m - 1, d + CAL_APRES).getTime();
   const lus = ids.length ? NET.agendaTel.lire(ids, debut, fin) : [];
+  const agendas = NET.agendaTel.liste();
+  if(Array.isArray(agendas)) cal.couleurs = Object.fromEntries(agendas.map(x => [String(x.id), x.couleur]));
   if(!Array.isArray(lus)) return { erreur:(lus && lus.erreur) || "agenda illisible" };
   const vus = new Set();
   const fiches = lus.filter(o => o.titre && o.debut).map(o => {
@@ -385,6 +597,7 @@ function carteAgenda(){
     const ch = [...cases.querySelectorAll("input:checked")].map(i => i.value);
     cal.ids = ch;
     cal.noms = Object.fromEntries(liste.filter(a => ch.includes(String(a.id))).map(a => [String(a.id), a.nom]));
+    cal.couleurs = Object.fromEntries(liste.map(a => [String(a.id), a.couleur]));
     sauverCal();
     LOGV.calChoix = false;
     actualiser();
@@ -676,7 +889,7 @@ function vLogFiche(){
   const c = el("div", "card");
   const champ = f => {
     const id = "lg-" + f.c;
-    const v = src ? src[f.c] : (f.c === "debut" ? logAuj() : f.sel ? f.sel[0] : "");
+    const v = src ? src[f.c] : (f.c === "debut" ? r.p || logAuj() : f.sel ? f.sel[0] : "");
     if(f.coche) return `<label class="lg-coche"><input type="checkbox" id="${id}"${src && src.fait ? " checked" : ""}>
       <span>${esc(f.l)}</span></label>`;
     if(f.sel) return `<div class="f"><label for="${id}">${esc(f.l)}</label><select id="${id}">${
