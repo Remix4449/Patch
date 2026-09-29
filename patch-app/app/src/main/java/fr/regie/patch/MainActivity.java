@@ -29,6 +29,7 @@ public class MainActivity extends Activity {
     private static final int CODE_SOURCES = 4243;
     private static final int CODE_OUVRIR = 4244;
     private static final int CODE_ENREGISTRER = 4245;
+    private static final int CODE_AGENDA = 4246;
 
     private WebView web;
     private WebView impression;          // gardée en vie le temps de l'impression
@@ -43,6 +44,9 @@ public class MainActivity extends Activity {
     /** Échange de fichiers texte (logistique) : état relu par le pont. */
     public volatile String fichierJson = "{}";
     private volatile String aEcrire = null;
+
+    /** Autorisation de lire l'agenda : « oui », « non » ou « attente ». */
+    public volatile String agendaPerm = "";
 
     @Override
     protected void onCreate(Bundle etat) {
@@ -177,6 +181,27 @@ public class MainActivity extends Activity {
             startActivity(i);
             return true;
         } catch (Exception e) { return false; }
+    }
+
+    public boolean agendaAutorise() {
+        return checkSelfPermission(android.Manifest.permission.READ_CALENDAR)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    }
+
+    public void demanderAgenda() {
+        if (agendaAutorise()) { agendaPerm = "oui"; return; }
+        agendaPerm = "attente";
+        runOnUiThread(new Runnable() {
+            public void run() {
+                requestPermissions(new String[] { android.Manifest.permission.READ_CALENDAR }, CODE_AGENDA);
+            }
+        });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requete, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(requete, perms, res);
+        if (requete == CODE_AGENDA) agendaPerm = agendaAutorise() ? "oui" : "non";
     }
 
     private static String erreurJson(String m) {

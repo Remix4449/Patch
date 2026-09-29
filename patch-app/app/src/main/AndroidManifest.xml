@@ -17,6 +17,11 @@
          dans le noir et avec un gant. Accordée à l'installation. -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Logistique : lire les rendez-vous de l'agenda du téléphone (Google
+         Agenda, Today…) pour les montrer avec le reste. Lecture seule ;
+         Android la demande une fois, au moment où on relie l'agenda. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
