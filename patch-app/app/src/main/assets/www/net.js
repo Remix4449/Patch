@@ -174,6 +174,29 @@ const NET = {
     }
   },
 
+  /* Lecture de l'agenda du téléphone (celui de Google Agenda, Today…).
+     Hors application, il n'y en a pas : null partout. */
+  agendaTel: {
+    dispo: !!PONT,
+    autorise(){ if(!PONT) return false; try { return PONT.agendaAutorise(); } catch(e){ return false; } },
+    /* cb reçoit true ou false quand Android a répondu. */
+    demander(cb){
+      if(!PONT){ cb(false); return () => {}; }
+      try { PONT.agendaDemander(); } catch(e){ cb(false); return () => {}; }
+      let fini = false, tours = 0;
+      const stop = sonder(() => PONT.agendaPermission(), p => {
+        if(fini) return;
+        if(p === "oui" || p === "non" || ++tours > 600){ fini = true; stop(); cb(p === "oui"); }
+      }, 300);
+      return stop;
+    },
+    liste(){ if(!PONT) return null; try { return JSON.parse(PONT.agendaListe()); } catch(e){ return null; } },
+    lire(ids, debut, fin){
+      if(!PONT) return null;
+      try { return JSON.parse(PONT.agendaLire(ids.join(","), debut, fin)); } catch(e){ return null; }
+    }
+  },
+
   /* Ouvre l'agenda du téléphone sur un rendez-vous prérempli. */
   agenda(o){
     if(!PONT) return false;

@@ -174,6 +174,7 @@ function rowLog(x, e){
 }
 
 function vLog(){
+  agendaAuto();
   const d = el("div", "lg");
   const j = logAuj();
   const tous = logVivants();
@@ -220,7 +221,7 @@ function vLog(){
 
   if(!tous.length){
     d.append(el("p", "vide", "Rien de noté pour l'instant. Ajoutez un événement, un prêt ou un stagiaire, "
-      + "ou importez un fichier plus bas."));
+      + "reliez l'agenda du téléphone ou importez un fichier plus bas."));
   } else if(!vus.length){
     d.append(el("p", "vide", "Aucune fiche ne correspond."));
   }
@@ -242,15 +243,162 @@ function vLog(){
     d.append(l);
   });
 
-  d.append(carteEchange());
+  d.append(carteAgenda(), carteEchange());
   return d;
+}
+
+/* ------------------------- l'agenda du téléphone ------------------------ */
+/* Today, Google Agenda et les autres applications d'agenda d'Android écrivent
+   dans un même agenda du système. Patch le lit directement : on choisit les
+   agendas à suivre, et leurs rendez-vous arrivent dans la liste comme des
+   événements, sans fichier à passer. La lecture se refait à l'ouverture de
+   l'écran (au plus toutes les cinq minutes) et au bouton « Actualiser ».
+
+   Une fiche venue de l'agenda garde l'identifiant de son rendez-vous. Tant
+   qu'on ne l'a pas modifiée ici, elle suit l'agenda : changée là-bas, elle
+   change ici ; supprimée là-bas, elle disparaît. Modifiée ici, elle devient
+   une fiche de Patch et l'agenda ne la touche plus. */
+const CLE_LOG_CAL = "logistique.agendas.v1";
+let LOG_CAL = null;
+function logCal(){
+  if(!LOG_CAL) LOG_CAL = Object.assign({ ids:[], noms:{}, derniere:0 }, lireLocal(CLE_LOG_CAL, {}));
+  return LOG_CAL;
+}
+const sauverCal = () => ecrireLocal(CLE_LOG_CAL, logCal());
+const CAL_AVANT = 30, CAL_APRES = 180;         // jours lus de part et d'autre d'aujourd'hui
+
+function syncAgenda(){
+  if(!NET.agendaTel.dispo || !NET.agendaTel.autorise()) return { erreur:"autorisation refusée" };
+  const cal = logCal(), ids = cal.ids.map(String);
+  const j = logAuj(), [a, m, d] = j.split("-").map(Number);
+  const debut = new Date(a, m - 1, d - CAL_AVANT).getTime(), fin = new Date(a, m - 1, d + CAL_APRES).getTime();
+  const lus = ids.length ? NET.agendaTel.lire(ids, debut, fin) : [];
+  if(!Array.isArray(lus)) return { erreur:(lus && lus.erreur) || "agenda illisible" };
+  const vus = new Set();
+  const fiches = lus.filter(o => o.titre && o.debut).map(o => {
+    const id = "cal-" + o.id + "-" + o.debut;
+    vus.add(id);
+    const x = { id, type:"ev", titre:o.titre, debut:o.debut, cat:o.nomAgenda || "Agenda",
+                source:"agenda:" + o.agenda, maj:1 };
+    if(o.fin && o.fin !== o.debut) x.fin = o.fin;
+    ["hdebut", "hfin", "lieu", "note"].forEach(k => { if(o[k]) x[k] = o[k]; });
+    return x;
+  });
+  const r = fusionner(fiches);
+  /* Ce que l'agenda ne rend plus, dans la période lue ou dans un agenda qu'on
+     ne suit plus, et qu'on n'a pas retouché ici. */
+  const bas = plusJours(j, -CAL_AVANT), haut = plusJours(j, CAL_APRES);
+  logTout().forEach((x, i, t) => {
+    if(x.supprime || !/^cal-/.test(x.id) || x.maj !== 1 || vus.has(x.id)) return;
+    const suivi = ids.includes(String(x.source || "").replace("agenda:", ""));
+    if(!suivi || (x.debut >= bas && x.debut <= haut)){ t[i] = { id:x.id, type:x.type, supprime:true, maj:1 }; r.suppr++; }
+  });
+  sauverLog();
+  cal.derniere = Date.now();
+  sauverCal();
+  return { ...r, lus:fiches.length };
+}
+
+/* À l'ouverture de l'écran : une lecture si la dernière date de plus de cinq
+   minutes. Hors du rendu en cours, qu'on refait si quelque chose a changé. */
+function agendaAuto(){
+  const cal = logCal();
+  if(!cal.ids.length || !NET.agendaTel.dispo || Date.now() - cal.derniere < 5 * 60e3) return;
+  cal.derniere = Date.now();
+  setTimeout(() => {
+    if(!NET.agendaTel.autorise()) return;
+    const r = syncAgenda();
+    if(!r.erreur && (r.nouveaux || r.maj || r.suppr) && S.route.v === "log") render();
+  }, 50);
+}
+
+function carteAgenda(){
+  const cal = logCal();
+  const c = el("div", "card lg-cal");
+  c.innerHTML = `<h4>Agenda du téléphone</h4>`;
+  if(!NET.agendaTel.dispo){
+    c.insertAdjacentHTML("beforeend", `<p class="muted">Dans l'application Android, Patch lit directement
+      les agendas du téléphone (Today, Google Agenda…) : leurs rendez-vous arrivent ici tout seuls.</p>`);
+    return c;
+  }
+  const msg = el("p", "lg-msg", esc(LOGV.calMsg || ""));
+  msg.hidden = !LOGV.calMsg;
+  const dire = t => { LOGV.calMsg = t; msg.textContent = t; msg.hidden = !t; };
+  const pl = (n, un, x) => n + " " + un + (n > 1 ? x || "s" : "");
+  const actualiser = () => {
+    const r = syncAgenda();
+    dire(r.erreur ? "Lecture impossible : " + r.erreur + "."
+      : r.lus + " rendez-vous lu" + (r.lus > 1 ? "s" : "") + (r.nouveaux || r.maj || r.suppr
+        ? ` : ${pl(r.nouveaux, "nouveau", "x")}, ${pl(r.maj, "modifié")}, ${pl(r.suppr, "retiré")}.`
+        : ", rien de neuf."));
+    render();
+  };
+  const g = el("div", "lg-btns");
+  const btn = (lab, fn, prim) => {
+    const b = el("button", prim ? "prim" : "", esc(lab));
+    b.onclick = () => { toucher(); fn(); };
+    g.append(b);
+  };
+
+  if(!NET.agendaTel.autorise()){
+    c.insertAdjacentHTML("beforeend", `<p class="muted">Patch peut lire les agendas du téléphone (Today, Google
+      Agenda…) et en montrer les rendez-vous ici, sans fichier à échanger. Android demandera l'autorisation une fois.</p>`);
+    btn("Relier l'agenda", () => NET.agendaTel.demander(ok => {
+      if(ok){ LOGV.calChoix = true; dire(""); render(); }
+      else dire("Autorisation refusée. Elle se rétablit dans les réglages d'Android : Applications, Patch, Autorisations.");
+    }), true);
+    c.append(g, msg);
+    return c;
+  }
+
+  if(!LOGV.calChoix && cal.ids.length){
+    const noms = cal.ids.map(i => cal.noms[i] || "agenda " + i);
+    const quand = cal.derniere ? new Date(cal.derniere).toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" }) : "";
+    c.insertAdjacentHTML("beforeend", `<p class="muted">Suivi : <b>${esc(noms.join(", "))}</b>${
+      quand ? ` · lu à ${esc(quand)}` : ""}. Les rendez-vous arrivent dans la liste comme des événements.</p>`);
+    btn("Actualiser", actualiser, true);
+    btn("Changer d'agendas", () => { LOGV.calChoix = true; render(); });
+    c.append(g, msg);
+    return c;
+  }
+
+  /* Choix des agendas : une case par agenda, cochées d'après ce qu'on suit. */
+  const liste = NET.agendaTel.liste();
+  if(!Array.isArray(liste) || !liste.length){
+    c.insertAdjacentHTML("beforeend", `<p class="muted">${Array.isArray(liste)
+      ? "Aucun agenda sur ce téléphone." : "Les agendas ne se lisent pas : " + esc((liste && liste.erreur) || "erreur") + "."}</p>`);
+    return c;
+  }
+  c.insertAdjacentHTML("beforeend", `<p class="muted">Cochez les agendas à suivre.</p>`);
+  const cases = el("div", "lg-agendas");
+  const suivis = cal.ids.map(String);
+  liste.forEach(a => {
+    const l = el("label", "lg-coche");
+    l.style.setProperty("--c", a.couleur || "var(--log)");
+    l.innerHTML = `<input type="checkbox" value="${esc(a.id)}"${suivis.includes(String(a.id)) ? " checked" : ""}>
+      <span class="pt"></span><span class="nm"><b>${esc(a.nom || "Sans nom")}</b>${
+      a.compte && a.compte !== a.nom ? `<i>${esc(a.compte)}</i>` : ""}</span>`;
+    cases.append(l);
+  });
+  c.append(cases);
+  btn("Suivre ces agendas", () => {
+    const ch = [...cases.querySelectorAll("input:checked")].map(i => i.value);
+    cal.ids = ch;
+    cal.noms = Object.fromEntries(liste.filter(a => ch.includes(String(a.id))).map(a => [String(a.id), a.nom]));
+    sauverCal();
+    LOGV.calChoix = false;
+    actualiser();
+  }, true);
+  if(cal.ids.length) btn("Annuler", () => { LOGV.calChoix = false; render(); });
+  c.append(g, msg);
+  return c;
 }
 
 /* --------------------------- échange de fichiers ------------------------ */
 function carteEchange(){
   const c = el("div", "card lg-ech");
-  c.innerHTML = `<h4>Synchroniser</h4>
-    <p class="muted">Pour Today, SceneFlow ou un autre téléphone : exportez le fichier, importez celui
+  c.innerHTML = `<h4>Échanger par fichier</h4>
+    <p class="muted">Pour SceneFlow ou un autre téléphone : exportez le fichier, importez celui
     de l'autre côté. Les fiches déjà connues sont mises à jour, les nouvelles ajoutées.</p>`;
   const g = el("div", "lg-btns");
   const btn = (lab, fn, prim) => {
@@ -287,7 +435,7 @@ function carteEchange(){
 }
 
 const LOG_COLS = ["id", "type", "titre", "cat", "debut", "hdebut", "fin", "hfin", "lieu", "spectacle",
-                  "qte", "sens", "tiers", "formation", "service", "tuteur", "contact", "note", "fait", "maj"];
+                  "qte", "sens", "tiers", "formation", "service", "tuteur", "contact", "note", "fait", "source", "maj"];
 
 function exportJson(){
   return JSON.stringify({ format:"patch-logistique", version:1, exporte:new Date().toISOString(),
@@ -532,7 +680,7 @@ function vLogFiche(){
     if(f.coche) return `<label class="lg-coche"><input type="checkbox" id="${id}"${src && src.fait ? " checked" : ""}>
       <span>${esc(f.l)}</span></label>`;
     if(f.sel) return `<div class="f"><label for="${id}">${esc(f.l)}</label><select id="${id}">${
-      f.sel.map(o => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></div>`;
+      (v && !f.sel.includes(v) ? [v, ...f.sel] : f.sel).map(o => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></div>`;
     if(f.zone) return `<div class="f"><label for="${id}">${esc(f.l)}</label>
       <textarea id="${id}" rows="3" placeholder="${esc(f.ph || "")}">${esc(v || "")}</textarea></div>`;
     return `<div class="f"><label for="${id}">${esc(f.l)}${f.req ? " *" : ""}</label>
