@@ -148,9 +148,7 @@ public class Maj {
         HttpURLConnection c = null;
         try {
             lireInstalle();
-            c = ouvrir(RELEASE + "version.json");
-            int code = c.getResponseCode();
-            if (code != 200) throw new Exception("réponse " + code);
+            c = ouvrirPublie(RELEASE + "version.json");
             JSONObject o = new JSONObject(texte(c.getInputStream()));
             publie = o.optInt("versionCode", 0);
             nomPublie = o.optString("versionName", "");
@@ -209,9 +207,7 @@ public class Maj {
         OutputStream out = null;
         File part = new File(dossier(act), APK + ".part");
         try {
-            c = ouvrir(RELEASE + APK);
-            int code = c.getResponseCode();
-            if (code != 200) throw new Exception("réponse " + code);
+            c = ouvrirPublie(RELEASE + APK);
             long annonce = c.getContentLength();
             if (annonce > 0) taille = annonce;
             in = c.getInputStream();
@@ -314,6 +310,26 @@ public class Maj {
      * souvent aucun accès extérieur : sans ce détour, la vérification échouerait
      * là où elle sert le plus, alors que la 4G est disponible à côté.
      */
+    /**
+     * Ouvre un fichier de la release et attend qu'il réponde 200.
+     *
+     * La chaîne de montage remplace l'APK puis la fiche en retirant l'ancien
+     * fichier avant de déposer le nouveau : pendant quelques secondes après
+     * chaque fusion dans main, la release répond 404. On patiente un peu avant
+     * de parler d'erreur, et l'erreur dit alors ce qui se passe.
+     */
+    private HttpURLConnection ouvrirPublie(String adresse) throws Exception {
+        for (int essai = 1; ; essai++) {
+            HttpURLConnection c = ouvrir(adresse);
+            int code = c.getResponseCode();
+            if (code == 200) return c;
+            try { c.disconnect(); } catch (Exception ignore) { }
+            if (code != 404) throw new Exception("réponse " + code);
+            if (essai >= 4) throw new Exception("publication en cours, réessaie dans une minute");
+            Thread.sleep(8000);
+        }
+    }
+
     private HttpURLConnection ouvrir(String adresse) throws Exception {
         URL u = new URL(adresse);
         Network n = reseauInternet();
