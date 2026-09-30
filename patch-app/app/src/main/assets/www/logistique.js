@@ -382,7 +382,11 @@ function vLogMois(){
         + (jj === LOGV.jour ? " choisi" : ""));
       f.style.gridColumn = String(i + 2);
       f.setAttribute("aria-label", jourCourt(jj, true));
-      f.onclick = () => { toucher(); LOGV.jour = jj; if(jj.slice(0, 7) !== mois) LOGV.mois = jj.slice(0, 7); render(); };
+      /* Un premier toucher choisit le jour ; un second sur le même jour
+         déplie le volet, avec ses fiches et les ajouts. */
+      f.onclick = () => { toucher();
+        if(jj === LOGV.jour && !LOGV.volet){ LOGV.volet = true; ecrireLocal(CLE_LOG_VOLET, true); }
+        LOGV.jour = jj; if(jj.slice(0, 7) !== mois) LOGV.mois = jj.slice(0, 7); render(); };
       f.append(el("span", "cal-n" + (jj === j ? " auj" : ""), String(+jj.slice(8))));
       sem.append(f);
     });
@@ -426,11 +430,18 @@ function vLogMois(){
       p.style.gridColumn = (it.cs + 2) + " / " + (it.ce + 3);
       p.style.gridRow = String(li + 2);
       p.style.setProperty("--c", couleurLog(it.x, etats.get(it.x.id)));
+      /* Toucher une pastille ouvre sa fiche, pour la modifier ou la retirer. */
+      p.setAttribute("role", "button");
+      p.setAttribute("aria-label", "Ouvrir : " + logTitre(it.x));
+      p.onclick = () => { toucher(); go({ v:"logf", i:it.x.id }); };
       sem.append(p);
     });
     pl.cache.forEach((n, i) => {
       if(!n) return;
       const p = el("span", "cal-plus", "+" + n);
+      /* Le « +n » montre le jour dans le volet, déplié. */
+      p.setAttribute("role", "button");
+      p.onclick = () => { toucher(); LOGV.jour = plusJours(l, i); LOGV.volet = true; ecrireLocal(CLE_LOG_VOLET, true); render(); };
       p.style.gridColumn = String(i + 2);
       p.style.gridRow = String(L + 1);
       sem.append(p);
