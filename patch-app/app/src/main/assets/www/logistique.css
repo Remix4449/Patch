@@ -15,7 +15,7 @@
 .lg-point span{display:block;margin-top:5px;font-size:11px;line-height:1.2;color:var(--ink2)}
 .lg-point .ko b{color:var(--ko)}
 
-.lg-ajouts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.lg-ajouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .lg-ajouts .ajout{margin-top:0;padding:12px 6px;border-color:var(--c);color:var(--c);min-height:48px}
 
 .lg .pill i{font-style:normal;font-family:var(--mono);opacity:.7;margin-left:3px}
@@ -156,12 +156,3 @@
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .lg-jours button[aria-pressed="true"]{color:#0B0C10} }
 :root[data-theme="dark"] .lg-jours button[aria-pressed="true"]{color:#0B0C10}
 
-/* Un agenda par ligne, avec de quoi le désigner comme celui des spectacles. */
-.lg-ag{display:flex;align-items:center;gap:8px}
-.lg-ag .lg-coche{flex:1;min-width:0}
-.lg-spec{display:flex;align-items:center;gap:5px;flex:none;border:1.5px solid var(--line);background:var(--bg);
-  border-radius:99px;padding:7px 10px;cursor:pointer;font:700 12px/1 var(--body);color:var(--ink2);min-height:36px}
-.lg-spec .ic{width:15px;height:15px}
-.lg-spec[aria-pressed="true"]{border-color:var(--spec);background:var(--spec);color:#fff}
-@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .lg-spec[aria-pressed="true"]{color:#0B0C10} }
-:root[data-theme="dark"] .lg-spec[aria-pressed="true"]{color:#0B0C10}

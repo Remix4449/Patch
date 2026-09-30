@@ -31,8 +31,11 @@ const logId = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 const LOG_TYPES = {
   ev:   { t:"Événement", pl:"Événements", un:"un événement", i:"camion", c:"var(--log)",
           debut:"Date", fin:"Jusqu'au", sup:"Retirer cet événement" },
-  spec: { t:"Spectacle", pl:"Spectacles", un:"un spectacle", i:"spec", c:"var(--spec)",
-          debut:"Première", fin:"Dernière", sup:"Retirer ce spectacle" },
+  /* Un spectacle est un événement comme un autre : même nom, même couleur,
+     même bouton. Le carnet reste pour les fiches déjà notées avec leurs
+     heures de jeu (`ferme` : on n'en crée plus). */
+  spec: { t:"Événement", pl:"Événements", un:"un événement", i:"camion", c:"var(--log)", ferme:true, comme:"ev",
+          debut:"Première", fin:"Dernière", sup:"Retirer cet événement" },
   pret: { t:"Prêt", pl:"Prêts", un:"un prêt", i:"pret", c:"var(--pret)",
           debut:"Sortie", fin:"Retour prévu", sup:"Retirer ce prêt" },
   stag: { t:"Stagiaire", pl:"Stagiaires", un:"un stagiaire", i:"stag", c:"var(--stag)",
@@ -514,7 +517,7 @@ function voletJour(tous, etats){
   /* Les ajouts d'abord : c'est ce qu'on vient chercher en dépliant. */
   const c = el("div", "cal-contenu");
   const aj = el("div", "lg-ajouts");
-  Object.entries(LOG_TYPES).forEach(([k, t]) => {
+  Object.entries(LOG_TYPES).filter(([, t]) => !t.ferme).forEach(([k, t]) => {
     const b = el("button", "ajout", ic("plus") + "<span>" + esc(t.t) + "</span>");
     b.style.setProperty("--c", t.c);
     b.onclick = () => { toucher(); go({ v:"logf", i:null, k, p:jj }); };
@@ -567,7 +570,7 @@ function vLogListe(){
 
   /* Les trois ajouts restent en haut : c'est la moitié de ce qu'on vient faire. */
   const aj = el("div", "lg-ajouts");
-  Object.entries(LOG_TYPES).forEach(([k, t]) => {
+  Object.entries(LOG_TYPES).filter(([, t]) => !t.ferme).forEach(([k, t]) => {
     const b = el("button", "ajout", ic("plus") + "<span>" + esc(t.t) + "</span>");
     b.style.setProperty("--c", t.c);
     b.onclick = () => { toucher(); go({ v:"logf", i:null, k }); };
@@ -577,8 +580,9 @@ function vLogListe(){
 
   d.append(recherche("log", "Nom, matériel, lieu, école…"));
   const p = el("div", "pills");
-  [[null, "Tout", tous.length], ...Object.entries(LOG_TYPES).map(([k, t]) =>
-      [k, t.pl, tous.filter(x => x.type === k).length])].forEach(([k, lab, n]) => {
+  const carnet = x => LOG_TYPES[x.type].comme || x.type;
+  [[null, "Tout", tous.length], ...Object.entries(LOG_TYPES).filter(([, t]) => !t.ferme).map(([k, t]) =>
+      [k, t.pl, tous.filter(x => carnet(x) === k).length])].forEach(([k, lab, n]) => {
     const b = el("button", "pill", esc(lab) + (n ? ` <i>${n}</i>` : ""));
     b.setAttribute("aria-pressed", String(LOGV.type === k));
     b.onclick = () => { toucher(); LOGV.type = k; render(); };
@@ -587,7 +591,7 @@ function vLogListe(){
   d.append(p);
 
   const q = plat(S.qs.log || "");
-  const vus = etats.filter(({ x }) => (!LOGV.type || x.type === LOGV.type)
+  const vus = etats.filter(({ x }) => (!LOGV.type || carnet(x) === LOGV.type)
     && (!q || plat([x.titre, x.lieu, x.tiers, x.tuteur, x.formation, x.service, x.spectacle,
                     x.cat, x.contact, x.note].join(" ")).includes(q)));
 
@@ -632,16 +636,12 @@ function vLogListe(){
 const CLE_LOG_CAL = "logistique.agendas.v1";
 let LOG_CAL = null;
 function logCal(){
-  if(!LOG_CAL) LOG_CAL = Object.assign({ ids:[], noms:{}, spec:[], derniere:0 }, lireLocal(CLE_LOG_CAL, {}));
+  if(!LOG_CAL) LOG_CAL = Object.assign({ ids:[], noms:{}, derniere:0 }, lireLocal(CLE_LOG_CAL, {}));
   return LOG_CAL;
 }
 const sauverCal = () => ecrireLocal(CLE_LOG_CAL, logCal());
 const CAL_AVANT = 30, CAL_APRES = 180;         // jours lus de part et d'autre d'aujourd'hui
-/* Un agenda peut être celui des spectacles : ses rendez-vous arrivent comme
-   des représentations, avec leur heure de jeu. Un nom qui le dit le coche
-   d'office au premier choix. */
-const estSpec = id => (logCal().spec || []).map(String).includes(String(id));
-const nomDeSpec = n => /spectacle|sceneflow|repr[ée]sentation|programmation|saison|tourn[ée]e/i.test(n || "");
+
 
 function syncAgenda(){
   if(!NET.agendaTel.dispo || !NET.agendaTel.autorise()) return { erreur:"autorisation refusée" };
@@ -660,16 +660,6 @@ function syncAgenda(){
                 source:"agenda:" + o.agenda, maj:1 };
     if(o.fin && o.fin !== o.debut) x.fin = o.fin;
     ["hdebut", "hfin", "lieu", "note"].forEach(k => { if(o[k]) x[k] = o[k]; });
-    /* Chaque rendez-vous est une représentation : un jour, une heure de jeu.
-       Sans heure, il reste un événement, sinon il ne s'afficherait nulle part. */
-    if(estSpec(o.agenda) && o.hdebut){
-      x.type = "spec"; x.seances = o.hdebut; delete x.cat;
-      if(o.hfin && o.hfin > o.hdebut){
-        const [a1, b1] = o.hdebut.split(":").map(Number), [a2, b2] = o.hfin.split(":").map(Number);
-        const mn = a2 * 60 + b2 - a1 * 60 - b1;
-        x.duree = Math.floor(mn / 60) + "h" + String(mn % 60).padStart(2, "0");
-      }
-    }
     return x;
   });
   const r = fusionner(fiches);
@@ -740,13 +730,10 @@ function carteAgenda(){
   }
 
   if(!LOGV.calChoix && cal.ids.length){
-    const nom = i => cal.noms[i] || "agenda " + i;
-    const specs = cal.ids.filter(estSpec), autres = cal.ids.filter(i => !estSpec(i));
+    const noms = cal.ids.map(i => cal.noms[i] || "agenda " + i);
     const quand = cal.derniere ? new Date(cal.derniere).toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" }) : "";
-    c.insertAdjacentHTML("beforeend", `<p class="muted">${
-      autres.length ? `Suivi : <b>${esc(autres.map(nom).join(", "))}</b>, en événements. ` : ""}${
-      specs.length ? `Spectacles : <b>${esc(specs.map(nom).join(", "))}</b>, chaque rendez-vous en représentation. ` : ""}${
-      quand ? `Lu à ${esc(quand)}.` : ""}</p>`);
+    c.insertAdjacentHTML("beforeend", `<p class="muted">Suivi : <b>${esc(noms.join(", "))}</b>${
+      quand ? ` · lu à ${esc(quand)}` : ""}. Les rendez-vous arrivent dans l'agenda comme des événements.</p>`);
     btn("Actualiser", actualiser, true);
     btn("Changer d'agendas", () => { LOGV.calChoix = true; render(); });
     c.append(g, msg);
@@ -760,33 +747,21 @@ function carteAgenda(){
       ? "Aucun agenda sur ce téléphone." : "Les agendas ne se lisent pas : " + esc((liste && liste.erreur) || "erreur") + "."}</p>`);
     return c;
   }
-  c.insertAdjacentHTML("beforeend", `<p class="muted">Cochez les agendas à suivre. Le bouton
-    Spectacles désigne le calendrier des spectacles : ses rendez-vous s'affichent en représentations,
-    avec leur heure de jeu.</p>`);
+  c.insertAdjacentHTML("beforeend", `<p class="muted">Cochez les agendas à suivre, celui des
+    spectacles compris.</p>`);
   const cases = el("div", "lg-agendas");
   const suivis = cal.ids.map(String);
-  const specs = new Set((cal.ids.length ? cal.spec || [] : liste.filter(a => nomDeSpec(a.nom)).map(a => a.id)).map(String));
   liste.forEach(a => {
-    const r = el("div", "lg-ag");
     const l = el("label", "lg-coche");
     l.style.setProperty("--c", a.couleur || "var(--log)");
-    l.innerHTML = `<input type="checkbox" value="${esc(a.id)}"${suivis.includes(String(a.id)) || specs.has(String(a.id)) ? " checked" : ""}>
+    l.innerHTML = `<input type="checkbox" value="${esc(a.id)}"${suivis.includes(String(a.id)) ? " checked" : ""}>
       <span class="pt"></span><span class="nm"><b>${esc(a.nom || "Sans nom")}</b>${
       a.compte && a.compte !== a.nom ? `<i>${esc(a.compte)}</i>` : ""}</span>`;
-    const sp = el("button", "lg-spec", ic("spec") + "<span>Spectacles</span>");
-    sp.type = "button";
-    sp.dataset.id = String(a.id);
-    sp.setAttribute("aria-pressed", String(specs.has(String(a.id))));
-    /* Désigner un agenda comme celui des spectacles le fait aussi suivre. */
-    sp.onclick = () => { toucher(); const on = sp.getAttribute("aria-pressed") !== "true";
-      sp.setAttribute("aria-pressed", String(on)); if(on) l.querySelector("input").checked = true; };
-    r.append(l, sp);
-    cases.append(r);
+    cases.append(l);
   });
   c.append(cases);
   btn("Suivre ces agendas", () => {
     const ch = [...cases.querySelectorAll("input:checked")].map(i => i.value);
-    cal.spec = [...cases.querySelectorAll('.lg-spec[aria-pressed="true"]')].map(b => b.dataset.id).filter(i => ch.includes(i));
     cal.ids = ch;
     cal.noms = Object.fromEntries(liste.filter(a => ch.includes(String(a.id))).map(a => [String(a.id), a.nom]));
     cal.couleurs = Object.fromEntries(liste.map(a => [String(a.id), a.couleur]));
@@ -950,7 +925,6 @@ function typeLu(v){
   const s = plat(v);
   if(/^(pret|emprunt|materiel)/.test(s)) return "pret";
   if(/^stag/.test(s)) return "stag";
-  if(/^(spec|repres)/.test(s)) return "spec";
   return "ev";
 }
 
