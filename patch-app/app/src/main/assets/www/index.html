@@ -756,15 +756,35 @@
   .ajout .ic{width:17px;height:17px}
   .bar .bk.plus{background:var(--ink);color:var(--bg)}
   .bar .bk.plus .ic{width:20px;height:20px}
-  .ajouts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-  .ajouts .aj{display:flex;align-items:center;gap:8px;min-height:52px;padding:10px 12px;
-       border:1.5px dashed var(--line);background:none;border-radius:14px;cursor:pointer;
-       color:var(--ink);font:700 13.5px/1.15 var(--body);text-align:left}
-  .ajouts .aj .ic{width:20px;height:20px;flex:none;color:var(--c)}
-  .ajouts .aj .pl{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:99px;
-       background:var(--c);color:var(--bg)}
-  .ajouts .aj .pl .ic{width:14px;height:14px;color:var(--bg)}
-  .ajouts .aj:active{transform:scale(.98)}
+  /* La feuille d'ajout, sur le modèle de TickTick : le nom en grand, les
+     champs obligatoires dessous en petit, le reste replié derrière des
+     pastilles, et une flèche pour valider. */
+  .voile{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.45);display:flex;
+       flex-direction:column;justify-content:flex-end}
+  .feuille{background:var(--sur);border-radius:20px 20px 0 0;padding:18px 16px 12px;
+       padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 30px rgba(0,0,0,.25);
+       max-width:640px;width:100%;margin:0 auto}
+  .feuille .quoi{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--c);margin:0 0 10px}
+  .feuille input{display:block;width:100%;border:0;background:none;outline:none;color:var(--ink);
+       padding:0;font-family:var(--body)}
+  .feuille .titre{font:600 21px/1.3 var(--body);margin:0 0 8px}
+  .feuille .lignes{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 0 4px}
+  .feuille .lignes input{flex:1 1 40%;min-width:0;font:500 15px/1.6 var(--body);color:var(--ink2)}
+  .feuille input::placeholder{color:var(--ink3)}
+  .feuille input.manque::placeholder{color:var(--ko)}
+  .feuille .plus-ch{display:flex;flex-wrap:wrap;gap:4px 14px}
+  .feuille .plus-ch input{flex:1 1 40%;min-width:0;font:500 15px/1.6 var(--body);color:var(--ink2)}
+  .feuille .bas{display:flex;align-items:center;gap:6px;margin-top:12px}
+  .feuille .pastilles{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .feuille .pastilles::-webkit-scrollbar{display:none}
+  .feuille .pastilles button{flex:none;border:1.5px solid var(--line);background:none;border-radius:99px;
+       min-height:36px;padding:0 12px;cursor:pointer;color:var(--ink2);font:600 12.5px/1 var(--body)}
+  .feuille .pastilles button[aria-pressed="true"]{border-color:var(--c);color:var(--c)}
+  .feuille .envoi{flex:none;width:44px;height:44px;border:0;border-radius:99px;cursor:pointer;
+       background:var(--c);color:var(--bg);display:grid;place-items:center}
+  .feuille .envoi .ic{width:20px;height:20px}
+  .feuille .envoi:disabled{opacity:.35}
   .ajout:active{transform:scale(.99)}
   .vide{color:var(--ink3);font-size:13.5px;padding:14px 2px;margin:0}
   .fin{display:flex;gap:10px;margin:16px 0 4px}
@@ -1116,6 +1136,7 @@ const go = r => {
 const retour = defaut => { if(PILE.length) history.back(); else go(defaut || { v:"home" }); };
 
 window.addEventListener("popstate", () => {
+  if(FEUILLE){ fermerFeuille(); render(); return; }
   const p = PILE[PILE.length - 1];
   if(!p) return;                    // pile vide : la coque laisse Android fermer
   if(!peutQuitterPatch(p.r.v)){     // refusé : on repose l'entrée qu'Android vient de retirer
@@ -1400,14 +1421,6 @@ function ligneJour(o){
 
 /* Les deux onglets du bas tombaient sur le premier élément de leur famille —
    « Outils » ouvrait le patch — et n'avaient donc aucun écran où ramener. */
-/* L'ajout vivait en pied de chaque liste, sous cent projecteurs : on ne le
-   trouvait pas. Il est posé ici, à l'entrée du parc, avec les quatre sortes. */
-const AJOUTS_PARC = [
-  { k:"proj", t:"Projecteur", i:"lyre", c:"var(--proj)" },
-  { k:"mach", t:"Machinerie", i:"structure", c:"var(--mach)" },
-  { k:"haut", t:"Hauteur", i:"passerelle", c:"var(--haut)" },
-  { k:"div", t:"Autre matériel", i:"caisse", c:"var(--div)" }
-];
 function vParc(){
   const d = el("div");
   /* Import, export et nom de la salle ne servent qu'à l'installation : ils
@@ -1423,17 +1436,6 @@ function vParc(){
   d.append(b);
   if(ouvert) d.append(carteSalle());
   d.append(grille(CATS, false, "var(--proj)"));
-  const t = el("h3", "sous", "Ajouter au parc");
-  t.style.marginTop = "20px";
-  d.append(t);
-  const g = el("div", "ajouts");
-  AJOUTS_PARC.forEach(a => {
-    const b = el("button", "aj", `<span class="pl">${ic("plus")}</span>${ic(a.i)}<span>${esc(a.t)}</span>`);
-    b.style.setProperty("--c", a.c);
-    b.onclick = () => { toucher(); go({ v:"edit", k:a.k, i:null }); };
-    g.append(b);
-  });
-  d.append(g);
   return d;
 }
 
@@ -2107,23 +2109,128 @@ function barAjout(titre, cnt, k){
   const b = bar(titre, cnt);
   const p = el("button", "bk plus", ic("plus"));
   p.setAttribute("aria-label", "Ajouter");
-  p.onclick = () => { toucher(); go({ v:"edit", k, i:null }); };
+  p.onclick = () => { toucher(); ouvrirAjout(k); };
   b.append(p);
   return b;
 }
 function boutonAjout(k, lab){
   const b = el("button", "ajout", ic("plus") + "<span>" + esc(lab) + "</span>");
-  b.onclick = () => go({ v:"edit", k, i:null });
+  b.onclick = () => { toucher(); ouvrirAjout(k); };
   return b;
 }
 
+/* Lit un champ de fiche : `undefined` quand la valeur ne se lit pas. */
+function valeurChamp(f, v){
+  if(!v) return null;
+  if(!f.t) return v;
+  const x = parseFloat(v.replace(",", ".").replace(/[^\d.\-]/g, ""));
+  if(!isFinite(x)) return undefined;
+  return f.t === "entier" ? Math.round(x) : x;
+}
+
+/* ----------------------------- la feuille d'ajout ------------------------ */
+/* L'ajout n'est pas un écran : une feuille qui monte sur la liste, qu'on
+   referme par la flèche, le voile ou le retour d'Android, sans laisser de
+   page derrière soi dans l'historique. */
+const DEFAUT_AJOUT = {
+  proj:() => ({ marque:S.marque || "" }),
+  mach:() => ({ type:S.typeMach || "" }),
+  div:() => ({ type:S.typeDiv || "" }),
+  haut:() => ({})
+};
+const QUOI_AJOUT = { proj:"Nouveau projecteur", mach:"Nouvelle machinerie", haut:"Nouveau niveau",
+                     div:"Nouveau matériel" };
+const COUL_AJOUT = { proj:"var(--proj)", mach:"var(--mach)", haut:"var(--haut)", div:"var(--div)" };
+let FEUILLE = null;
+function fermerFeuille(){
+  if(!FEUILLE) return;
+  FEUILLE.remove();
+  FEUILLE = null;
+}
+function ouvrirAjout(k){
+  if(FEUILLE) return;
+  const champs = CHAMPS[k];
+  const [titre, ...autres] = champs;
+  const req = autres.filter(f => f.req), opt = autres.filter(f => !f.req);
+  const def = (DEFAUT_AJOUT[k] || (() => ({})))();
+  const inp = (f, cls) => `<input data-c="${f.c}"${cls ? ` class="${cls}"` : ""} value="${esc(def[f.c] || "")}"
+      placeholder="${esc(f.l)}" aria-label="${esc(f.l)}" autocomplete="off"${
+      f.liste ? ` list="fl-${f.c}"` : ""}${
+      f.t ? ` inputmode="${f.t === "decimal" ? "decimal" : "numeric"}"` : ""}>${
+      f.liste ? `<datalist id="fl-${f.c}">${f.liste().map(v => `<option value="${esc(v)}"></option>`).join("")}</datalist>` : ""}`;
+
+  const v = el("div", "voile");
+  const f = el("div", "feuille");
+  f.style.setProperty("--c", COUL_AJOUT[k] || "var(--ink)");
+  f.setAttribute("role", "dialog");
+  f.setAttribute("aria-label", QUOI_AJOUT[k] || "Ajouter");
+  f.innerHTML = `<p class="quoi">${esc(QUOI_AJOUT[k] || "Ajouter")}</p>
+    <input class="titre" data-c="${titre.c}" placeholder="${esc(titre.l)} · ex. ${esc(titre.ph)}"
+      aria-label="${esc(titre.l)}" autocomplete="off" enterkeyhint="send">
+    <div class="lignes">${req.map(x => inp(x)).join("")}</div>
+    <div class="plus-ch"></div>
+    <div class="bas"><div class="pastilles">${opt.map(x =>
+      `<button type="button" data-c="${x.c}" aria-pressed="false">${esc(x.l)}</button>`).join("")}</div>
+      <button class="envoi" type="button" aria-label="Ajouter" disabled>${ic("plus")}</button></div>`;
+  v.append(f);
+  document.body.append(v);
+  FEUILLE = v;
+  /* Le retour d'Android ferme la feuille : elle a sa propre entrée d'historique. */
+  try { history.pushState({ feuille:true }, ""); } catch(e){ }
+  const fermer = () => { if(FEUILLE) history.back(); };
+  v.addEventListener("click", e => { if(e.target === v) fermer(); });
+
+  const t = $(".titre", f), envoi = $(".envoi", f), plus = $(".plus-ch", f);
+  t.addEventListener("input", () => { envoi.disabled = !t.value.trim(); });
+  f.querySelectorAll(".pastilles button").forEach(b => b.onclick = () => {
+    const ch = opt.find(x => x.c === b.dataset.c);
+    let i = plus.querySelector(`[data-c="${ch.c}"]`);
+    if(!i){
+      plus.insertAdjacentHTML("beforeend", inp(ch));
+      i = plus.querySelector(`[data-c="${ch.c}"]`);
+      b.setAttribute("aria-pressed", "true");
+    }
+    i.focus();
+  });
+  const valider = () => {
+    const o = {};
+    let rate = null;
+    f.querySelectorAll("input[data-c]").forEach(i => i.classList.remove("manque"));
+    champs.forEach(ch => {
+      const i = f.querySelector(`input[data-c="${ch.c}"]`);
+      const x = valeurChamp(ch, i ? i.value.trim() : "");
+      if((x == null && ch.req) || x === undefined){
+        if(i){ i.value = ""; i.classList.add("manque"); }
+        rate = rate || i;
+        return;
+      }
+      o[ch.c] = x;
+    });
+    if(rate){ toucher(); rate.focus(); return; }
+    INV[k].liste.push(o);
+    sauverInv();
+    toucher();
+    fermer();
+  };
+  envoi.onclick = valider;
+  f.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); valider(); } });
+  setTimeout(() => t.focus(), 60);
+}
+
 /* ------------------------- la fiche : ajout, édition, retrait ------------- */
+/* Valider empilait la liste par-dessus la fiche : le retour y ramenait. On
+   revient d'où l'on vient, ou l'on remplace la fiche sans empiler. */
+function quitterFiche(k){
+  const p = PILE[PILE.length - 1];
+  if(p && p.r.v === k) retour();
+  else { S.route = { v:k }; window.scrollTo(0, 0); render(); }
+}
 function vEdit(k, i){
   const def = INV[k];
   const neuf = i == null;
   const src = neuf ? {} : (def.liste[i] || {});
   const d = el("div");
-  d.append(bar(neuf ? "Nouveau " + def.un : (src.nom || "Fiche"), null, () => go({ v:k })));
+  d.append(bar(neuf ? "Nouveau " + def.un : (src.nom || "Fiche"), null, () => quitterFiche(k)));
 
   const c = el("div", "card");
   c.innerHTML = `<h4>${neuf ? "Ajouter" : "Modifier"}</h4>`;
@@ -2145,7 +2252,7 @@ function vEdit(k, i){
 
   const fin = el("div", "fin");
   const ann = el("button", "ann", "Annuler");
-  ann.onclick = () => go({ v:k });
+  ann.onclick = () => quitterFiche(k);
   const val = el("button", "val", neuf ? "Ajouter" : "Enregistrer");
   val.onclick = () => {
     const o = {}, manque = [];
@@ -2167,7 +2274,7 @@ function vEdit(k, i){
     if(k === "proj" && !neuf) renommerApp(cleApp(src), cleApp(fiche));
     if(neuf) def.liste.push(fiche); else def.liste[i] = fiche;
     sauverInv();
-    go({ v:k });
+    quitterFiche(k);
   };
   fin.append(ann, val);
   d.append(fin);
@@ -2185,7 +2292,7 @@ function vEdit(k, i){
       if(k === "proj") oublierApp(cleApp(src));
       def.liste.splice(i, 1);
       sauverInv();
-      go({ v:k });
+      quitterFiche(k);
     };
     d.append(sup);
   }
