@@ -97,7 +97,7 @@
 /* La grille : une colonne étroite pour le numéro de semaine, sept pour les
    jours ; chaque semaine est sa propre grille, pour que les barres courent
    d'un jour à l'autre sur une même ligne. */
-.cal-grille{margin:0 -8px;user-select:none;-webkit-user-select:none}
+.cal-grille{margin:0 -8px;overflow:hidden;user-select:none;-webkit-user-select:none}
 .cal-jours,.cal-sem{display:grid;grid-template-columns:22px repeat(7,minmax(0,1fr));column-gap:3px}
 .cal-jours span{text-align:center;font:600 11.5px/1 var(--body);color:var(--ink2);padding:2px 0 6px}
 .cal-jours span.auj{color:var(--log)}
@@ -201,3 +201,11 @@
 .lg-plus[open] summary::before{content:"−"}
 .lg-fiche .fin{padding:8px 16px;margin-top:6px}
 .lg-fiche .fin button{padding:12px}
+
+/* Le changement de mois : la grille entre du côté d'où l'on vient. */
+@keyframes cal-d{from{opacity:.35;transform:translateX(7%)}to{opacity:1;transform:none}}
+@keyframes cal-g{from{opacity:.35;transform:translateX(-7%)}to{opacity:1;transform:none}}
+.cal-corps.vient-d{animation:cal-d .26s cubic-bezier(.22,.7,.3,1)}
+.cal-corps.vient-g{animation:cal-g .26s cubic-bezier(.22,.7,.3,1)}
+.cal-tete h2{transition:opacity .2s}
+@media (prefers-reduced-motion:reduce){ .cal-corps.vient-d,.cal-corps.vient-g{animation:none} }

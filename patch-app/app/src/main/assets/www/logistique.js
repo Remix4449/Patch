@@ -390,8 +390,10 @@ function vLogMois(){
   const d = el("div", "lg cal");
   /* Changer de mois choisit aussi un jour de ce mois : aujourd'hui s'il y
      est, sinon le premier. */
+  /* Le mois suivant arrive du côté d'où on va : la grille glisse et s'éclaire
+     au lieu d'être remplacée d'un coup. */
   const aller = n => { const t = iso(new Date(a, m - 1 + n, 1)); LOGV.mois = t.slice(0, 7);
-    LOGV.jour = j.slice(0, 7) === LOGV.mois ? j : t; render(); };
+    LOGV.jour = j.slice(0, 7) === LOGV.mois ? j : t; LOGV.sens = n; render(); };
   d.append(teteLog(MOIS[m - 1].replace(/^./, c => c.toUpperCase()) + (a !== new Date().getFullYear() ? " " + a : ""), aller));
 
   const tous = logVivants().filter(x => x.debut);
@@ -429,11 +431,11 @@ function vLogMois(){
         + (jj === LOGV.jour ? " choisi" : ""));
       f.style.gridColumn = String(i + 2);
       f.setAttribute("aria-label", jourCourt(jj, true));
-      /* Un premier toucher choisit le jour ; un second sur le même jour
-         déplie le volet, avec ses fiches et les ajouts. */
+      /* Toucher un jour l'ouvre : le volet se déplie sur son contenu. */
       f.onclick = () => { toucher();
-        if(jj === LOGV.jour && !LOGV.volet){ LOGV.volet = true; ecrireLocal(CLE_LOG_VOLET, true); }
-        LOGV.jour = jj; if(jj.slice(0, 7) !== mois) LOGV.mois = jj.slice(0, 7); render(); };
+        LOGV.jour = jj; LOGV.volet = true; ecrireLocal(CLE_LOG_VOLET, true);
+        if(jj.slice(0, 7) !== mois) LOGV.mois = jj.slice(0, 7);
+        render(); };
       f.append(el("span", "cal-n" + (jj === j ? " auj" : ""), String(+jj.slice(8))));
       sem.append(f);
     });
@@ -501,6 +503,7 @@ function vLogMois(){
   };
   const dessiner = (L, h) => corps.replaceChildren(...lundis.map(l => semaine(l, L, h)));
   dessiner(CAL_LIGNES, 0);
+  if(LOGV.sens){ corps.classList.add(LOGV.sens > 0 ? "vient-d" : "vient-g"); LOGV.sens = 0; }
 
   /* Un glissement du doigt change de mois, comme dans l'agenda. */
   let x0 = null, y0 = null;
