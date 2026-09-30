@@ -35,6 +35,26 @@ retard, et propose l'installation d'une touche. Seule la confirmation reste
 manuelle — Android n'autorise pas une application hors magasin à en installer une
 autre en silence. `patch-app/README.md` détaille le mécanisme.
 
+## Utiliser Patch dans une autre salle
+
+Le dépôt est public : n'importe qui peut installer l'APK depuis la release `apk`
+en suivant les trois étapes ci-dessus, et reçoit ensuite les mêmes mises à jour.
+Toutes les données restent sur le téléphone ; rien n'est partagé entre deux
+utilisateurs.
+
+L'application arrive avec le parc d'une salle précise. Pour une autre salle,
+dans l'onglet **Parc**, carte **Ma salle** :
+
+- **Nom de la salle** : il s'affiche en tête du Parc et nomme le fichier exporté ;
+- **Vider le parc**, puis ajouter son matériel fiche par fiche ;
+- **Exporter ce parc** / **Importer un parc** : un fichier JSON (format
+  `patch-parc`) qui porte les projecteurs, la machinerie, les hauteurs et les
+  modes DMX, pour équiper un autre téléphone de la même salle ;
+- **Reprendre le parc livré** revient au parc d'origine de l'APK.
+
+L'agenda lit les agendas du téléphone de chacun (Réglages de l'écran Agenda) et
+les patchs appartiennent au téléphone qui les a créés.
+
 ## Lancer l'interface dans un navigateur
 
 L'interface se met au point sans Android. `net.js` rejoue des jeux de
