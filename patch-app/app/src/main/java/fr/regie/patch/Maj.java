@@ -119,22 +119,24 @@ public class Maj {
      * déjà remplacée.
      */
     public void reprendre() {
-        if ("pret".equals(phase)) verifier();
+        if ("pret".equals(phase) || "erreur".equals(phase) || "repos".equals(phase)) verifier();
     }
 
     /**
-     * Reprend le téléchargement. Après une erreur, la phase n'est plus
-     * « disponible » et le bouton ne faisait rien : on repart alors de la
-     * vérification, qui relance le téléchargement.
+     * Reprend après un échec réseau. On revérifie d'abord : l'échec vient
+     * souvent d'une publication en cours, et le numéro publié a pu changer.
      */
-    public void telecharger() { lancer("erreur".equals(phase), true); }
+    public void telecharger() { lancer(true, true); }
 
-    /** Nombre d'essais quand le réseau coupe, et l'attente avant chacun. */
-    private static final int ESSAIS = 3;
-    private static final long[] ATTENTES = { 3000, 8000 };
-
-    /** Vrai si la dernière erreur vient du réseau et mérite un nouvel essai. */
-    private volatile boolean passager = false;
+    /**
+     * Une fusion remplace l'APK puis sa fiche : la vérification ou le
+     * téléchargement qui tombe pendant ces quelques secondes échoue. Personne
+     * n'est là pour appuyer sur « Vérifier », alors on reprend tout seul, deux
+     * fois, à une demi-minute d'intervalle. Une main sur le bouton reprend à
+     * zéro.
+     */
+    private static final int REPRISES = 2;
+    private static final long ATTENTE = 30000;
 
     private void lancer(final boolean verif, final boolean tele) {
         if (occupe) return;
@@ -142,21 +144,11 @@ public class Maj {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    /*
-                     * En 4G faible, une connexion qui expire est courante et se
-                     * rattrape au second essai : on réessaie seul plutôt que de
-                     * laisser l'écran en erreur.
-                     */
-                    for (int essai = 0; essai < ESSAIS; essai++) {
-                        if (essai > 0) {
-                            erreur = erreur + ", nouvel essai";
-                            try { Thread.sleep(ATTENTES[essai - 1]); }
-                            catch (InterruptedException e) { return; }
-                        }
-                        passager = false;
-                        if (verif || essai > 0) verifierIci();
+                    for (int essai = 0; ; essai++) {
+                        if (verif) verifierIci();
                         if (tele && "disponible".equals(phase)) telechargerIci();
-                        if (!"erreur".equals(phase) || !passager) break;
+                        if (!"erreur".equals(phase) || essai >= REPRISES) return;
+                        try { Thread.sleep(ATTENTE); } catch (InterruptedException e) { return; }
                     }
                 } finally {
                     occupe = false;
@@ -173,9 +165,7 @@ public class Maj {
         HttpURLConnection c = null;
         try {
             lireInstalle();
-            c = ouvrir(RELEASE + "version.json");
-            int code = c.getResponseCode();
-            if (code != 200) throw new Exception("réponse " + code);
+            c = ouvrirPublie(RELEASE + "version.json");
             JSONObject o = new JSONObject(texte(c.getInputStream()));
             publie = o.optInt("versionCode", 0);
             nomPublie = o.optString("versionName", "");
@@ -193,7 +183,6 @@ public class Maj {
                 phase = "disponible";
             }
         } catch (Exception e) {
-            passager = e instanceof java.io.IOException;
             erreur = dire(e);
             phase = "erreur";
         } finally {
@@ -235,9 +224,7 @@ public class Maj {
         OutputStream out = null;
         File part = new File(dossier(act), APK + ".part");
         try {
-            c = ouvrir(RELEASE + APK);
-            int code = c.getResponseCode();
-            if (code != 200) throw new Exception("réponse " + code);
+            c = ouvrirPublie(RELEASE + APK);
             long annonce = c.getContentLength();
             if (annonce > 0) taille = annonce;
             in = c.getInputStream();
@@ -258,10 +245,7 @@ public class Maj {
              * la même version en boucle. On ne garde que l'APK attendu.
              */
             int lu = versionDe(part);
-            if (lu == 0) {                       // flux coupé sans erreur : APK tronqué
-                passager = true;
-                throw new Exception("APK incomplet");
-            }
+            if (lu == 0) throw new Exception("APK incomplet, réessaie dans une minute");
             if (lu != publie) throw new Exception("publication en cours, réessaie dans une minute");
             File cible = fichier(act);
             cible.delete();
@@ -270,7 +254,6 @@ public class Maj {
             taille = cible.length();
             phase = "pret";
         } catch (Exception e) {
-            if (e instanceof java.io.IOException) passager = true;
             erreur = dire(e);
             phase = "erreur";
             try { part.delete(); } catch (Exception ignore) { }
@@ -344,6 +327,26 @@ public class Maj {
      * souvent aucun accès extérieur : sans ce détour, la vérification échouerait
      * là où elle sert le plus, alors que la 4G est disponible à côté.
      */
+    /**
+     * Ouvre un fichier de la release et attend qu'il réponde 200.
+     *
+     * La chaîne de montage remplace l'APK puis la fiche en retirant l'ancien
+     * fichier avant de déposer le nouveau : pendant quelques secondes après
+     * chaque fusion dans main, la release répond 404. On patiente un peu avant
+     * de parler d'erreur, et l'erreur dit alors ce qui se passe.
+     */
+    private HttpURLConnection ouvrirPublie(String adresse) throws Exception {
+        for (int essai = 1; ; essai++) {
+            HttpURLConnection c = ouvrir(adresse);
+            int code = c.getResponseCode();
+            if (code == 200) return c;
+            try { c.disconnect(); } catch (Exception ignore) { }
+            if (code != 404) throw new Exception("réponse " + code);
+            if (essai >= 4) throw new Exception("publication en cours, réessaie dans une minute");
+            Thread.sleep(8000);
+        }
+    }
+
     private HttpURLConnection ouvrir(String adresse) throws Exception {
         URL u = new URL(adresse);
         Network n = reseauInternet();

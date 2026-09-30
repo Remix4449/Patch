@@ -15,11 +15,13 @@
 
   :root{
     --bg:#FFFFFF; --sur:#F3F4F7; --sur2:#E8EAF0; --line:#DDE0E8;
-    --ink:#0F1116; --ink2:#5A6070; --ink3:#8990A0;
-    --proj:#2F4BFF; --mach:#00998D; --haut:#E0218A; --mdg:#7A3FF2;
-    --dmx:#E2761C; --gel:#C2185B; --ndi:#0E7BC4; --net:#128A45; --art:#5B3FD6;
+    --ink:#0F1116; --ink2:#5A6070; --ink3:#666D7D;
+    /* Tous à 4,5:1 au moins sous du texte blanc : l'orange du Patch, l'outil
+       qu'on ouvre le plus, tombait à 3,1:1. */
+    --proj:#2F4BFF; --mach:#008379; --haut:#D92085; --mdg:#7A3FF2;
+    --dmx:#B45E16; --gel:#C2185B; --ndi:#0E7BC4; --net:#118542; --art:#5B3FD6;
     --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757; --cab:#A34E1D; --rig:#3C5A73;
-    --bil:#8A1F2B; --led:#3F8F00; --elec:#243B6B; --sub:#0A6E7C;
+    --bil:#8A1F2B; --led:#3A8400; --elec:#243B6B; --sub:#0A6E7C;
     /* Assombris : en petites capitales sur une surface claire, ils passaient
        sous le seuil lisible — ici et partout où ils servent de texte. */
     --ok:#0C6E36; --ko:#B01F1A;
@@ -51,6 +53,9 @@
   body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);
        -webkit-font-smoothing:antialiased}
   button,input{font:inherit;color:inherit}
+  /* Un exemple ne doit pas se lire comme une valeur : police du texte, plus
+     pâle, et « ex. » devant. La mono reste aux vraies données. */
+  input::placeholder{font-family:var(--body);color:var(--ink3);opacity:.7}
   :focus-visible{outline:2px solid var(--proj);outline-offset:2px}
 
   .shell{max-width:560px;margin:0 auto;padding:0 16px
@@ -62,12 +67,15 @@
   /* L'état du réseau : c'est ce qu'on vient vérifier d'un coup d'œil avant
      d'envoyer du sACN, donc il porte sa couleur, et il s'ouvre sur l'outil
      Réseau. Hauteur 44 px : c'est une cible, pas une étiquette. */
-  .head .badge{margin-left:auto;font:700 10px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;
-       background:var(--sur2);color:var(--ink2);border:1.5px solid transparent;padding:0 13px;
+  .head .badge{margin-left:auto;font:600 12.5px/1 var(--mono);background:var(--sur2);color:var(--ink2);
+       border:0;padding:0 14px 0 12px;gap:7px;
        min-height:44px;display:inline-flex;align-items:center;border-radius:99px;white-space:nowrap;
        cursor:pointer;flex:none}
-  .head .badge.ok{color:var(--ok);border-color:var(--ok)}
-  .head .badge.ko{color:var(--ko);border-color:var(--ko)}
+  /* Un point de couleur devant l'adresse : vert en réseau, rouge hors réseau,
+     gris en démo — la pastille grise seule passait pour un bouton éteint. */
+  .head .badge::before{content:"";width:8px;height:8px;border-radius:99px;background:currentColor;flex:none}
+  .head .badge.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--bg))}
+  .head .badge.ko{color:var(--ko);background:color-mix(in srgb,var(--ko) 12%,var(--bg))}
   .head .badge:active{transform:scale(.97)}
   .head p{margin:0;color:var(--ink2);font-size:13.5px}
   .head p b{font-weight:700;color:var(--ink)}
@@ -87,14 +95,21 @@
      couleur de famille, qui n'est posée que sur l'élément — déclarés plus haut
      ils se résoudraient contre un `--c` inexistant, et la tuile n'aurait plus
      de fond du tout. */
-  .tile{--t-fond:var(--c); --t-ink:#fff; --t-ink2:rgba(255,255,255,.9);
-        --t-n:rgba(255,255,255,.55); --t-filet:transparent; --t-ico:currentColor}
+  /* En clair aussi, désormais : vingt pavés de vingt couleurs ne disaient
+     plus rien. La tuile est neutre dans les deux thèmes, la couleur (celle du
+     groupe) passe sur le pictogramme et le filet. Seul le Patch garde un fond
+     plein en clair — c'est l'outil qu'on ouvre le plus. */
+  .tile{--t-fond:var(--sur); --t-ink:var(--ink); --t-ink2:var(--ink2);
+        --t-n:var(--ink3); --t-filet:var(--c); --t-ico:var(--c)}
+  .tile.plein{--t-fond:var(--c); --t-ink:#fff; --t-ink2:rgba(255,255,255,.9);
+        --t-n:rgba(255,255,255,.7); --t-filet:transparent; --t-ico:currentColor}
   @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]) .tile{--t-fond:var(--sur); --t-ink:var(--ink);
+    :root:not([data-theme="light"]) .tile.plein{--t-fond:var(--sur); --t-ink:var(--ink);
       --t-ink2:var(--ink2); --t-n:var(--ink3); --t-filet:var(--c); --t-ico:var(--c)}
   }
-  :root[data-theme="dark"] .tile{--t-fond:var(--sur); --t-ink:var(--ink);
+  :root[data-theme="dark"] .tile.plein{--t-fond:var(--sur); --t-ink:var(--ink);
     --t-ink2:var(--ink2); --t-n:var(--ink3); --t-filet:var(--c); --t-ico:var(--c)}
+  .tile .etoile-fav{position:absolute;right:11px;top:8px;font-size:13px;line-height:1;color:var(--t-ico)}
 
   .tile{border:0;border-radius:18px;padding:16px;cursor:pointer;text-align:left;
         color:var(--t-ink);box-shadow:inset 3px 0 0 var(--t-filet);
@@ -111,16 +126,36 @@
   .tile.sm b{font-size:16px}
   .tile.sm.wide{min-height:78px}
 
-  /* La mise à jour n'est pas un outil de plateau : une ligne sous la grille,
-     avec une pastille quand une version attend, plutôt qu'une tuile pleine. */
-  .appli{display:flex;align-items:center;gap:11px;background:var(--sur);border:0;width:100%;
-         border-radius:14px;padding:13px 15px;margin-top:10px;cursor:pointer;text-align:left;
-         min-height:52px;color:inherit}
-  .appli .ic{width:20px;height:20px;color:var(--maj);flex:none}
-  .appli .g{flex:1;min-width:0}
-  .appli b{display:block;font:700 14px/1.25 var(--body)}
-  .appli span{font-size:12.5px;color:var(--ink2)}
-  .appli .pt{width:9px;height:9px;border-radius:99px;background:var(--dmx);flex:none}
+  /* La mise à jour n'est pas un outil de plateau : une icône dans l'en-tête
+     de l'onglet, avec une pastille quand une version attend. */
+  .appli{position:relative;display:grid;place-items:center;width:44px;height:44px;flex:none;
+         background:var(--sur);border:0;border-radius:12px;cursor:pointer;color:var(--ink2)}
+  .appli .ic{width:21px;height:21px}
+  .appli .pt{position:absolute;right:7px;top:7px;width:9px;height:9px;border-radius:99px;
+         background:var(--dmx);box-shadow:0 0 0 2px var(--sur)}
+
+  /* L'onglet Outils : des tuiles d'une ligne, deux par rangée, et le Patch en
+     carte pleine avec ses deux raccourcis. Tout tient sur un écran. */
+  .sbar.outils-q{margin:0 0 12px;padding:0 14px;min-height:48px}
+  .outils{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .to{position:relative;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 12px;
+      background:var(--sur);border:0;border-radius:14px;cursor:pointer;text-align:left;color:var(--ink);min-width:0}
+  .to:active{transform:scale(.985)}
+  .to .ic{width:20px;height:20px;color:var(--c);stroke-width:1.8}
+  .to b{font:700 14.5px/1.15 var(--body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .to .etoile-fav{margin-left:auto;font-size:12px;color:var(--c)}
+  .pc{background:var(--dmx);color:#fff;border-radius:18px;padding:6px;margin-bottom:8px}
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .pc{background:#A9581A} }
+  :root[data-theme="dark"] .pc{background:#A9581A}
+  .pc-m{display:flex;flex-direction:column;gap:4px;width:100%;border:0;background:none;color:inherit;
+      text-align:left;cursor:pointer;padding:10px 10px 8px;position:relative}
+  .pc-m b{font:800 19px/1.1 var(--disp);letter-spacing:-.02em}
+  .pc-m span{font:500 13px/1.3 var(--body);opacity:.92}
+  .pc-m .etoile-fav{position:absolute;right:10px;top:10px;opacity:1;font-size:13px}
+  .pc-ch{display:flex;gap:6px;padding:0 4px 4px}
+  .pc-ch button{flex:1;min-height:44px;border:0;border-radius:99px;background:rgba(0,0,0,.2);color:#fff;
+      font:700 13.5px/1 var(--body);cursor:pointer}
+  .pc-ch button:active{background:rgba(0,0,0,.3)}
 
   /* Une recherche qui n'affiche que les huit premiers doit dire où sont les
      autres, et y emmener avec le même mot. */
@@ -144,6 +179,59 @@
   h3.sous{font:600 12.5px/1 var(--body);color:var(--ink2);margin:16px 2px 8px}
   h3.sous:first-of-type{margin-top:2px}
 
+  /* Accueil : le patch en cours, la carte qu'on vient toucher. */
+  .encours{display:flex;align-items:center;gap:12px;width:100%;border:0;cursor:pointer;text-align:left;
+       background:var(--dmx);color:#fff;border-radius:18px;padding:16px;min-height:78px}
+  .encours .g{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .encours b{font:800 18px/1.15 var(--disp);letter-spacing:-.02em}
+  .encours span{font:500 13px/1.3 var(--body);opacity:.92}
+  .encours i{font:700 13px/1 var(--body);font-style:normal;background:rgba(0,0,0,.2);
+       padding:11px 14px;border-radius:99px;white-space:nowrap;flex:none}
+  .encours:active{transform:scale(.99)}
+  /* Pleine dans les deux thèmes, comme sur la maquette de l'audit : c'est la
+     carte qu'on vient toucher. En sombre elle prend un orange un peu éteint,
+     assez foncé pour garder le blanc lisible (5,1:1). */
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .encours{background:#A9581A} }
+  :root[data-theme="dark"] .encours{background:#A9581A}
+  .astuce{margin:10px 2px 0;font-size:12.5px}
+
+  /* La journée : l'heure à gauche, le titre, le genre à droite. */
+  .jour{display:flex;flex-direction:column;gap:6px}
+  .jl{display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--sur);color:inherit;
+      border-radius:14px;padding:12px 14px;min-height:52px;cursor:pointer;text-align:left}
+  .jl:active{transform:scale(.99)}
+  .jl .h{flex:none;width:46px;font:600 13px/1.2 var(--mono);color:var(--ink2);font-variant-numeric:tabular-nums}
+  .jl .h i{display:block;width:8px;height:8px;border-radius:99px;background:var(--c)}
+  .jl .g{flex:1;min-width:0}
+  .jl .g b{display:block;font:600 14.5px/1.3 var(--body)}
+  .jl .g span{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
+  .jl .t{flex:none;font:700 10.5px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .jl.retard .t{color:var(--ko)}
+
+  /* Épinglés : une pastille de couleur et un nom, deux par rangée. */
+  .epgl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ep{display:flex;align-items:center;gap:10px;border:0;background:var(--sur);color:var(--ink);
+      border-radius:14px;padding:14px;min-height:54px;cursor:pointer;text-align:left;
+      font:700 15px/1.2 var(--body)}
+  .ep:active{transform:scale(.98)}
+  .ep i{width:11px;height:11px;border-radius:3px;background:var(--c);flex:none}
+  .ep span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ep.vide{grid-column:1/-1;background:none;border:1.5px dashed var(--line);color:var(--ink2);font-weight:600}
+  .ep.vide i{background:var(--ink3)}
+  /* Titre de section avec son lien à droite (« Favoris · Modifier »). */
+  .sec-l{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .sec-l .lien{border:0;background:none;color:var(--ink2);font:600 13px/1 var(--body);cursor:pointer;
+       padding:14px 2px 10px;min-height:44px}
+  .row.fav .etoile{flex:none;font-size:22px;line-height:1;color:var(--ink3);width:30px;text-align:center}
+  .row.fav.on .etoile{color:var(--c)}
+
+  .signal{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;
+       transform:translate(-50%,12px);opacity:0;pointer-events:none;transition:.18s;
+       background:var(--ink);color:var(--bg);font:600 13px/1.3 var(--body);padding:10px 14px;border-radius:12px;
+       max-width:calc(100% - 32px)}
+  .signal.vu{opacity:1;transform:translate(-50%,0)}
+  @media (prefers-reduced-motion:reduce){ .signal{transition:none} }
+
   .bar{display:flex;align-items:center;gap:10px;padding:14px 0 12px;position:sticky;
        top:env(safe-area-inset-top,0px);background:var(--bg);z-index:4;border-bottom:1px solid var(--line);
        margin-bottom:14px}
@@ -151,8 +239,10 @@
      et il était sous le minimum touchable. */
   .bk{border:0;background:var(--sur);border-radius:99px;width:44px;height:44px;cursor:pointer;
       display:grid;place-items:center;flex:none;font-size:17px;line-height:1}
+  .bar.racine{padding-top:20px}
+  .bar.racine h2{font-size:24px}
   .bar h2{font:800 20px/1.1 var(--disp);letter-spacing:-.02em;margin:0;flex:1;min-width:0}
-  .bar .cnt{font:500 12px/1 var(--mono);color:var(--ink3)}
+  .bar .cnt{font:500 12.5px/1.2 var(--body);color:var(--ink3);text-align:right}
 
   .rowlist{display:flex;flex-direction:column;gap:8px}
   .row{display:flex;align-items:center;gap:12px;background:var(--sur);border:1px solid transparent;
@@ -168,7 +258,8 @@
   .row .r i{display:block;font-style:normal;font-size:11px;color:var(--ink3)}
 
   .pills{display:flex;gap:7px;overflow-x:auto;padding-bottom:12px;margin:0 -16px 6px;padding-inline:16px}
-  .pill{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;padding:7px 13px;
+  /* 44 px de haut, comme toutes les cibles : on touche ces pastilles au gant. */
+  .pill{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;padding:0 15px;min-height:44px;
         font:600 13px/1 var(--body);white-space:nowrap;cursor:pointer;color:var(--ink2)}
   .pill[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 
@@ -181,6 +272,17 @@
   .hero .stats div span{font-size:11px;opacity:.8;letter-spacing:.08em;text-transform:uppercase}
 
   .card{background:var(--sur);border-radius:16px;padding:16px;margin-bottom:10px}
+  /* « Formules » avait trois présentations (carte ouverte, « ▶ Formules »,
+     petites capitales) et se dépliait sur 11 à 23 px. Une seule forme partout :
+     une ligne de 48 px, repliée, avec un chevron. */
+  .card.formules{padding:0}
+  .formules summary{list-style:none;display:flex;align-items:center;justify-content:space-between;
+       min-height:48px;padding:0 16px;cursor:pointer;font:700 14px/1 var(--body);color:var(--ink2)}
+  .formules summary::-webkit-details-marker{display:none}
+  .formules summary::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;
+       border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg)}
+  .formules[open] summary::after{transform:translateY(2px) rotate(-135deg)}
+  .formules .formule{padding:0 16px 16px}
   .card h4{font:700 11px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin:0 0 12px}
   .kv{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
   .kv:last-child{border-bottom:0}
@@ -276,12 +378,9 @@
   .dpj .tri{margin:0}
   .dpj .tri button{padding-left:4px;padding-right:4px}
   .dpj .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px}
-  .dpj .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+  .dpj .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:0 4px;min-height:44px;cursor:pointer;
        font:700 13.5px/1 var(--body);color:var(--ink2)}
   .dpj .onglets button[aria-selected="true"]{background:var(--dpj);color:var(--bg)}
-  .dpj .formules summary{font:700 11px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
-       color:var(--ink3);cursor:pointer}
-  .dpj .formules[open] summary{margin-bottom:12px}
   .dpj .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
 
   /* ------------------------------ mise à jour -------------------------- */
@@ -319,11 +418,14 @@
     backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:center;
     padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));z-index:10}
   .tabbar .in{display:flex;gap:4px;width:100%;max-width:560px;padding:0 16px}
-  .tb{flex:1;border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;
-      gap:4px;padding:6px 0;color:var(--ink2);font:600 10.5px/1 var(--body);letter-spacing:.04em}
+  /* Le texte seul, comme sur la maquette de l'audit que Rémi a préférée :
+     quatre mots se lisent plus vite que quatre pictogrammes à deviner, et
+     l'onglet actif ressort par l'encre et la graisse. La barre garde sa
+     hauteur (66 px) : le volet du patch se cale dessus. */
+  .tb{flex:1;border:0;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      min-height:50px;padding:0;color:var(--ink3);font:700 13.5px/1 var(--body);letter-spacing:.01em}
   .tb[aria-current="true"]{color:var(--ink)}
-  .tb .ic{width:23px;height:23px;opacity:.55}
-  .tb[aria-current="true"] .ic{opacity:1}
+  .tb .ic{display:none}
 
   /* ------------------------------ pictogrammes ------------------------- */
   .sprite{position:absolute;width:0;height:0;overflow:hidden}
@@ -332,6 +434,9 @@
   .mark{width:36px;height:36px;border-radius:12px;flex:none;display:grid;place-items:center;color:#fff;
         background:linear-gradient(140deg,var(--proj),var(--haut))}
   .mark .ic{width:21px;height:21px;stroke-width:1.6}
+  .mark.patch{background:var(--dmx)}
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .mark.patch{background:#A9581A} }
+  :root[data-theme="dark"] .mark.patch{background:#A9581A}
   .tile .ic{width:27px;height:27px;opacity:.92;stroke-width:1.6;color:var(--t-ico)}
   .tile.sm .ic{width:23px;height:23px}
   .tile .tx{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -351,7 +456,7 @@
   .pecr .p-entete .bk{width:44px;height:44px;font-size:16px}
   .pecr .p-entete .bk .ic{width:18px;height:18px}
   .pecr .p-titre{display:flex;align-items:center;gap:8px;flex:1;min-width:0;border:0;
-       background:none;padding:4px 2px;text-align:left;color:inherit;cursor:pointer}
+       background:none;padding:4px 2px;min-height:44px;text-align:left;color:inherit;cursor:pointer}
   .pecr .p-titre b{font:800 17px/1.15 var(--disp);letter-spacing:-.02em;overflow:hidden;
        text-overflow:ellipsis;white-space:nowrap}
   .pecr .p-titre .ch{font:600 11px/1 var(--mono);color:var(--ink3)}
@@ -360,7 +465,7 @@
   /* Bandeau d'onglets sur une seule ligne : le compte passe en pastille. */
   .pecr .ongl{display:flex;background:var(--sur2);border-radius:10px;padding:2px;gap:2px;
        margin-bottom:8px}
-  .pecr .ongl button{flex:1;border:0;background:none;border-radius:8px;padding:6px 4px;
+  .pecr .ongl button{flex:1;border:0;background:none;border-radius:8px;padding:0 4px;min-height:44px;
        font:700 12px/1.2 var(--body);color:var(--ink2);cursor:pointer;
        display:flex;align-items:center;justify-content:center;gap:5px;min-width:0}
   .pecr .ongl button[aria-pressed="true"]{background:var(--bg);color:var(--ink);
@@ -376,28 +481,35 @@
   .tl .led.on{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
   .tl .ap{display:flex;align-items:baseline;gap:6px;min-width:92px}
   .tl .ap b{font:600 20px/1 var(--mono);color:var(--tel);font-variant-numeric:tabular-nums}
-  .tl .ap span{font:500 10.5px/1.2 var(--mono);color:var(--ink3)}
+  .tl .ap span{font:500 11.5px/1.2 var(--body);color:var(--ink3)}
   .tl .niv{font:600 15px/1 var(--mono);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
-  .tl button{border:1.5px solid var(--line);background:var(--bg);border-radius:9px;padding:6px 8px;
-      font:600 11.5px/1 var(--body);color:var(--ink2);min-width:34px;cursor:pointer}
+  /* Toutes les commandes à 44 px (audit de l'onglet Outils : elles en
+     faisaient 26, trop peu pour un doigt ganté dans le noir). Dépliée, la
+     barre passe sur deux lignes : l'appareil, le curseur et le niveau en haut,
+     les cinq boutons en dessous, qui se partagent la largeur. */
+  .tl button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:0 10px;
+      font:700 13px/1 var(--body);color:var(--ink2);min-width:44px;min-height:44px;cursor:pointer}
+  .tl:not(.mini) button[data-a="noir"], .tl:not(.mini) button[data-a="full"],
+  .tl:not(.mini) button[data-a="prec"], .tl:not(.mini) button[data-a="suiv"],
+  .tl:not(.mini) button[data-a="zero"]{flex:1}
+  .tl:not(.mini) .coupe{flex-basis:100%;height:0}
   .tl button.on{background:var(--tel);border-color:var(--tel);color:#fff}
-  .tl .chev{min-width:30px;padding:6px 7px;border-style:dashed}
+  .tl .chev{padding:0 10px;border-style:dashed}
   .tl .hl{border-color:var(--dmx);color:var(--dmx);font:600 11px/1 var(--mono);white-space:nowrap}
-  .tl input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;min-width:84px;height:26px;
+  .tl input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;min-width:84px;height:44px;
       background:none;margin:0}
-  .tl input[type="range"]::-webkit-slider-runnable-track{height:26px;border-radius:9px;background:var(--sur2)}
-  .tl input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:26px;
+  .tl input[type="range"]::-webkit-slider-runnable-track{height:34px;border-radius:10px;background:var(--sur2)}
+  .tl input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:34px;
       border-radius:8px;background:var(--tel);border:0}
   .tl.mini{flex-wrap:nowrap;padding:5px 10px;gap:8px}
   .tl.mini .ap{flex:1;min-width:0}
   .tl.mini .ap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* Le logo télécommande, en tête de la barre : il ouvre la télécommande DMX,
      celle qui parle en canaux là où la barre parle en gradateurs. */
-  .tl .lgo{flex:none;min-width:30px;padding:5px 6px;display:grid;place-items:center;
+  .tl .lgo{flex:none;padding:0;display:grid;place-items:center;
       border-color:var(--tel);color:var(--tel);background:var(--bg)}
   .tl .lgo .ic{width:17px;height:17px}
   .tl .lgo.on{background:var(--tel);color:#fff}
-  .tl.mini .lgo{padding:4px 6px}
 
   /* Les rangées : un appareil et un gradateur se lisent pareil. */
   .pile{background:var(--sur);border-radius:16px;overflow:hidden;margin-bottom:10px}
@@ -405,8 +517,9 @@
        letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
        display:flex;justify-content:space-between;align-items:center;gap:10px}
   .pile>h4 span{font:500 11px/1 var(--mono);text-transform:none;letter-spacing:0}
+  .pile>h4:has(button){padding:4px 4px 4px 14px}
   .pile>h4 button{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;
-       padding:4px 9px;font:600 10px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;
+       padding:0 12px;min-height:44px;font:600 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;
        color:var(--ink2);cursor:pointer}
   .pile .rien{padding:14px;font-size:13px;color:var(--ink3);margin:0}
   .rg{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:10px;align-items:center;
@@ -435,17 +548,17 @@
       background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);
       border-top:1.5px solid var(--line);padding:7px 16px}
   .pecr .p-bas .in{max-width:560px;margin:0 auto;display:flex;gap:7px}
-  .pecr .p-bas button{flex:1;border:0;border-radius:11px;padding:9px 10px;
+  .pecr .p-bas button{flex:1;border:0;border-radius:11px;padding:0 10px;min-height:44px;
       font:700 12.5px/1.2 var(--body);background:var(--tel);color:#fff;cursor:pointer;
       display:flex;align-items:center;justify-content:center;gap:7px;min-width:0}
   .pecr .p-bas button .et{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pecr .p-bas button.dmx{background:var(--dmx)}
-  .pecr .p-bas button.pdf{flex:none;background:var(--sur2);color:var(--ink2);padding:9px 12px}
+  .pecr .p-bas button.pdf{flex:none;background:var(--sur2);color:var(--ink2);padding:0 14px}
   .pecr .p-bas button .cpt{font:600 10.5px/1 var(--mono);background:rgba(255,255,255,.22);
       border-radius:99px;padding:3px 6px}
   .pecr .p-bas button[aria-expanded="true"]{box-shadow:inset 0 0 0 2px rgba(255,255,255,.45)}
   /* La place que prend la barre du bas, rendue à la liste. */
-  .pecr{padding-bottom:52px}
+  .pecr{padding-bottom:62px}
 
   /* ------------------------------ volets -------------------------------- */
   /* À mi-écran : la liste reste visible au-dessus et se met à jour pendant
@@ -465,7 +578,7 @@
   .p-volet .tete{flex:none;display:flex;align-items:baseline;gap:10px;padding:2px 16px 10px;
       border-bottom:1px solid var(--line)}
   .p-volet .tete h3{font:800 17px/1.1 var(--disp);letter-spacing:-.02em;margin:0}
-  .p-volet .tete .cpt{margin-left:auto;font:500 11.5px/1 var(--mono);color:var(--ink3)}
+  .p-volet .tete .cpt{margin-left:auto;font:500 12.5px/1 var(--body);color:var(--ink3)}
   .p-volet .tete .x{border:0;background:var(--sur2);border-radius:99px;width:30px;height:30px;
       color:var(--ink2);font-size:15px;line-height:1;cursor:pointer}
   .p-volet .corps{flex:1;min-height:0;overflow-y:auto;padding:12px 16px
@@ -680,7 +793,7 @@
   .rig .tri{margin:0}
   .rig .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px;
        overflow-x:auto}
-  .rig .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+  .rig .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:0 4px;min-height:44px;cursor:pointer;
        font:700 12.5px/1 var(--body);color:var(--ink2);white-space:nowrap}
   .rig .onglets button[aria-selected="true"]{background:var(--rig);color:var(--bg)}
   .rig .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
@@ -718,7 +831,7 @@
   .led .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
   .led .f input:focus{border-color:var(--led)}
   .led .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px}
-  .led .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+  .led .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:0 4px;min-height:44px;cursor:pointer;
        font:700 13.5px/1 var(--body);color:var(--ink2)}
   .led .onglets button[aria-selected="true"]{background:var(--led);color:var(--bg)}
   .led .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
@@ -739,7 +852,7 @@
   .elec .tri{margin:0}
   .elec .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px;
        overflow-x:auto}
-  .elec .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+  .elec .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:0 4px;min-height:44px;cursor:pointer;
        font:700 12.5px/1 var(--body);color:var(--ink2);white-space:nowrap}
   .elec .onglets button[aria-selected="true"]{background:var(--elec);color:var(--bg)}
   .elec .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
@@ -757,6 +870,7 @@
   .sub .f input:focus{border-color:var(--sub)}
   .sub .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
 </style>
+<link rel="stylesheet" href="logistique.css">
 </head>
 <body>
 <svg class="sprite" aria-hidden="true" focusable="false"><defs>
@@ -791,6 +905,7 @@
   <symbol id="i-parc" viewBox="0 0 24 24"><rect x="2.5" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="13" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="7.8" y="3.5" width="8.5" height="8" rx="1.4"/></symbol>
   <symbol id="i-outils" viewBox="0 0 24 24"><path d="M6 3v18M12 3v18M18 3v18"/><rect x="3.8" y="7" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="9.8" y="13" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="15.8" y="5.5" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-maj" viewBox="0 0 24 24"><path d="M12 2.5v11.5"/><path d="M7.5 9.5L12 14l4.5-4.5"/><path d="M4 15.5v3.5a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5v-3.5"/></symbol>
+  <symbol id="i-reglages" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4L21 21"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12l7.5 7.5"/></symbol>
   <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M15.7 4.3l4 4L8.4 19.6H4.4v-4z"/><path d="M13.2 6.8l4 4"/></symbol>
@@ -801,10 +916,19 @@
   <symbol id="i-led" viewBox="0 0 24 24"><path d="M3 12h6"/><path d="M9 6v12l7.5-6z"/><path d="M16.5 6v12"/><path d="M14 5l1.6-2.4M17.3 6.6l1.8-1.8"/></symbol>
   <symbol id="i-elec" viewBox="0 0 24 24"><path d="M13 2.5L5 14h5.5L10 21.5 19 10h-5.5z"/></symbol>
   <symbol id="i-sub" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.4"/><path d="M12 3v18M3 12h18"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24"><rect x="4.5" y="4" width="15" height="17.5" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8 10.5l1.5 1.5 2.5-2.5M8 16l1.5 1.5 2.5-2.5M14 11h2.5M14 16.5h2.5"/></symbol>
+  <symbol id="i-camion" viewBox="0 0 24 24"><path d="M2.5 6h11v10.5h-11z"/><path d="M13.5 9.5h4.2l3.3 3.6v3.4h-7.5"/><circle cx="6.5" cy="17.5" r="1.9"/><circle cx="17" cy="17.5" r="1.9"/></symbol>
+  <symbol id="i-pret" viewBox="0 0 24 24"><path d="M3.5 8L12 4l8.5 4v8.5L12 20.5 3.5 16.5z"/><path d="M3.5 8L12 12l8.5-4M12 12v8.5"/><path d="M15.5 2.5l3 1.5"/></symbol>
+  <symbol id="i-stag" viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.8"/><path d="M4.5 21c.6-4.2 3.6-6.5 7.5-6.5s6.9 2.3 7.5 6.5"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 24 24"><path d="M19.5 9A8 8 0 0 0 5.2 7.2L3.5 9"/><path d="M3.5 4.5V9H8"/><path d="M4.5 15a8 8 0 0 0 14.3 1.8l1.7-1.8"/><path d="M20.5 19.5V15H16"/></symbol>
+  <symbol id="i-spec" viewBox="0 0 24 24"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h14a1.5 1.5 0 0 1 1.5 1.5V10a2 2 0 0 0 0 4v2.5A1.5 1.5 0 0 1 19 18H5a1.5 1.5 0 0 1-1.5-1.5V14a2 2 0 0 0 0-4z"/><path d="M15 6v2.2M15 10.9v2.2M15 15.8V18"/></symbol>
+  <symbol id="i-liste" viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r="1.1"/><circle cx="4.8" cy="12" r="1.1"/><circle cx="4.8" cy="17.5" r="1.1"/></symbol>
+  <symbol id="i-agenda" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16.5" rx="2.2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h3M13.5 13.5h3M7.5 17h3"/></symbol>
 </defs></svg>
 <div class="shell" id="app"></div>
 <nav class="tabbar"><div class="in">
   <button class="tb" data-t="home"><svg class="ic"><use href="#i-home"/></svg>Accueil</button>
+  <button class="tb" data-t="agenda" hidden><svg class="ic"><use href="#i-agenda"/></svg>Agenda</button>
   <button class="tb" data-t="parc"><svg class="ic"><use href="#i-parc"/></svg>Parc</button>
   <button class="tb" data-t="tools"><svg class="ic"><use href="#i-outils"/></svg>Outils</button>
 </div></nav>
@@ -814,13 +938,14 @@
 <script src="manuels/sommaire.js"></script>
 <script src="net.js"></script>
 <script src="rdm.js"></script>
+<script src="logistique.js"></script>
 <script>
 const $ = (s, r=document) => r.querySelector(s);
 const el = (t, c, h) => { const n = document.createElement(t); if(c) n.className = c; if(h!=null) n.innerHTML = h; return n; };
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const vg = n => String(n).replace(".", ",");
 const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, typeMach:null,
-            qs:{ proj:"", mach:"", haut:"", gel:"" },
+            qs:{ proj:"", mach:"", haut:"", gel:"", outils:"" },
             gel:GEL_PAR_REF.L201 || GELS[0], gelMode:null, gelMarque:"L" };
 
 const ic = (n, cls="ic") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
@@ -854,8 +979,8 @@ const CATS = [
    mais reste celui de la recherche et sert de liste de référence. */
 const TOOLS = [
   { k:"dmx", t:"Patch", s:"Adresses & export PDF", c:"var(--dmx)", i:"dmx", large:true },
-  { k:"tel", t:"Télécommande", s:"Circuits, gradateurs sACN", c:"var(--tel)", i:"remote" },
-  { k:"tcd", t:"Canal DMX", s:"Un canal à la main", c:"var(--tcd)", i:"fader" },
+  { k:"tel", t:"Relevé", s:"Gradateurs → circuits", c:"var(--tel)", i:"remote" },
+  { k:"tcd", t:"Pupitre", s:"Commande façon Eos, canal à la main", c:"var(--tcd)", i:"fader" },
   { k:"gel", t:"Gélatines", s:"Lee, GAM, Rosco → LED", c:"var(--gel)", i:"gel" },
   { k:"led", t:"LED", s:"Ruban : alim, résistance", c:"var(--led)", i:"led" },
   { k:"dist", t:"Projection", s:"Distance, optique, lumens", c:"var(--dpj)", i:"projo" },
@@ -868,22 +993,75 @@ const TOOLS = [
   { k:"net", t:"Réseau", s:"Ping & hôtes", c:"var(--net)", i:"reseau" },
   { k:"sub", t:"Sous-réseau", s:"Masque, plage, broadcast", c:"var(--sub)", i:"sub" },
   { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" },
-  { k:"rdm", t:"RDM", s:"Adresse, mode, nom", c:"var(--rdm)", i:"rdm" }
+  { k:"rdm", t:"RDM", s:"Adresse, mode, nom", c:"var(--rdm)", i:"rdm" },
+  { k:"log", t:"Logistique", s:"Événements, prêts, stagiaires", c:"var(--log)", i:"log", large:true,
+    n:() => logVivants().filter(x => logEtat(x, logAuj()).g !== "fini").length || "" }
 ];
+/* La recherche ne lisait que le titre et le sous-titre : « dmx » ne trouvait
+   ni le Patch ni le Relevé, « ampère » ni Électricité ni Section câble. */
+const MOTS = {
+  dmx:"dmx adresse univers patch pdf feuille gdtf mode empreinte",
+  tel:"dmx gradateur circuit releve sacn artnet",
+  tcd:"dmx pupitre eos console canal commande thru at full sneak",
+  gel:"filtre couleur lee gam rosco rgb rgbw cmy led",
+  led:"ruban bande alimentation resistance ohm volt",
+  dist:"videoprojecteur projecteur video optique focale ecran lux lumen",
+  ndi:"video flux reseau camera",
+  ups:"onduleur batterie autonomie va watt",
+  cab:"cable section chute tension ampere mm2 longueur",
+  bil:"phase multi triphase puissance watt repartition",
+  elec:"ampere courant phase tri mono groupe electrogene cos phi disjoncteur kw",
+  rig:"cmu charge palan elingue elingage angle accroche moteur",
+  net:"ip ping wifi reseau hote",
+  sub:"ip masque cidr reseau broadcast plage",
+  art:"dmx artnet sacn univers ecoute noeud node",
+  rdm:"dmx adresse node noeud rdmnet llrp",
+  proj:"lumiere lyre decoupe pc wash", mach:"structure accroche moteur pendrillon frise",
+  haut:"nacelle pemp passerelle", mdg:"notice manuel fiche",
+  maj:"version theme sombre clair mise a jour apk"
+};
 /* Tout ce que l'accueil sait ouvrir, y compris les outils : taper « réseau »
    ou « patch » répondait « rien pour… » alors que la tuile était juste dessous. */
 const DESTINATIONS = () => [...CATS, ...TOOLS,
   { k:"maj", t:"Application", s:"Version & thème", c:"var(--maj)", i:"maj" }];
 
-/* La grille des outils avait grossi tuile après tuile jusqu'à seize, toutes
-   à plat : plus rien n'aidait à trouver la bonne d'un coup d'œil. Elle est
-   rangée ici par métier, sans toucher TOOLS ni la recherche qui s'appuie
-   dessus. */
+/* La grille des outils, rangée par tâche (audit de l'onglet Outils) : Art-Net
+   et RDM parlent au même DMX que le Patch et vivaient pourtant dans
+   « Réseau », Flux NDI cherche des sources IP et vivait avec la lumière.
+   Relevé et Pupitre ouvrent l'écran du patch : ils sont dans la carte Patch
+   et non en tuiles. Logistique a son onglet, Agenda, et n'est plus ici. */
 const TOOL_GROUPES = [
-  { t:"Éclairage & vidéo", cles:["dmx", "tel", "tcd", "gel", "led", "dist", "ndi"] },
-  { t:"Électricité & structure", cles:["ups", "cab", "bil", "elec", "rig"] },
-  { t:"Réseau", cles:["net", "sub", "art", "rdm"] }
+  { t:"DMX", cles:["dmx", "tel", "tcd", "art", "rdm"] },
+  { t:"Lumière & image", cles:["gel", "led", "dist"] },
+  { t:"Électricité & levage", cles:["elec", "bil", "cab", "ups", "rig"] },
+  { t:"Réseau IP", cles:["net", "sub", "ndi"] }
 ];
+
+/* Accueil : les favoris, et eux seuls. Les « derniers ouverts » changeaient
+   de place d'un jour à l'autre ; Rémi préfère une liste qu'il choisit et qui
+   reste. La clé garde son ancien nom : les outils déjà épinglés deviennent
+   des favoris. Jamais réglée, elle part de quatre outils courants. */
+const CLE_EPINGLES = "epingles.v1";
+const FAVORIS_DEPART = ["tel", "gel", "elec", "net"];
+let EPINGLES = FAVORIS_DEPART.slice();
+try { const v = JSON.parse(localStorage.getItem(CLE_EPINGLES)); if(Array.isArray(v)) EPINGLES = v; } catch(e){ }
+const estFavori = k => EPINGLES.includes(k);
+function basculerEpingle(k, discret){
+  EPINGLES = estFavori(k) ? EPINGLES.filter(x => x !== k) : [...EPINGLES, k];
+  try { localStorage.setItem(CLE_EPINGLES, JSON.stringify(EPINGLES)); } catch(e){ }
+  const o = TOOLS.find(x => x.k === k);
+  render();
+  if(!discret) signaler(o ? o.t + (estFavori(k) ? " ajouté aux favoris" : " retiré des favoris") : "");
+}
+const favoris = () => EPINGLES.map(k => TOOLS.find(o => o.k === k)).filter(Boolean);
+/* Une ligne qui passe en bas de l'écran et s'en va. */
+function signaler(txt){
+  if(!txt) return;
+  let n = $("#signal");
+  if(!n){ n = el("div", "signal"); n.id = "signal"; n.setAttribute("role", "status"); document.body.append(n); }
+  n.textContent = txt; n.classList.add("vu");
+  clearTimeout(signaler.t); signaler.t = setTimeout(() => n.classList.remove("vu"), 2200);
+}
 
 /* --------------------------- aller et revenir ---------------------------- */
 /* Le geste de retour d'Android fermait l'application depuis n'importe quel
@@ -937,33 +1115,109 @@ window.addEventListener("popstate", () => {
 /* Dans le noir, avec un gant, un appui se sent mieux qu'il ne se voit. */
 function toucher(){ try { if(navigator.vibrate) navigator.vibrate(8); } catch(e){ } }
 
-function tuile(c, petite){
-  const b = el("button", "tile" + (c.large ? " wide" : petite ? " sm" : ""));
-  b.style.setProperty("--c", c.c);
+function tuile(c, petite, couleur){
+  const b = el("button", "tile" + (c.large ? " wide" : petite ? " sm" : "") + (c.k === "dmx" ? " plein" : ""));
+  b.style.setProperty("--c", couleur || c.c);
   const coin = c.n ? `<span class="n">${c.n()}</span>`
-             : c.mot ? `<span class="n mot">${esc(c.mot)}</span>` : "";
+             : c.mot ? `<span class="n mot">${esc(c.mot)}</span>`
+             : estFavori(c.k) ? ETOILE : "";
   b.innerHTML = `${coin}${ic(c.i)}<span class="tx"><b>${esc(c.t)}</b><span>${esc(c.s)}</span></span>`;
-  b.onclick = () => { toucher(); go({ v:c.k }); };
+  ouvrirOuEpingler(b, c.k, () => go({ v:c.k }));
   return b;
 }
-function grille(liste, petite){
+/* Un point de couleur, en coin de tuile, ne disait pas qu'il marquait un favori. */
+const ETOILE = `<span class="etoile-fav" title="Favori" aria-label="Favori">★</span>`;
+/* Un appui long épingle l'outil à l'accueil (ou l'en retire) ; le toucher
+   qui suit ne doit pas l'ouvrir en plus. */
+function ouvrirOuEpingler(b, k, ouvrir){
+  let tenu = null, long = false;
+  if(TOOLS.some(o => o.k === k)){
+    const lacher = () => { clearTimeout(tenu); tenu = null; };
+    b.addEventListener("pointerdown", () => { long = false;
+      tenu = setTimeout(() => { long = true; toucher(); basculerEpingle(k); }, 550); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, lacher));
+    b.addEventListener("contextmenu", e => e.preventDefault());
+  }
+  b.onclick = () => { if(long){ long = false; return; } toucher(); ouvrir(); };
+}
+function grille(liste, petite, couleur){
   const g = el("div", "tiles");
-  liste.forEach(c => g.append(tuile(c, petite)));
+  liste.forEach(c => g.append(tuile(c, petite, couleur)));
   /* Une petite tuile seule sur sa rangée laissait un trou dans la grille :
      elle prend la largeur. */
   const seules = [...g.children].filter(t => !t.classList.contains("wide"));
   if(petite && seules.length % 2) seules[seules.length - 1].classList.add("wide");
   return g;
 }
-/* Une grille par groupe de TOOL_GROUPES, chacune sous son propre sous-titre. */
+/* L'onglet Outils, comme sur la maquette de l'audit : des tuiles d'une ligne,
+   la couleur propre de l'outil sur son pictogramme, et le tout tient sur un
+   écran. Le filtre lit les mêmes mots-clés que la recherche de l'accueil. */
+const VUES_CARTE_PATCH = ["dmx", "tel", "tcd"];
+const trouveOutil = (o, q) => !q || plat(o.t + " " + o.s + " " + (MOTS[o.k] || "")).includes(q);
 function grilleOutils(){
+  const q = plat((S.qs.outils || "").trim());
   const f = document.createDocumentFragment();
+  let vus = 0;
   TOOL_GROUPES.forEach(g => {
     const items = g.cles.map(k => TOOLS.find(o => o.k === k)).filter(Boolean);
-    if(!items.length) return;
-    f.append(el("h3", "sous", g.t), grille(items, true));
+    const carte = items.filter(o => VUES_CARTE_PATCH.includes(o.k));
+    const tuiles = items.filter(o => !VUES_CARTE_PATCH.includes(o.k) && trouveOutil(o, q));
+    const avecCarte = carte.length && carte.some(o => trouveOutil(o, q));
+    if(!avecCarte && !tuiles.length) return;
+    vus += tuiles.length + (avecCarte ? 1 : 0);
+    f.append(el("h3", "sous", esc(g.t)));
+    if(avecCarte) f.append(cartePatch());
+    if(tuiles.length){
+      const gr = el("div", "outils");
+      tuiles.forEach(o => gr.append(tuileOutil(o)));
+      f.append(gr);
+    }
   });
+  if(!vus) f.append(el("p", "vide", `Aucun outil pour « ${esc(S.qs.outils)} ».`));
   return f;
+}
+function tuileOutil(o){
+  const b = el("button", "to");
+  b.style.setProperty("--c", o.c);
+  b.innerHTML = `${ic(o.i)}<b>${esc(o.t)}</b>${estFavori(o.k) ? ETOILE : ""}`;
+  b.setAttribute("aria-label", o.t + ", " + o.s);
+  ouvrirOuEpingler(b, o.k, () => go({ v:o.k }));
+  return b;
+}
+/* Patch, Relevé et Pupitre ouvrent le même écran : une carte, deux raccourcis. */
+function cartePatch(){
+  const c = el("div", "pc");
+  const m = el("button", "pc-m",
+    `<b>Patch</b><span>Adresses, gradateurs & feuille PDF</span>${estFavori("dmx") ? ETOILE : ""}`);
+  ouvrirOuEpingler(m, "dmx", () => go({ v:"dmx" }));
+  const ch = el("div", "pc-ch");
+  ["tel", "tcd"].forEach(k => {
+    const o = TOOLS.find(x => x.k === k);
+    const b = el("button", null, esc(o.t) + (estFavori(k) ? " ★" : ""));
+    b.setAttribute("aria-label", "Ouvrir le patch sur " + o.t);
+    ouvrirOuEpingler(b, k, () => go({ v:k }));
+    ch.append(b);
+  });
+  c.append(m, ch);
+  return c;
+}
+function filtreOutils(){
+  const lab = el("label", "sbar outils-q");
+  lab.innerHTML = `${ic("search")}<input data-focus="q-outils" value="${esc(S.qs.outils || "")}"
+      placeholder="Filtrer : dmx, ampère, palan…" autocomplete="off" enterkeyhint="go"
+      aria-label="Filtrer les outils">`;
+  const i = lab.querySelector("input");
+  i.addEventListener("input", e => { S.qs.outils = e.target.value; render(); });
+  /* Entrée ouvre l'outil quand il n'en reste qu'un. */
+  i.addEventListener("keydown", e => {
+    if(e.key !== "Enter") return;
+    const q = plat(S.qs.outils.trim());
+    const r = TOOL_GROUPES.flatMap(g => g.cles).map(k => TOOLS.find(o => o.k === k))
+      .filter(o => o && trouveOutil(o, q));
+    const seul = r.filter(o => !["tel", "tcd"].includes(o.k) || !r.some(x => x.k === "dmx"));
+    if(q && seul.length === 1){ S.qs.outils = ""; go({ v:seul[0].k }); }
+  });
+  return lab;
 }
 
 /* L'état du réseau : lu au plus une fois toutes les deux secondes — chaque
@@ -986,8 +1240,8 @@ function peindreReseau(){
 }
 setInterval(peindreReseau, 3000);
 
-/* La mise à jour est un réglage, pas un outil de plateau : une ligne sous la
-   grille, avec une pastille quand une version attend. */
+/* La mise à jour est un réglage, pas un outil de plateau : une icône dans
+   l'en-tête de l'onglet, avec une pastille quand une version attend. */
 function ligneAppli(){
   const e = MAJ.e || {};
   const attend = ["disponible", "telechargement", "pret", "autorisation"].includes(e.phase);
@@ -995,49 +1249,147 @@ function ligneAppli(){
                                   : e.phase === "telechargement" ? " en téléchargement" : " disponible")
                      : e.nomInstalle ? "Version " + e.nomInstalle : "Version & thème";
   const b = el("button", "appli");
-  b.innerHTML = `${ic("maj")}<span class="g"><b>Application</b><span>${esc(dit)}</span></span>
-    ${attend ? `<span class="pt"></span>` : ""}`;
+  b.innerHTML = `${ic("reglages")}${attend ? `<span class="pt"></span>` : ""}`;
+  b.setAttribute("aria-label", "Application : " + dit);
+  b.title = "Application";
   b.onclick = () => { toucher(); go({ v:"maj" }); };
   return b;
 }
 function zoneAppli(){
-  const z = el("div");
+  const z = el("span");
   z.id = "appli-zone";
   z.append(ligneAppli());
   return z;
 }
 
+/* L'accueil recopiait Parc et Outils en entier : vingt tuiles, trois écrans
+   et demi. Il montre maintenant ce qu'on vient chercher en ouvrant l'app —
+   le patch en cours, la journée, ses outils — et tient dans un écran. Les
+   grilles complètes restent dans leurs onglets. */
 function home(){
   const d = el("div");
   const nb = adresser(P.lignes).length;
-  /* L'accroche de vitrine passait à deux ou trois lignes sur un téléphone pour
-     ne rien dire : à sa place, le patch ouvert, qui est ce qu'on vient voir. */
-  d.innerHTML = `<div class="head"><span class="mark">${ic("dmx")}</span>
-      <div><h1>Patch</h1><p><b>${esc(P.nom || "Sans titre")}</b> · ${nb} appareil${nb > 1 ? "s" : ""}</p></div>
+  const nom = (P.nom || "").trim();
+  d.innerHTML = `<div class="head"><span class="mark patch">${ic("dmx")}</span>
+      <div><h1>Patch</h1><p>${nom ? `<b>${esc(nom)}</b> · ` : ""}${nb} appareil${nb > 1 ? "s" : ""}</p></div>
       <button class="badge" id="etat-res" aria-label="État du réseau">hors réseau</button></div>
     <label class="sbar">${ic("search")}
-      <input id="q" value="${esc(S.q)}" placeholder="Ghibli, moteur, passerelle, L201, réseau…" autocomplete="off"></label>
+      <input id="q" value="${esc(S.q)}" placeholder="Chercher : dmx, palan, L201, IP…" autocomplete="off"></label>
     <div id="maj-zone"></div>`;
   const badge = d.querySelector("#etat-res");
   if(badge) badge.onclick = () => { toucher(); go({ v:"net" }); };
   if(S.q.trim()) { d.append(resultats()); return d; }
-  d.insertAdjacentHTML("beforeend", `<h2 class="sec">Inventaire</h2>`);
-  d.append(grille(CATS));
-  d.insertAdjacentHTML("beforeend", `<h2 class="sec">Outils</h2>`);
-  d.append(grilleOutils(), zoneAppli());
+
+  /* Le patch en cours, avec ce qu'il reste à faire. */
+  d.insertAdjacentHTML("beforeend", `<h2 class="sec">En cours</h2>`);
+  const reste = restantsG();
+  const cur = el("button", "encours");
+  cur.innerHTML = `<span class="g"><b>${esc(nom || "Patch sans titre")}</b>
+      <span>${nb} appareil${nb > 1 ? "s" : ""} · ${reste ? reste + " gradateur" + (reste > 1 ? "s" : "") + " à relever"
+        : "tous les gradateurs relevés"}</span></span><i>Reprendre</i>`;
+  cur.onclick = () => { toucher(); go({ v:"dmx" }); };
+  d.append(cur);
+
+  /* La journée : ce que la logistique a pour aujourd'hui, retards d'abord. */
+  if(VIEWS.log && typeof logDuJour === "function"){
+    d.insertAdjacentHTML("beforeend", `<h2 class="sec">Aujourd'hui</h2>`);
+    let jour = [];
+    try { jour = logDuJour(); } catch(e){ jour = []; }
+    const l = el("div", "jour");
+    if(jour.length){
+      jour.slice(0, 4).forEach(o => l.append(ligneJour(o)));
+    } else l.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0 2px">Rien de prévu aujourd'hui.</p>`);
+    const tout = el("button", "voir", jour.length > 4 ? `Voir les ${jour.length} du jour dans l'agenda` : "Ouvrir l'agenda");
+    tout.onclick = () => { toucher(); go({ v:"log" }); };
+    l.append(tout);
+    d.append(l);
+  }
+
+  const tf = el("div", "sec-l", `<h2 class="sec">Favoris</h2>`);
+  const mod = el("button", "lien", "Modifier");
+  mod.onclick = () => { toucher(); go({ v:"favoris" }); };
+  tf.append(mod);
+  d.append(tf);
+  const g = el("div", "epgl");
+  const favs = favoris();
+  favs.forEach(c => {
+    /* La couleur propre de l'outil, pas celle du groupe : quatre pastilles
+       orange côte à côte ne se distinguaient plus. */
+    const b = el("button", "ep", `<i></i><span>${esc(c.t)}</span>`);
+    b.style.setProperty("--c", c.c);
+    b.setAttribute("aria-label", c.t + " : " + c.s);
+    b.onclick = () => { toucher(); go({ v:c.k }); };
+    g.append(b);
+  });
+  if(!favs.length){
+    const v = el("button", "ep vide", `<i></i><span>Choisir mes favoris</span>`);
+    v.onclick = () => { toucher(); go({ v:"favoris" }); };
+    g.append(v);
+  }
+  d.append(g);
   return d;
+}
+
+/* Choisir ses favoris : tous les outils, rangés comme dans l'onglet Outils,
+   une étoile à toucher. L'ordre des favoris est celui où on les ajoute. */
+function vFavoris(){
+  const d = el("div");
+  d.append(bar("Favoris", EPINGLES.length ? EPINGLES.length + " choisi" + (EPINGLES.length > 1 ? "s" : "") : ""));
+  d.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0 2px 14px">Les outils étoilés
+    s'affichent sur l'accueil. Un appui long sur une tuile, dans Outils, fait la même chose.</p>`);
+  TOOL_GROUPES.forEach(gr => {
+    const items = gr.cles.map(k => TOOLS.find(o => o.k === k)).filter(Boolean);
+    if(!items.length) return;
+    d.append(el("h3", "sous", esc(gr.t)));
+    const l = el("div", "rowlist");
+    items.forEach(c => {
+      const on = estFavori(c.k);
+      const b = el("button", "row fav" + (on ? " on" : ""));
+      b.style.setProperty("--c", c.c);
+      b.setAttribute("aria-pressed", String(on));
+      b.innerHTML = `<span class="av">${ic(c.i)}</span>
+        <span class="g"><b>${esc(c.t)}</b><span>${esc(c.s)}</span></span>
+        <span class="etoile" aria-hidden="true">${on ? "★" : "☆"}</span>`;
+      b.setAttribute("aria-label", (on ? "Retirer " : "Ajouter ") + c.t + (on ? " des favoris" : " aux favoris"));
+      b.onclick = () => { toucher(); basculerEpingle(c.k, true); };
+      l.append(b);
+    });
+    d.append(l);
+  });
+  return d;
+}
+
+/* Une ligne de la journée : l'heure quand il y en a une, sinon un point de la
+   couleur du carnet ; le titre et où on en est ; le genre en petites
+   capitales à droite, en rouge pour un retard. */
+function ligneJour(o){
+  const x = o.fiche || {};
+  const def = (typeof LOG_TYPES === "object" && LOG_TYPES[x.type]) || {};
+  const heure = x.hdebut && /^\d{1,2}:\d{2}/.test(x.hdebut) ? x.hdebut.slice(0, 5).padStart(5, "0") : "";
+  const b = el("button", "jl" + (o.groupe === "retard" ? " retard" : ""));
+  b.style.setProperty("--c", def.c || "var(--log)");
+  const sous = [o.quand && o.quand !== "ce jour" && !/^\d+ h/.test(o.quand) ? o.quand : "",
+                o.sous !== def.t ? o.sous : ""]
+    .filter(Boolean).join(" · ");
+  b.innerHTML = `<span class="h">${heure ? esc(heure) : "<i></i>"}</span>
+    <span class="g"><b>${esc(o.titre)}</b>${sous ? `<span>${esc(sous)}</span>` : ""}</span>
+    <span class="t">${esc(o.groupe === "retard" ? "Retard" : def.t || "")}</span>`;
+  b.onclick = () => { toucher(); go({ v:"logf", i:x.id }); };
+  return b;
 }
 
 /* Les deux onglets du bas tombaient sur le premier élément de leur famille —
    « Outils » ouvrait le patch — et n'avaient donc aucun écran où ramener. */
 function vParc(){
   const d = el("div");
-  d.append(bar("Parc"), grille(CATS));
+  d.append(bar("Parc", null, false), grille(CATS, false, "var(--proj)"));
   return d;
 }
 function vOutils(){
   const d = el("div");
-  d.append(bar("Outils"), grilleOutils(), zoneAppli());
+  const b = bar("Outils", null, false);
+  b.append(zoneAppli());
+  d.append(b, filtreOutils(), grilleOutils());
   return d;
 }
 
@@ -1048,7 +1400,7 @@ const plat = s => String(s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ
 function resultats(){
   const q = plat(S.q);
   const d = el("div");
-  const ecr = DESTINATIONS().filter(x => plat(x.t + " " + x.s).includes(q));
+  const ecr = DESTINATIONS().filter(x => plat(x.t + " " + x.s + " " + (MOTS[x.k] || "")).includes(q));
   const proj = PROJECTEURS.filter(p => plat(p.nom + " " + p.marque + " " + p.fam).includes(q));
   const mach = MACHINERIE.filter(m => plat(m.nom + " " + m.type).includes(q));
   const haut = HAUTEURS.filter(h => plat(h.nom).includes(q));
@@ -1111,12 +1463,17 @@ function rowHaut(h){
     metres(h.h) + " m", h.charge ? h.charge + " kg" : "",
     "var(--haut)", ICO_HAUT[h.type] || "passerelle");
 }
+/* `back === false` : écran racine d'un onglet, sans chevron — Parc et Outils
+   en portaient un, qui ramenait à l'écran d'avant et non « au-dessus ». */
 function bar(titre, cnt, back){
-  const d = el("div", "bar");
-  const b = el("button", "bk", ic("back"));
-  b.setAttribute("aria-label", "Retour");
-  b.onclick = back || (() => retour());
-  d.append(b, el("h2", null, esc(titre)));
+  const d = el("div", "bar" + (back === false ? " racine" : ""));
+  if(back !== false){
+    const b = el("button", "bk", ic("back"));
+    b.setAttribute("aria-label", "Retour");
+    b.onclick = back || (() => retour());
+    d.append(b);
+  }
+  d.append(el("h2", null, esc(titre)));
   if(cnt) d.append(el("span", "cnt", cnt));
   return d;
 }
@@ -1138,7 +1495,7 @@ function vProj(){
 
 function vFiche(p){
   const d = el("div");
-  d.append(bar(p.marque, null, () => retour({ v:"proj" })));
+  d.append(bar(p.nom, p.marque, () => retour({ v:"proj" })));
   const h = el("div", "hero");
   h.style.setProperty("--c", "var(--proj)");
   h.innerHTML = `<div class="kick">${esc(p.fam)}</div><h3>${esc(p.nom)}</h3>
@@ -1188,9 +1545,9 @@ function carteModes(p){
 
   const form = el("div", "ff");
   form.innerHTML = `<div class="f"><label for="m-nom">Nom du mode</label>
-      <input id="m-nom" placeholder="Standard"></div>
+      <input id="m-nom" placeholder="ex. Standard"></div>
     <div class="f"><label for="m-ch">Canaux</label>
-      <input id="m-ch" type="text" inputmode="numeric" placeholder="20"></div>`;
+      <input id="m-ch" type="text" inputmode="numeric" placeholder="ex. 20"></div>`;
   c.append(form);
 
   const add = el("button", "pill");
@@ -1411,6 +1768,16 @@ function lireLocal(cle, defaut){
 function ecrireLocal(cle, val){
   try { localStorage.setItem(cle, JSON.stringify(val)); } catch(e){ }
 }
+/* Les calculateurs s'ouvraient sur des champs vides dont l'exemple gris
+   passait pour une valeur saisie : 250, 500… à l'écran, et un résultat « — »
+   qui réclamait la charge. Ils partent maintenant de valeurs réelles, donc
+   d'un résultat lisible ; un champ laissé vide reprend la sienne au lancement
+   suivant. */
+function lireCalcul(cle, depart){
+  const lu = lireLocal(cle, {});
+  Object.keys(lu).forEach(k => { if(lu[k] === "" && depart[k]) delete lu[k]; });
+  return Object.assign(depart, lu);
+}
 
 /* Le CSS savait déjà lire `data-theme`, mais rien ne le posait : le thème
    suivait Android, et on ne pouvait pas le tenir en sombre le temps d'un
@@ -1524,7 +1891,7 @@ function filtrer(k, garde){
 function recherche(k, ph){
   const lab = el("label", "sbar inv");
   lab.innerHTML = `${ic("search")}<input data-focus="q-${k}" value="${esc(S.qs[k])}"
-      placeholder="${esc(ph)}" autocomplete="off" aria-label="Rechercher">`;
+      placeholder="ex. ${esc(ph)}" autocomplete="off" aria-label="Rechercher">`;
   lab.querySelector("input").addEventListener("input", e => {
     S.qs[k] = e.target.value; render();
   });
@@ -2101,7 +2468,7 @@ function barreTele(){
        <span class="ap"><b>${SEL || "—"}</b><span>${etat}</span></span>
        <input type="range" min="0" max="100" value="${lv}" aria-label="Niveau"${
          SEL ? "" : " disabled"}>
-       <span class="niv">${lv} %</span>
+       <span class="niv">${lv} %</span><span class="coupe"></span>
        <button data-a="noir">Noir</button><button data-a="full">Full</button>
        <button data-a="prec" aria-label="Gradateur précédent">◀</button>
        <button data-a="suiv" aria-label="Gradateur suivant">▶</button>
@@ -2113,9 +2480,9 @@ function barreTele(){
   const lgo = el("button", "lgo" + (tenus.length ? " on" : ""), ic("remote"));
   lgo.dataset.a = "tcd";
   lgo.setAttribute("aria-label", tenus.length
-    ? `Télécommande DMX — ${tenus.length} adresse${tenus.length > 1 ? "s tenues" : " tenue"}`
-    : "Ouvrir la télécommande DMX");
-  lgo.title = "Télécommande DMX";
+    ? `Pupitre — ${tenus.length} adresse${tenus.length > 1 ? "s tenues" : " tenue"}`
+    : "Ouvrir le pupitre");
+  lgo.title = "Pupitre";
   d.prepend(lgo);
 
   const niveau = pct => {
@@ -2214,7 +2581,7 @@ function pileGradas(){
   const b = el("button", null, MASQUE ? `tout voir · ${caches}` : "masquer les vides");
   b.onclick = () => { MASQUE = !MASQUE; peindre(); };
   return pile("Gradateurs", `${relevesG()} relevés / ${tous.length}`, rangs,
-              "Aucun gradateur relevé : ouvrir « Relever gradateurs ».", b);
+              "Aucun gradateur relevé : touchez « Relever » en bas.", b);
 }
 
 function pileApps(){
@@ -2234,7 +2601,7 @@ function pileApps(){
     });
   });
   return pile("Appareils", `${liste.length} · ${puissanceTotale(liste)}`, rangs,
-              "Aucune ligne : ouvrir « Ajouter appareils ».");
+              "Aucune ligne : touchez « Ajouter » en bas.");
 }
 
 /* Mettre un appareil en évidence : le geste des gradateurs, appliqué au patch. */
@@ -2317,7 +2684,7 @@ function majVoletRelever(){
   const lv = n ? (NIV[n] || 0) : 0;
   const faits = relevesG();
 
-  volet.querySelector(".tete h3").textContent = "Relever les gradateurs";
+  volet.querySelector(".tete h3").textContent = "Relevé des gradateurs";
   volet.querySelector(".tete .cpt").textContent = `${faits} / ${l.length} relevés`;
   const c = volet.querySelector(".corps");
 
@@ -2641,7 +3008,7 @@ function majVoletDmx(){
   const v = DMX[cle] | 0;
   const tenus = adressesTenues();
   const nsel = DSEL.length;
-  volet.querySelector(".tete h3").textContent = "Télécommande DMX";
+  volet.querySelector(".tete h3").textContent = "Pupitre";
   volet.querySelector(".tete .cpt").textContent = tenus.length
     ? `${tenus.length} adresse${tenus.length > 1 ? "s tenues" : " tenue"}` : "plateau noir";
   const c = volet.querySelector(".corps");
@@ -3537,8 +3904,8 @@ const K1 = { 30:1, 40:0.87, 50:0.71, 60:0.58 };                   // températur
 const K2 = [1, 0.80, 0.70, 0.65, 0.60, 0.57, 0.54, 0.52, 0.50];   // 1 à 9 câbles et plus
 
 const CLE_CAB = "section.v1";
-const CAB = Object.assign({ mode:"W", q:"", reseau:"mono", l:"", dv:"3", mat:"cu",
-                            cos:"1", t:30, n:1 }, lireLocal(CLE_CAB, {}));
+const CAB = lireCalcul(CLE_CAB, { mode:"W", q:"3500", reseau:"mono", l:"25", dv:"3", mat:"cu",
+                            cos:"1", t:30, n:1 });
 
 /* Sur un clavier de téléphone français, la virgule vient avant le point. */
 const nombre = v => parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", "."));
@@ -3628,7 +3995,7 @@ function vCable(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="cab-${cle}">${esc(lab)}</label>
-      <input id="cab-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="cab-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; garder(); peindreSection(res);
@@ -3666,8 +4033,8 @@ function vCable(){
     davantage, la section conseillée reste donc du côté sûr.</p>`);
   d.append(de);
 
-  const fo = el("div", "card");
-  fo.innerHTML = `<h4>Formules</h4><p class="formule">mono · I = P / U<br>S = 2 × ρ × L × I / ΔU<br>
+  const fo = el("details", "card formules");
+  fo.innerHTML = `<summary>Formules</summary><p class="formule">mono · I = P / U<br>S = 2 × ρ × L × I / ΔU<br>
     tri · I = P / (√3 × U × cos φ)<br>S = √3 × ρ × L × I × cos φ / ΔU<br>
     ρ cuivre 0,0178 · alu 0,0291 Ω·mm²/m<br>ΔU sur 230 V en mono, 400 V en tri</p>`;
   d.append(fo);
@@ -3685,12 +4052,12 @@ function vCable(){
    l'approximation d'usage pour un pré-calcul ; le partage réel dépend du
    point d'équilibre et se vérifie au dynamomètre. */
 const CLE_RIG = "rigging.v1";
-const RIG = Object.assign({ onglet:"wll",
-  chCharge:"", chCmu:"", chMarge:"0",
-  bMasse:"", bAngle:"60",
+const RIG = lireCalcul(CLE_RIG, { onglet:"wll",
+  chCharge:"250", chCmu:"500", chMarge:"0",
+  bMasse:"400", bAngle:"60",
   aAngle:"45",
-  nMasse:"", nPts:"3", nAngle:"60",
-  pCharge:"", pMarge:"25" }, lireLocal(CLE_RIG, {}));
+  nMasse:"800", nPts:"3", nAngle:"60",
+  pCharge:"600", pMarge:"25" });
 
 /* Capacités courantes de palan à chaîne, en kg. */
 const PALANS = [125, 250, 500, 1000, 1600, 2000, 3200, 5000, 10000];
@@ -3807,7 +4174,7 @@ function vRig(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="rig-${cle}">${esc(lab)}</label>
-      <input id="rig-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="rig-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; garder(); peindre();
@@ -3947,7 +4314,7 @@ function vBil(){
   const ff = el("div", "ff");
   const fw = el("div", "f");
   fw.innerHTML = `<label for="bil-w">Puissance (W)</label>
-    <input id="bil-w" inputmode="decimal" autocomplete="off" value="${esc(c.w)}" placeholder="1500">`;
+    <input id="bil-w" inputmode="decimal" autocomplete="off" value="${esc(c.w)}" placeholder="ex. 1500">`;
   fw.querySelector("input").addEventListener("input", e => { c.w = e.target.value; garder(); });
   const fp = el("div", "f");
   fp.innerHTML = `<label>Phase</label>`;
@@ -4001,10 +4368,10 @@ function vBil(){
    le code couleur d'une résistance (4 anneaux, norme E12, sans rien de
    spécifique à el8 : ce sont des valeurs normalisées). */
 const CLE_LED = "led.v1";
-const LED = Object.assign({ onglet:"ali",
-  longueur:"", conso:"14.4", tension:"24",
+const LED = lireCalcul(CLE_LED, { onglet:"ali",
+  longueur:"5", conso:"14.4", tension:"24",
   vs:"12", vled:"3.2", iled:"20",
-  ohms:"" }, lireLocal(CLE_LED, {}));
+  ohms:"220" });
 
 const E12 = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
 const COULEURS_R = [
@@ -4099,7 +4466,7 @@ function vLed(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="led-${cle}">${esc(lab)}</label>
-      <input id="led-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="led-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => { c[cle] = e.target.value; garder(); peindre(); });
     return f;
@@ -4161,12 +4528,12 @@ function vLed(){
    réseau équilibré ou d'une répartition égale : le détail réel se mesure
    sur place. */
 const CLE_ELEC = "electricite.v1";
-const ELEC = Object.assign({ onglet:"conv",
-  cSens:"i", cReseau:"mono", cCos:"1", cP:"", cI:"",
-  phP:"", phCos:"1",
-  chP:"", chN:"4",
-  gP:"", gFois:"100", gMarge:"30", gCos:"0.8",
-  fkw:"", fCos:"0.8" }, lireLocal(CLE_ELEC, {}));
+const ELEC = lireCalcul(CLE_ELEC, { onglet:"conv",
+  cSens:"i", cReseau:"mono", cCos:"1", cP:"3500", cI:"16",
+  phP:"9000", phCos:"1",
+  chP:"6000", chN:"4",
+  gP:"12000", gFois:"100", gMarge:"30", gCos:"0.8",
+  fkw:"8", fCos:"0.8" });
 
 const DISJONCTEURS = [10, 16, 20, 25, 32, 40, 50, 63, 80, 100];
 const GROUPES = [2, 3, 5, 6.5, 8, 10, 15, 20, 30, 45, 60, 80, 100, 125, 150];
@@ -4262,8 +4629,8 @@ function vElec(){
 
   const menu = el("div", "onglets");
   menu.setAttribute("role", "tablist");
-  [["conv", "Puissance/courant"], ["phase", "Par phase"], ["charge", "Répartition"],
-   ["groupe", "Groupe"], ["fp", "Facteur"]].forEach(([v, t]) => {
+  [["conv", "Courant"], ["phase", "Phase"], ["charge", "Répartition"],
+   ["groupe", "Groupe"], ["fp", "cos φ"]].forEach(([v, t]) => {
     const b = el("button", null, t);
     b.setAttribute("role", "tab");
     b.setAttribute("aria-selected", String(c.onglet === v));
@@ -4277,7 +4644,7 @@ function vElec(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="elec-${cle}">${esc(lab)}</label>
-      <input id="elec-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="elec-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => { c[cle] = e.target.value; garder(); peindre(); });
     return f;
@@ -4481,7 +4848,7 @@ function vSub(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="sub-${cle}">${esc(lab)}</label>
-      <input id="sub-${cle}" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="sub-${cle}" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; garder(); peindreSub(res);
@@ -4493,8 +4860,8 @@ function vSub(){
   cc.append(champ("Adresse IPv4", "ip", "192.168.1.10"));
   cc.append(champ("Masque", "masque", "24", "En CIDR (24 ou /24) ou en décimal (255.255.255.0)."));
   d.append(cc);
-  const fo = el("div", "card");
-  fo.innerHTML = `<h4>Formules</h4><p class="formule">réseau = IP ET masque<br>
+  const fo = el("details", "card formules");
+  fo.innerHTML = `<summary>Formules</summary><p class="formule">réseau = IP ET masque<br>
     broadcast = réseau OU (NON masque)<br>utilisables = 2^(32 − préfixe) − 2</p>`;
   d.append(fo);
   peindreSub(res);
@@ -4617,7 +4984,7 @@ function testeur(){
      capacité de la batterie (VAh) = capacité de l'onduleur × autonomie (min) / 60
    Les valeurs par défaut sont celles de la page : 0,8 et 90 %. */
 const CLE_UPS = "onduleur.v1";
-const UPS = Object.assign({ w:"", fp:"0,8", rdt:"90", min:"" }, lireLocal(CLE_UPS, {}));
+const UPS = lireCalcul(CLE_UPS, { w:"1200", fp:"0,8", rdt:"90", min:"10" });
 
 /* Sur un clavier de téléphone français, la virgule vient avant le point. */
 const nbUps = v => parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", "."));
@@ -4665,7 +5032,7 @@ function vUps(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="ups-${cle}">${esc(lab)}</label>
-      <input id="ups-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="ups-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; ecrireLocal(CLE_UPS, c); peindreUps(res);
@@ -4686,8 +5053,8 @@ function vUps(){
     "Le temps de tenir la coupure, ou d'éteindre proprement."));
   d.append(ci);
 
-  const fo = el("div", "card");
-  fo.innerHTML = `<h4>Formules</h4><p class="formule">VA = W / facteur de puissance<br>
+  const fo = el("details", "card formules");
+  fo.innerHTML = `<summary>Formules</summary><p class="formule">VA = W / facteur de puissance<br>
     Onduleur (VA) = VA / (rendement / 100)<br>Batterie (VAh) = onduleur × min / 60</p>`;
   d.append(fo);
 
@@ -4716,9 +5083,9 @@ function vUps(){
    Public : dernier rang selon la règle 4-6-8 (en hauteurs d'image) ; premier
    rang là où un pixel sous-tend une minute d'arc, la limite de l'œil. */
 const CLE_DIST = "projection.v1";
-const DIST = Object.assign({ sens:"d", fmt:"16:9", base:"l", l:"", diag:"", d:"",
-                             tr:"", trx:"", lm:"", gain:"1", amb:"50", ctr:"15", marge:"20",
-                             n:1, rec:"15", res:"1920x1080", onglet:"geo" }, lireLocal(CLE_DIST, {}));
+const DIST = lireCalcul(CLE_DIST, { sens:"d", fmt:"16:9", base:"l", l:"4", diag:"150", d:"8",
+                             tr:"1,5", trx:"", lm:"", gain:"1", amb:"50", ctr:"15", marge:"20",
+                             n:1, rec:"15", res:"1920x1080", onglet:"geo" });
 const FORMATS = [["16:9", 16 / 9], ["16:10", 16 / 10], ["4:3", 4 / 3], ["2,39:1", 2.39]];
 const RESOLUTIONS = [["1920x1080", "HD"], ["1920x1200", "WUXGA"], ["3840x2160", "4K UHD"], ["1024x768", "XGA"]];
 /* ANSI/INFOCOMM 3M-2011, contraste d'une image projetée. */
@@ -4928,7 +5295,7 @@ function vDist(){
   const champ = (lab, cle, ph, aide) => {
     const f = el("div", "f");
     f.innerHTML = `<label for="dpj-${cle}">${esc(lab)}</label>
-      <input id="dpj-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="${esc(ph)}">
+      <input id="dpj-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
       ${aide ? `<small>${aide}</small>` : ""}`;
     f.querySelector("input").addEventListener("input", e => {
       c[cle] = e.target.value; garder(); peindre();
@@ -5025,7 +5392,10 @@ const MAJ = { e:null };
 /* Le bandeau ne garde que les phases qui demandent un geste : « disponible » et
    « téléchargement » poussaient la grille d'une rangée entière pour ne rien
    faire faire. Elles se disent maintenant sur la ligne Application. */
-const PHASES_BANDEAU = ["pret", "autorisation"];
+/* Le bandeau montre tout ce qui attend quelque chose, y compris un échec :
+   sans lui, une mise à jour tombée pendant une publication ne laissait aucune
+   trace sur l'accueil, et l'application semblait ne plus se mettre à jour. */
+const PHASES_BANDEAU = ["pret", "autorisation", "telechargement", "disponible", "erreur"];
 
 function ko(o){ return o >= 1048576 ? (o / 1048576).toFixed(1).replace(".", ",") + " Mo"
                                     : Math.round(o / 1024) + " ko"; }
@@ -5050,6 +5420,10 @@ function bandeauMaj(e){
     return `<div class="maj"><div class="g"><b>Une autorisation à donner</b>
       <span>Autoriser Patch à installer des applications, puis revenir ici.</span></div>
       <button data-maj="installer">Reprendre</button></div>`;
+  if(e.phase === "erreur")
+    return `<div class="maj"><div class="g"><b>Mise à jour interrompue</b>
+      <span>${esc(e.erreur || "la vérification a échoué")}. Patch réessaie tout seul.</span></div>
+      <button data-maj="telecharger">Réessayer</button></div>`;
   return `<div class="maj"><div class="g"><b>${esc(nomVer(e))} disponible</b>
     <span>Téléchargement en attente.${branche(e)}</span></div>
     <button data-maj="telecharger">Télécharger</button></div>`;
@@ -5105,7 +5479,11 @@ function peindreMaj(){
   const e = MAJ.e;
   const zone = $("#maj-zone");
   if(zone){
-    const montre = e && PHASES_BANDEAU.includes(e.phase);
+    /* Un échec ne se montre que s'il empêche une version connue d'arriver :
+       sans accès à internet sur le Wi-Fi du plateau, le bandeau n'aurait rien
+       à dire. */
+    const montre = e && PHASES_BANDEAU.includes(e.phase)
+      && (e.phase !== "erreur" || e.publie > e.installe);
     zone.innerHTML = montre ? bandeauMaj(e) : "";
     if(montre) cablerMaj(zone);
   }
@@ -5116,7 +5494,7 @@ function peindreMaj(){
   const ligne = $("#appli-zone");
   if(ligne){
     const neuf = ligneAppli();
-    if(ligne.textContent !== neuf.textContent) ligne.replaceChildren(neuf);
+    if(ligne.innerHTML !== neuf.outerHTML) ligne.replaceChildren(neuf);
   }
 }
 
@@ -5151,7 +5529,8 @@ function vMaj(){
 const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps, dist:vDist,
                 proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 tcd:vPatch, gel:vGel, led:vLed, cab:vCable, bil:vBil, elec:vElec, rig:vRig, ndi:vNdi,
-                net:vNet, sub:vSub, art:vArt, rdm:vRdm, maj:vMaj };
+                net:vNet, sub:vSub, art:vArt, rdm:vRdm, maj:vMaj,
+                log:vLog, logf:vLogFiche, logr:vLogReglages, favoris:vFavoris };
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
   if(STOP){ STOP(); STOP = null; }
@@ -5201,17 +5580,23 @@ function render(){
       const n = $("#q"); if(n){ n.focus({ preventScroll:true }); n.setSelectionRange(pos, pos); } });
   }
   const t = ["parc", "proj", "mach", "haut", "mdg", "manuel", "fiche", "edit"].includes(r.v) ? "parc"
-          : r.v === "home" ? "home" : "tools";
+          : ["log", "logf", "logr"].includes(r.v) ? "agenda"
+          : ["home", "favoris"].includes(r.v) ? "home" : "tools";
   document.querySelectorAll(".tb").forEach(b => b.setAttribute("aria-current", b.dataset.t === t ? "true" : "false"));
   peindreMaj();          // le rendu a jeté le bandeau : on le repose s'il a lieu d'être
   peindreReseau();
 }
 /* Chaque onglet ouvre sa famille, pas son premier élément : « Outils » tombait
    sur l'écran du patch, et restait allumé sur des écrans où il ne ramenait pas. */
+/* L'onglet Agenda n'apparaît que si le module logistique est là ; son
+   pictogramme `i-agenda` vient avec lui. */
+const tbAgenda = document.querySelector('.tb[data-t="agenda"]');
+if(tbAgenda && VIEWS.log) tbAgenda.hidden = false;
 document.querySelectorAll(".tb").forEach(b => b.onclick = () => {
   S.q = "";
   toucher();
-  go({ v:b.dataset.t === "home" ? "home" : b.dataset.t === "parc" ? "parc" : "outils" });
+  const v = { home:"home", parc:"parc", agenda:"log" }[b.dataset.t] || "outils";
+  go({ v });
 });
 /* Un seul suivi pour toute l'application : le bandeau et l'écran s'y branchent
    quand ils existent. Il ne passe pas par poser(), qui est remis à zéro à

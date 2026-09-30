@@ -460,6 +460,41 @@ public class Regie {
     @JavascriptInterface
     public String gdtfState() { return act.gdtfJson; }
 
+    /* ----------------------- fichiers et agenda ------------------------- */
+
+    @JavascriptInterface
+    public void fichierOuvrir() { act.ouvrirFichier(); }
+
+    @JavascriptInterface
+    public void fichierEnregistrer(String nom, String mime, String contenu) {
+        act.enregistrerFichier(nom, mime, contenu);
+    }
+
+    @JavascriptInterface
+    public String fichierEtat() { return act.fichierJson; }
+
+    @JavascriptInterface
+    public boolean agendaAutorise() { return act.agendaAutorise(); }
+
+    @JavascriptInterface
+    public void agendaDemander() { act.demanderAgenda(); }
+
+    @JavascriptInterface
+    public String agendaPermission() { return act.agendaAutorise() ? "oui" : act.agendaPerm; }
+
+    @JavascriptInterface
+    public String agendaListe() { return Agenda.agendas(act.getContentResolver()); }
+
+    @JavascriptInterface
+    public String agendaLire(String ids, double debut, double fin) {
+        return Agenda.lire(act.getContentResolver(), ids, (long) debut, (long) fin);
+    }
+
+    @JavascriptInterface
+    public boolean agenda(String titre, String lieu, String note, double debut, double fin, boolean journee) {
+        return act.ajouterAgenda(titre, lieu, note, (long) debut, (long) fin, journee);
+    }
+
     @JavascriptInterface
     public void stopAll() {
         emetteur.arreter();
