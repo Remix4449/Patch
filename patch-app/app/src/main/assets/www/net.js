@@ -194,7 +194,16 @@ const NET = {
     lire(ids, debut, fin){
       if(!PONT) return null;
       try { return JSON.parse(PONT.agendaLire(ids.join(","), debut, fin)); } catch(e){ return null; }
-    }
+    },
+    /* Écriture : ecrire rend l'identifiant du rendez-vous (0 si échec), pour
+       qu'on retrouve le même la fois d'après. */
+    ecritAutorise(){ if(!PONT) return false; try { return PONT.agendaEcritAutorise(); } catch(e){ return false; } },
+    ecrire(cal, ev, o){
+      if(!PONT) return 0;
+      try { return Number(PONT.agendaEcrire(Number(cal), Number(ev) || 0, o.titre || "", o.lieu || "",
+        o.note || "", o.debut, o.fin, !!o.journee)) || 0; } catch(e){ return 0; }
+    },
+    retirer(ev){ if(!PONT || !ev) return false; try { return PONT.agendaRetirer(Number(ev)); } catch(e){ return false; } }
   },
 
   /* Ouvre l'agenda du téléphone sur un rendez-vous prérempli. */

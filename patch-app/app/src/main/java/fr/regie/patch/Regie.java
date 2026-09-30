@@ -504,7 +504,9 @@ public class Regie {
     public void agendaDemander() { act.demanderAgenda(); }
 
     @JavascriptInterface
-    public String agendaPermission() { return act.agendaAutorise() ? "oui" : act.agendaPerm; }
+    public String agendaPermission() {
+        return act.agendaAutorise() && act.agendaEcritAutorise() ? "oui" : act.agendaPerm;
+    }
 
     @JavascriptInterface
     public String agendaListe() { return Agenda.agendas(act.getContentResolver()); }
@@ -512,6 +514,22 @@ public class Regie {
     @JavascriptInterface
     public String agendaLire(String ids, double debut, double fin) {
         return Agenda.lire(act.getContentResolver(), ids, (long) debut, (long) fin);
+    }
+
+    @JavascriptInterface
+    public boolean agendaEcritAutorise() { return act.agendaEcritAutorise(); }
+
+    /** Ajoute (ev = 0) ou met à jour un rendez-vous ; rend son identifiant, 0 si échec. */
+    @JavascriptInterface
+    public String agendaEcrire(double cal, double ev, String titre, String lieu, String note,
+                               double debut, double fin, boolean journee) {
+        return Agenda.ecrire(act.getContentResolver(), (long) cal, (long) ev, titre, lieu, note,
+                (long) debut, (long) fin, journee);
+    }
+
+    @JavascriptInterface
+    public boolean agendaRetirer(double ev) {
+        return Agenda.retirer(act.getContentResolver(), (long) ev);
     }
 
     @JavascriptInterface

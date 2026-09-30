@@ -1,6 +1,7 @@
 package fr.regie.patch;
 
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.ContentUris;
 import android.database.Cursor;
 import android.net.Uri;
@@ -31,14 +32,18 @@ public class Agenda {
                     CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
                     CalendarContract.Calendars.ACCOUNT_NAME,
                     CalendarContract.Calendars.CALENDAR_COLOR,
-                    CalendarContract.Calendars.VISIBLE }, null, null, null);
+                    CalendarContract.Calendars.VISIBLE,
+                    CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL }, null, null, null);
             while (c != null && c.moveToNext()) {
                 out.put(new JSONObject()
                         .put("id", c.getLong(0))
                         .put("nom", c.isNull(1) ? "" : c.getString(1))
                         .put("compte", c.isNull(2) ? "" : c.getString(2))
                         .put("couleur", String.format(Locale.ROOT, "#%06X", 0xFFFFFF & c.getInt(3)))
-                        .put("visible", c.getInt(4) != 0));
+                        .put("visible", c.getInt(4) != 0)
+                        // Contributeur ou mieux : Patch peut y écrire.
+                        .put("ecrivable", !c.isNull(5)
+                                && c.getInt(5) >= CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR));
             }
         } catch (Exception e) {
             return erreur(e instanceof SecurityException ? "autorisation refusée" : "agenda illisible");
@@ -107,6 +112,50 @@ public class Agenda {
             if (c != null) c.close();
         }
         return out.toString();
+    }
+
+    /**
+     * Écrit un rendez-vous dans l'agenda `cal`. Si `ev` vaut 0 c'est un ajout,
+     * sinon la mise à jour de ce rendez-vous. Rend l'identifiant du rendez-vous,
+     * ou 0 si l'écriture a échoué. Les journées entières se posent en UTC, fin
+     * exclue, comme Android les attend.
+     */
+    public static String ecrire(ContentResolver cr, long cal, long ev, String titre, String lieu,
+                                String note, long debut, long fin, boolean journee) {
+        try {
+            ContentValues v = new ContentValues();
+            v.put(CalendarContract.Events.TITLE, titre == null ? "" : titre);
+            v.put(CalendarContract.Events.EVENT_LOCATION, lieu == null ? "" : lieu);
+            v.put(CalendarContract.Events.DESCRIPTION, note == null ? "" : note);
+            v.put(CalendarContract.Events.DTSTART, debut);
+            v.put(CalendarContract.Events.DTEND, fin);
+            v.put(CalendarContract.Events.ALL_DAY, journee ? 1 : 0);
+            v.put(CalendarContract.Events.EVENT_TIMEZONE,
+                    journee ? "UTC" : TimeZone.getDefault().getID());
+            if (ev > 0) {
+                int n = cr.update(ContentUris.withAppendedId(
+                        CalendarContract.Events.CONTENT_URI, ev), v, null, null);
+                if (n > 0) return String.valueOf(ev);
+                // Le rendez-vous a disparu de l'agenda : on en refait un.
+            }
+            v.put(CalendarContract.Events.CALENDAR_ID, cal);
+            Uri u = cr.insert(CalendarContract.Events.CONTENT_URI, v);
+            long id = u == null ? 0 : ContentUris.parseId(u);
+            return String.valueOf(id);
+        } catch (Exception e) {
+            return "0";
+        }
+    }
+
+    /** Retire un rendez-vous écrit par Patch. */
+    public static boolean retirer(ContentResolver cr, long ev) {
+        if (ev <= 0) return false;
+        try {
+            return cr.delete(ContentUris.withAppendedId(
+                    CalendarContract.Events.CONTENT_URI, ev), null, null) > 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static String jour(long ms, boolean utc) {

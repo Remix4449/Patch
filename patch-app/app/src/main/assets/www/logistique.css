@@ -63,6 +63,12 @@
 .lg-cal{margin-top:22px}
 .lg-cal>p{margin:0 0 12px}
 .lg-cal+.lg-ech{margin-top:10px}
+/* Un agenda de sortie par genre de fiche */
+.lg-sorties{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}
+.lg-sortie{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.lg-sortie>span{font-weight:600;font-size:14px}
+.lg-sortie select{flex:1;min-width:0;max-width:60%;min-height:44px;border:1.5px solid var(--line);
+  border-radius:12px;background:var(--bg);color:var(--ink);padding:0 10px;font:inherit;font-size:14px}
 .lg-agendas{display:flex;flex-direction:column;gap:4px;margin:0 0 12px}
 .lg-agendas .lg-coche{padding:8px 0;font-weight:400}
 .lg-agendas .pt{width:12px;height:12px;border-radius:99px;background:var(--c);flex:none}
