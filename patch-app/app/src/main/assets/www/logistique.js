@@ -392,11 +392,11 @@ function vLogMois(){
   const d = el("div", "lg cal");
   /* Changer de mois choisit aussi un jour de ce mois : aujourd'hui s'il y
      est, sinon le premier. */
-  /* Le mois suivant arrive du côté d'où on va : la grille glisse et s'éclaire
-     au lieu d'être remplacée d'un coup. */
   const aller = n => { const t = iso(new Date(a, m - 1 + n, 1)); LOGV.mois = t.slice(0, 7);
-    LOGV.jour = j.slice(0, 7) === LOGV.mois ? j : t; LOGV.sens = n; render(); };
-  d.append(teteLog(MOIS[m - 1].replace(/^./, c => c.toUpperCase()) + (a !== new Date().getFullYear() ? " " + a : ""), aller));
+    LOGV.jour = j.slice(0, 7) === LOGV.mois ? j : t; render(); };
+  /* Les flèches font glisser la piste comme le doigt (voir `glisser` plus bas). */
+  function nav(n){ glisser(n); }
+  d.append(teteLog(MOIS[m - 1].replace(/^./, c => c.toUpperCase()) + (a !== new Date().getFullYear() ? " " + a : ""), nav));
 
   const tous = logVivants().filter(x => x.debut);
   const etats = new Map(tous.map(x => [x.id, logEtat(x, j)]));
@@ -412,16 +412,25 @@ function vLogMois(){
   const tete = el("div", "cal-jours");
   tete.innerHTML = `<span></span>` + ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
     .map((n, i) => `<span${i === (new Date().getDay() + 6) % 7 && mois === j.slice(0, 7) ? ' class="auj"' : ""}>${n}</span>`).join("");
+  /* Trois mois côte à côte sur une piste : le précédent, celui qu'on regarde,
+     le suivant. Le doigt fait glisser la piste, on voit arriver le mois
+     d'à côté, et elle s'accroche au plus proche quand on lâche. */
+  const piste = el("div", "cal-piste");
   const corps = el("div", "cal-corps");
+  corps.append(piste);
   grille.append(tete, corps);
 
-  const premier = mois + "-01", dernier = iso(new Date(a, m, 0));
-  const lundis = [];
-  for(let l = lundiDe(premier); l <= dernier; l = plusJours(l, 7)) lundis.push(l);
+  const moisVoisin = n => iso(new Date(a, m - 1 + n, 1)).slice(0, 7);
+  const lundisDe = mo => {
+    const [y, k] = mo.split("-").map(Number);
+    const out = [], dern = iso(new Date(y, k, 0));
+    for(let l = lundiDe(mo + "-01"); l <= dern; l = plusJours(l, 7)) out.push(l);
+    return out;
+  };
 
-  /* Une semaine, avec au plus `L` lignes de pastilles et, si elle a une
-     hauteur imposée, étirée jusqu'à elle. */
-  const semaine = (l, L, h) => {
+  /* Une semaine du mois `mo`, avec au plus `L` lignes de pastilles et, si elle
+     a une hauteur imposée, étirée jusqu'à elle. */
+  const semaine = (l, L, h, mo) => {
     const jours = [...Array(7)].map((_, i) => plusJours(l, i));
     const dim = jours[6];
     const sem = el("div", "cal-sem");
@@ -429,7 +438,7 @@ function vLogMois(){
     sem.append(num);
     /* Le fond des jours d'abord : c'est lui qu'on touche. */
     jours.forEach((jj, i) => {
-      const f = el("button", "cal-fond" + (jj.slice(0, 7) !== mois ? " hors" : "")
+      const f = el("button", "cal-fond" + (jj.slice(0, 7) !== mo ? " hors" : "")
         + (jj === LOGV.jour ? " choisi" : ""));
       f.style.gridColumn = String(i + 2);
       f.setAttribute("aria-label", jourCourt(jj, true));
@@ -503,19 +512,65 @@ function vLogMois(){
     sem.querySelectorAll(".cal-fond").forEach(f => f.style.gridRow = "1 / -1");
     return sem;
   };
-  const dessiner = (L, h) => corps.replaceChildren(...lundis.map(l => semaine(l, L, h)));
-  dessiner(CAL_LIGNES, 0);
-  if(LOGV.sens){ corps.classList.add(LOGV.sens > 0 ? "vient-d" : "vient-g"); LOGV.sens = 0; }
 
-  /* Un glissement du doigt change de mois, comme dans l'agenda. */
-  let x0 = null, y0 = null;
-  grille.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive:true });
-  grille.addEventListener("touchend", e => {
+  /* Chaque mois remplit la hauteur disponible avec ses propres semaines : un
+     mois de cinq lignes n'a pas de rang vide sous lui. */
+  const volets = [-1, 0, 1].map(moisVoisin);
+  const dessiner = place => piste.replaceChildren(...volets.map(mo => {
+    const ls = lundisDe(mo);
+    const h = place ? Math.max(58, Math.floor(place / ls.length)) : 0;
+    const L = h ? Math.max(1, Math.floor((h - 3 - CAL_T - CAL_E) / (CAL_L + CAL_E))) : CAL_LIGNES;
+    const v = el("div", "cal-vue");
+    v.append(...ls.map(l => semaine(l, L, h && h - 3, mo)));
+    return v;
+  }));
+  dessiner(0);
+
+  /* La piste est posée sur le mois du milieu. Un pourcentage de translation
+     se mesure sur l'élément déplacé : la piste fait trois largeurs, donc un
+     mois vaut un tiers. */
+  const caler = (dx, anim) => {
+    piste.style.transition = anim ? "transform .3s cubic-bezier(.22,.72,.26,1)" : "none";
+    piste.style.transform = `translate3d(calc(-33.3333% + ${dx}px), 0, 0)`;
+  };
+  caler(0, false);
+  let occupe = false;
+  const glisser = n => {
+    if(occupe) return;
+    occupe = true;
+    caler(-n * grille.clientWidth, true);
+    setTimeout(() => aller(n), 300);
+  };
+
+  /* Le doigt : la piste suit tant que le geste est horizontal, et on ne
+     retient le mois d'à côté qu'au-delà du quart de l'écran. */
+  let x0 = null, y0 = null, pris = false;
+  grille.addEventListener("touchstart", e => {
+    if(occupe) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; pris = false;
+  }, { passive:true });
+  grille.addEventListener("touchmove", e => {
+    if(x0 == null || occupe) return;
+    const dx = e.touches[0].clientX - x0, dy = e.touches[0].clientY - y0;
+    if(!pris){
+      if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if(Math.abs(dx) < Math.abs(dy)){ x0 = null; return; }   // c'est la page qui défile
+      pris = true;
+    }
+    e.preventDefault();
+    caler(dx, false);
+  }, { passive:false });
+  const lacher = e => {
     if(x0 == null) return;
-    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    const dx = (e.changedTouches ? e.changedTouches[0].clientX : x0) - x0;
     x0 = null;
-    if(Math.abs(dx) > 70 && Math.abs(dx) > 2 * Math.abs(dy)) aller(dx < 0 ? 1 : -1);
-  });
+    if(!pris) return;
+    pris = false;
+    if(Math.abs(dx) > Math.min(90, grille.clientWidth / 4)) glisser(dx < 0 ? 1 : -1);
+    else caler(0, true);
+  };
+  grille.addEventListener("touchend", lacher, { passive:true });
+  grille.addEventListener("touchcancel", lacher, { passive:true });
   d.append(grille);
 
   const volet = voletJour(tous, etats);
@@ -531,9 +586,7 @@ function vLogMois(){
     const poi = volet.querySelector(".cal-poignee");
     const place = window.innerHeight - bas - (poi ? poi.getBoundingClientRect().height + 10 : 60)
                 - (corps.getBoundingClientRect().top + window.scrollY) - 6;
-    const h = Math.max(58, Math.floor(place / lundis.length));
-    const L = Math.max(1, Math.floor((h - 3 - CAL_T - CAL_E) / (CAL_L + CAL_E)));
-    dessiner(L, h - 3);
+    dessiner(place);
   };
   requestAnimationFrame(ajuster);
   const surTaille = () => requestAnimationFrame(ajuster);
