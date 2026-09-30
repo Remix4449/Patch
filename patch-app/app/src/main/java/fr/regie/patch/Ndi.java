@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Découverte des sources NDI par mDNS (_ndi._tcp). Donne le nom, la machine,
- * l'adresse et le port. La vignette en direct demanderait le SDK NDI.
+ * l'adresse et le port. L'image elle-même passe par {@link NdiFlux}.
  *
  * NsdManager ne supporte qu'une résolution à la fois : elles sont mises en file.
  */

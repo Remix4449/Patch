@@ -70,6 +70,31 @@ const NET = {
     return sonder(() => JSON.parse(PONT.ndiState()), cb, 700);
   },
 
+  /* Image d'une source NDI : flux basse qualité décodé par l'application.
+     cb reçoit { etat, erreur, fourcc, l, h, aspect, cadence, ips, mbps, img } ;
+     img est une data URL JPEG quand une image nouvelle est arrivée, "" sinon. */
+  ndiVoir(src, cb){
+    if(!PONT){
+      let t = 0;
+      const c = document.createElement("canvas");
+      c.width = 320; c.height = 180;
+      const g = c.getContext("2d");
+      const id = setInterval(() => {
+        t++;
+        ["#fff", "#ff0", "#0ff", "#0f0", "#f0f", "#f00", "#00f", "#000"].forEach((k, i) => {
+          g.fillStyle = k; g.fillRect(i * 40, 0, 40, 180);
+        });
+        g.fillStyle = "#888"; g.fillRect(0, (t * 4) % 180, 320, 12);
+        cb({ etat:"direct", erreur:"", fourcc:"SHQ2", l:640, h:360, aspect:16/9, cadence:25,
+             ips:10, mbps:1.2, img:c.toDataURL("image/jpeg", .7), demo:true });
+      }, 100);
+      return () => clearInterval(id);
+    }
+    PONT.ndiVoir(src.ip, src.port, src.nom || "");
+    const stop = sonder(() => JSON.parse(PONT.ndiImage()), cb, 90);
+    return () => { stop(); try { PONT.ndiFermer(); } catch(e){} };
+  },
+
   /* Émission continue — télécommande gradateurs. trames : { univers: niveaux[512] }.
      Le natif répète les trames à 30 Hz tant qu'elles sont posées ; un objet vide
      relâche les univers, sinon les gradateurs resteraient au dernier niveau reçu. */
