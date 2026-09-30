@@ -177,3 +177,27 @@
    dans la fiche. */
 .lg-fiche .fin{position:sticky;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:5;
   background:var(--bg);margin:0 -16px;padding:10px 16px;border-top:1px solid var(--line)}
+
+/* La fiche tient sur un écran : champs plus serrés, catégories sur une
+   ligne qui défile, le secondaire replié. */
+.lg-fiche .bar{padding:8px 0 8px;margin-bottom:8px}
+.lg-fiche .card{padding:12px 14px 4px}
+.lg-fiche .f{gap:4px;margin-bottom:10px}
+.lg-fiche .f input,.lg-fiche .f select{padding:9px 12px;font-size:16px;min-height:44px}
+.lg-fiche .f input[type="date"],.lg-fiche .f input[type="time"]{min-height:44px;font-size:14.5px}
+.lg-fiche .f textarea{padding:9px 12px}
+.lg-fiche .ff{gap:8px}
+.lg-fiche .lg-seg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px}
+.lg-fiche .lg-seg::-webkit-scrollbar{display:none}
+.lg-fiche .lg-seg button{flex:none;padding:9px 13px;min-height:40px}
+.lg-fiche .lg-reco{margin-top:6px}
+.lg-fiche .lg-reco span{padding:5px 9px}
+.lg-plus{margin:0 0 10px}
+.lg-plus summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:44px;
+  font:700 13px/1.2 var(--body);color:var(--ink2)}
+.lg-plus summary::-webkit-details-marker{display:none}
+.lg-plus summary::before{content:"+";display:grid;place-items:center;width:24px;height:24px;border-radius:99px;
+  border:1.5px solid var(--line);font:700 15px/1 var(--body);flex:none}
+.lg-plus[open] summary::before{content:"−"}
+.lg-fiche .fin{padding:8px 16px;margin-top:6px}
+.lg-fiche .fin button{padding:12px}

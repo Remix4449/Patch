@@ -54,9 +54,9 @@ const LOG_CHAMPS = {
     { rang:[{ c:"debut", l:"Date", type:"date", req:true }, { c:"hdebut", l:"Heure", type:"time" }] },
     { rang:[{ c:"fin", l:"Jusqu'au", type:"date" }, { c:"hfin", l:"Heure de fin", type:"time" }] },
     { c:"lieu", l:"Lieu", ph:"Quai de déchargement" },
-    { c:"spectacle", l:"Spectacle", ph:"Nom du spectacle", liste:"spectacles" },
-    { c:"contact", l:"Contact", ph:"Nom, téléphone" },
-    { c:"note", l:"Note", zone:true, ph:"Ce qu'il faut savoir" },
+    { c:"spectacle", l:"Spectacle", ph:"Nom du spectacle", liste:"spectacles", plus:true },
+    { c:"contact", l:"Contact", ph:"Nom, téléphone", plus:true },
+    { c:"note", l:"Note", zone:true, ph:"Ce qu'il faut savoir", plus:true },
     { c:"fait", l:"Fait", coche:true }
   ],
   /* Un spectacle court de sa première à sa dernière ; il se joue chaque jour
@@ -80,9 +80,9 @@ const LOG_CHAMPS = {
     { c:"sens", l:"Sens", sel:["Prêté à", "Emprunté à"], seg:true },
     { c:"tiers", l:"Qui", ph:"Théâtre, compagnie, personne", req:true },
     { rang:[{ c:"debut", l:"Sortie", type:"date", req:true }, { c:"fin", l:"Retour prévu", type:"date" }] },
-    { c:"contact", l:"Contact", ph:"Nom, téléphone" },
-    { c:"spectacle", l:"Pour", ph:"Spectacle, événement", liste:"spectacles" },
-    { c:"note", l:"Note", zone:true, ph:"État au départ, numéros de série…" },
+    { c:"contact", l:"Contact", ph:"Nom, téléphone", plus:true },
+    { c:"spectacle", l:"Pour", ph:"Spectacle, événement", liste:"spectacles", plus:true },
+    { c:"note", l:"Note", zone:true, ph:"État au départ, numéros de série…", plus:true },
     { c:"fait", l:"Rendu", coche:true }
   ],
   stag: [
@@ -90,8 +90,8 @@ const LOG_CHAMPS = {
     { c:"formation", l:"École ou formation", ph:"BTS, CFPTS, licence pro…" },
     { rang:[{ c:"service", l:"Service", ph:"Lumière" }, { c:"tuteur", l:"Tuteur", ph:"Qui l'encadre" }] },
     { rang:[{ c:"debut", l:"Arrivée", type:"date", req:true }, { c:"fin", l:"Départ", type:"date" }] },
-    { c:"contact", l:"Contact", ph:"Téléphone, mail" },
-    { c:"note", l:"Note", zone:true, ph:"Horaires, convention, objectifs…" }
+    { c:"contact", l:"Contact", ph:"Téléphone, mail", plus:true },
+    { c:"note", l:"Note", zone:true, ph:"Horaires, convention, objectifs…", plus:true }
   ]
 };
 const champsPlats = t => LOG_CHAMPS[t].flatMap(f => f.rang || [f]);
@@ -1175,8 +1175,18 @@ function vLogFiche(){
       f.aide ? `<p class="lg-aide">${esc(f.aide)}</p>` : ""}${
       f.materiel ? `<div class="lg-reco" id="reco-${id}"></div>` : ""}</div>`;
   };
-  LOG_CHAMPS[type].forEach(f => c.insertAdjacentHTML("beforeend",
-    f.rang ? `<div class="ff">${f.rang.map(champ).join("")}</div>` : champ(f)));
+  /* La fiche tient sur l'écran : l'essentiel en clair, le reste (contact,
+     note…) replié sous une ligne, déplié d'office s'il est déjà rempli. La
+     case « fait » n'a de sens qu'une fois la fiche créée. */
+  const rendu = f => f.rang ? `<div class="ff">${f.rang.map(champ).join("")}</div>` : champ(f);
+  const vus = LOG_CHAMPS[type].filter(f => !(f.coche && neuf));
+  vus.filter(f => !f.plus).forEach(f => c.insertAdjacentHTML("beforeend", rendu(f)));
+  const plus = vus.filter(f => f.plus);
+  if(plus.length){
+    const rempli = src && plus.some(f => src[f.c]);
+    c.insertAdjacentHTML("beforeend", `<details class="lg-plus"${rempli ? " open" : ""}><summary>${
+      esc("Plus : " + plus.map(f => f.l.toLowerCase()).join(", "))}</summary>${plus.map(rendu).join("")}</details>`);
+  }
   c.querySelectorAll(".lg-seg button").forEach(b => b.onclick = () => {
     toucher();
     const g = b.parentNode;
@@ -1216,6 +1226,7 @@ function vLogFiche(){
     const o = { id:src ? src.id : logId(), type, maj:Date.now() }, manque = [];
     champsPlats(type).forEach(f => {
       const n = c.querySelector("#lg-" + f.c);
+      if(!n) return;
       if(f.coche){ if(n.checked) o.fait = true; return; }
       const v = (f.jours || f.seg ? n.dataset.v : n.value).trim();
       if(v) o[f.c] = v; else if(f.req) manque.push(f.l);
