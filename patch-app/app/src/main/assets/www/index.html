@@ -1868,6 +1868,11 @@ const INV_LIVRE = JSON.parse(JSON.stringify({ proj:PROJECTEURS, mach:MACHINERIE,
 })();
 const sauverInv = () => ecrireLocal(CLE_INV,
   { proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS });
+/* Le parc livré avec l'APK va devenir vide. Un téléphone qui n'a jamais
+   touché à son parc le lisait directement dans l'APK : on l'inscrit une fois
+   dans le téléphone, pour qu'il y reste quand la version suivante arrivera
+   sans lui. */
+if(lireLocal(CLE_INV, null) == null && PROJECTEURS.length) sauverInv();
 
 /* La bibliothèque de modes se garnit après : elle suit l'inventaire en place,
    pas celui livré avec l'APK. */
