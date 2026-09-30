@@ -1,11 +1,11 @@
 /* ------------------------------ logistique ------------------------------- */
 /* Une couleur par carnet, reprise par la pastille de la rangée et le bouton
    d'ajout : on reconnaît un prêt d'un stagiaire avant d'avoir lu. */
-:root{--log:#5E4AE3; --pret:#A35A00; --stag:#1F7A4D}
+:root{--log:#5E4AE3; --pret:#A35A00; --stag:#1F7A4D; --spec:#B0246F}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A}
+  :root:not([data-theme="light"]){--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A; --spec:#F37BBE}
 }
-:root[data-theme="dark"]{--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A}
+:root[data-theme="dark"]{--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A; --spec:#F37BBE}
 
 /* Le point du jour : quatre chiffres, le retard en rouge s'il y en a. */
 .lg-point{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--sur);
@@ -15,7 +15,7 @@
 .lg-point span{display:block;margin-top:5px;font-size:11px;line-height:1.2;color:var(--ink2)}
 .lg-point .ko b{color:var(--ko)}
 
-.lg-ajouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.lg-ajouts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
 .lg-ajouts .ajout{margin-top:0;padding:12px 6px;border-color:var(--c);color:var(--c);min-height:48px}
 
 .lg .pill i{font-style:normal;font-family:var(--mono);opacity:.7;margin-left:3px}
@@ -76,21 +76,18 @@
 /* En-tête : le mois entre ses deux flèches, aujourd'hui, la synchronisation,
    puis la bascule Mois / Liste. Collé en haut comme la barre des autres écrans. */
 .cal-haut{position:sticky;top:env(safe-area-inset-top,0px);z-index:4;background:var(--bg);
-  padding:12px 0 10px;margin-bottom:10px;border-bottom:1px solid var(--line)}
-.cal-tete{display:flex;align-items:center;gap:4px}
-.cal-tete h2{font:800 22px/1.1 var(--disp);letter-spacing:-.02em;margin:0 2px;white-space:nowrap}
+  padding:10px 0 6px;margin-bottom:6px}
+.cal-tete{display:flex;align-items:center;gap:2px}
+.cal-tete h2{font:800 21px/1.1 var(--disp);letter-spacing:-.02em;margin:0 2px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
 .cal-esp{flex:1}
-.cal-nav,.cal-reg,.cal-auj{border:0;background:none;width:44px;height:44px;border-radius:99px;cursor:pointer;
+.cal-nav,.cal-reg,.cal-auj{border:0;background:none;width:40px;height:40px;border-radius:99px;cursor:pointer;
   display:grid;place-items:center;color:var(--ink);flex:none}
 .cal-nav:active,.cal-reg:active,.cal-auj:active{background:var(--sur)}
 .cal-nav .ic,.cal-reg .ic{width:20px;height:20px}
 .cal-suiv .ic{transform:scaleX(-1)}
-.cal-auj span{display:grid;place-items:center;width:26px;height:26px;border:2px solid currentColor;border-radius:7px;
-  font:700 12px/1 var(--mono)}
-.cal-seg{display:flex;gap:4px;background:var(--sur);border-radius:12px;padding:3px;margin-top:8px}
-.cal-seg button{flex:1;border:0;background:none;border-radius:9px;padding:9px 4px;cursor:pointer;
-  font:700 13px/1 var(--body);color:var(--ink2)}
-.cal-seg button[aria-pressed="true"]{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.cal-auj span{display:grid;place-items:center;width:24px;height:24px;border:2px solid currentColor;border-radius:7px;
+  font:700 11.5px/1 var(--mono)}
 
 .cal-alerte{display:flex;align-items:baseline;gap:6px;width:100%;border:1.5px solid var(--ko);background:none;
   color:var(--ko);border-radius:12px;padding:10px 12px;margin-bottom:10px;cursor:pointer;text-align:left;
@@ -100,37 +97,61 @@
 /* La grille : une colonne étroite pour le numéro de semaine, sept pour les
    jours ; chaque semaine est sa propre grille, pour que les barres courent
    d'un jour à l'autre sur une même ligne. */
-.cal{--cal-l:19px;--cal-t:32px}
 .cal-grille{margin:0 -8px;user-select:none;-webkit-user-select:none}
 .cal-jours,.cal-sem{display:grid;grid-template-columns:22px repeat(7,minmax(0,1fr));column-gap:3px}
-.cal-jours span{text-align:center;font:600 11.5px/1 var(--body);color:var(--ink2);padding:4px 0 8px}
+.cal-jours span{text-align:center;font:600 11.5px/1 var(--body);color:var(--ink2);padding:2px 0 6px}
 .cal-jours span.auj{color:var(--log)}
-.cal-sem{row-gap:2px;margin-bottom:4px;padding-bottom:4px}
+.cal-sem{row-gap:2px;margin-bottom:3px;overflow:hidden}
 .cal-num{grid-column:1;background:var(--sur);border-radius:8px;text-align:center;padding-top:7px;
   font:600 10.5px/1 var(--mono);color:var(--ink3)}
-.cal-fond{grid-row:1;background:var(--sur);border:0;border-radius:8px;padding:5px 0 0;cursor:pointer;
+.cal-fond{grid-row:1;background:var(--sur);border:0;border-radius:8px;padding:3px 0 0;cursor:pointer;
   display:flex;justify-content:center;align-items:flex-start;min-height:0;color:var(--ink)}
 .cal-fond.hors .cal-n{color:var(--ink3)}
 .cal-fond.choisi{box-shadow:inset 0 0 0 2px var(--ink)}
-.cal-n{display:grid;place-items:center;min-width:24px;height:24px;border-radius:99px;padding:0 4px;
-  font:700 13.5px/1 var(--body)}
+.cal-n{display:grid;place-items:center;min-width:22px;height:22px;border-radius:99px;padding:0 4px;
+  font:700 13px/1 var(--body)}
 .cal-n.auj,.cal-fond.hors .cal-n.auj{background:var(--log);color:#fff}
 /* Les fiches : pastille d'un jour, barre de plusieurs. Le texte tronqué à
    la colonne, comme dans l'agenda ; le toucher passe au jour dessous. */
 .cal-ev{pointer-events:none;align-self:stretch;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:clip;
   background:var(--c);color:#fff;border-radius:4px;padding:0 3px;margin:0 1px;
-  font:500 11px/var(--cal-l) var(--body);position:relative;z-index:1}
+  font:500 10.5px/17px var(--body);position:relative;z-index:1}
 .cal-ev.long{margin:0}
 .cal-ev.avant{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-2px}
 .cal-ev.apres{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:-2px}
 .cal-ev.fait{opacity:.5;text-decoration:line-through}
-.cal-plus{pointer-events:none;text-align:center;font:700 11px/var(--cal-l) var(--mono);color:var(--ink2);z-index:1}
+.cal-plus{pointer-events:none;text-align:center;font:700 10.5px/17px var(--mono);color:var(--ink2);z-index:1}
 /* Le texte blanc tient sur les couleurs sombres du thème clair ; en sombre,
    les couleurs s'éclaircissent et le texte passe au noir. */
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .cal-ev{color:#0B0C10} }
 :root[data-theme="dark"] .cal-ev{color:#0B0C10}
 
-.cal-jour{margin-top:18px}
-.cal-jour::first-letter{text-transform:uppercase}
-.cal .lg-ajouts{margin-top:12px}
-.lg .cal-haut + .lg-point{margin-top:0}
+/* Le volet du jour, au-dessus des onglets. Replié, une ligne ; déplié, les
+   fiches du jour et les ajouts, jusqu'à six dixièmes de l'écran. */
+.cal-volet{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:560px;z-index:9;
+  bottom:calc(66px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line);
+  border-radius:16px 16px 0 0;box-shadow:0 -6px 18px rgba(0,0,0,.08);padding:0 16px}
+.cal-poignee{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;cursor:pointer;
+  padding:9px 0;text-align:left;color:var(--ink)}
+.cal-poignee .g{flex:1;min-width:0}
+.cal-poignee b{display:block;font:700 15px/1.2 var(--body)}
+.cal-poignee b::first-letter{text-transform:uppercase}
+.cal-poignee .g span{display:block;margin-top:2px;font-size:12.5px;color:var(--ink2)}
+.cal-ouvrir{display:grid;place-items:center;width:36px;height:36px;border-radius:99px;flex:none;
+  background:var(--ink);color:var(--bg);transition:transform .18s}
+.cal-ouvrir .ic{width:18px;height:18px}
+.cal-volet.ouvert .cal-ouvrir{transform:rotate(45deg)}
+.cal-contenu{display:none;max-height:calc(60vh - 60px);overflow-y:auto;padding-bottom:10px}
+.cal-volet.ouvert .cal-contenu{display:block}
+.cal-contenu .rowlist{margin-top:12px}
+.cal-contenu .lg-ajouts{margin:0}
+.cal-contenu .lg-ajouts .ajout{min-height:44px;padding:10px 6px}
+
+/* Les jours de relâche d'un spectacle. */
+.lg-jours{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.lg-jours button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 0;cursor:pointer;
+  font:700 12.5px/1 var(--body);color:var(--ink2);min-height:42px}
+.lg-jours button[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#fff}
+.lg-aide{margin:6px 2px 0;font-size:12px;line-height:1.4;color:var(--ink2)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .lg-jours button[aria-pressed="true"]{color:#0B0C10} }
+:root[data-theme="dark"] .lg-jours button[aria-pressed="true"]{color:#0B0C10}
