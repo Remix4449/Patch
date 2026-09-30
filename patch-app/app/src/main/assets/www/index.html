@@ -25,6 +25,10 @@
     /* Assombris : en petites capitales sur une surface claire, ils passaient
        sous le seuil lisible — ici et partout où ils servent de texte. */
     --ok:#0C6E36; --ko:#B01F1A;
+    /* Le texte posé sur les aplats de couleur du patch (Relever, Ajouter…) :
+       blanc en clair, noir en sombre, où le cyan et l'orange sont trop clairs
+       pour du blanc (2,0:1). */
+    --on:#FFFFFF;
     --disp:"Bricolage Grotesque",system-ui,sans-serif;
     --body:"Chivo",system-ui,sans-serif;
     --mono:"Chivo Mono",ui-monospace,Menlo,monospace;
@@ -37,7 +41,7 @@
       --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF; --div:#D6C84E;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
       --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8; --conv:#E0A36B;
-      --ok:#45C47B; --ko:#FF6B63;
+      --ok:#45C47B; --ko:#FF6B63; --on:#0B0C10;
     }
   }
   :root[data-theme="dark"]{
@@ -46,7 +50,7 @@
     --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF; --div:#D6C84E;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
     --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8; --conv:#E0A36B;
-    --ok:#45C47B; --ko:#FF6B63;
+    --ok:#45C47B; --ko:#FF6B63; --on:#0B0C10;
   }
   *{box-sizing:border-box}
   [hidden]{display:none!important}
@@ -471,12 +475,16 @@
   .pecr .p-entete{display:flex;align-items:center;gap:10px;padding:2px 0 8px}
   .pecr .p-entete .bk{width:44px;height:44px;font-size:16px}
   .pecr .p-entete .bk .ic{width:18px;height:18px}
-  .pecr .p-titre{display:flex;align-items:center;gap:8px;flex:1;min-width:0;border:0;
+  .pecr .p-titre{display:flex;flex-direction:column;justify-content:center;gap:3px;flex:1;min-width:0;border:0;
        background:none;padding:4px 2px;min-height:44px;text-align:left;color:inherit;cursor:pointer}
+  .pecr .p-titre .nm{display:flex;align-items:center;gap:8px;min-width:0}
   .pecr .p-titre b{font:800 17px/1.15 var(--disp);letter-spacing:-.02em;overflow:hidden;
        text-overflow:ellipsis;white-space:nowrap}
   .pecr .p-titre .ch{font:600 11px/1 var(--mono);color:var(--ink3)}
-  .pecr .p-titre .n{margin-left:auto;font:500 10.5px/1 var(--mono);color:var(--ink3);white-space:nowrap}
+  .pecr .p-titre small{font:500 12px/1.2 var(--body);color:var(--ink3);overflow:hidden;
+       text-overflow:ellipsis;white-space:nowrap}
+  .pecr .p-pdf{flex:none;min-width:52px;min-height:44px;border:1.5px solid var(--line);background:var(--bg);
+       border-radius:99px;padding:0 12px;font:700 12px/1 var(--body);color:var(--ink2);cursor:pointer}
 
   /* Bandeau d'onglets sur une seule ligne : le compte passe en pastille. */
   .pecr .ongl{display:flex;background:var(--sur2);border-radius:10px;padding:2px;gap:2px;
@@ -509,23 +517,28 @@
   .tl:not(.mini) button[data-a="prec"], .tl:not(.mini) button[data-a="suiv"],
   .tl:not(.mini) button[data-a="zero"]{flex:1}
   .tl:not(.mini) .coupe{flex-basis:100%;height:0}
-  .tl button.on{background:var(--tel);border-color:var(--tel);color:#fff}
-  .tl .chev{padding:0 10px;border-style:dashed}
-  .tl .hl{border-color:var(--dmx);color:var(--dmx);font:600 11px/1 var(--mono);white-space:nowrap}
+  .tl button.on{background:var(--tel);border-color:var(--tel);color:var(--on)}
+  .tl .chev{padding:0 10px;font-size:15px}
+  .tl:not(.mini) button.zero{flex:1.6;line-height:1.1;padding:0 6px;font-size:12px}
+  .tl .hl{border-color:var(--dmx);color:var(--dmx);font:600 11px/1 var(--mono);white-space:nowrap;
+      display:inline-flex;align-items:center;gap:6px;max-width:100%;overflow:hidden}
+  .tl .hl .ic{width:16px;height:16px}
   .tl input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;min-width:84px;height:44px;
       background:none;margin:0}
   .tl input[type="range"]::-webkit-slider-runnable-track{height:34px;border-radius:10px;background:var(--sur2)}
   .tl input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:34px;
       border-radius:8px;background:var(--tel);border:0}
-  .tl.mini{flex-wrap:nowrap;padding:5px 10px;gap:8px}
-  .tl.mini .ap{flex:1;min-width:0}
+  .tl.mini{flex-wrap:wrap;padding:5px 10px;gap:8px}
+  .tl.mini .hl{flex:1 1 100%;min-height:40px;justify-content:center}
+  .tl.mini .ap{flex:1 1 0;min-width:0}
   .tl.mini .ap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* Le logo télécommande, en tête de la barre : il ouvre la télécommande DMX,
      celle qui parle en canaux là où la barre parle en gradateurs. */
-  .tl .lgo{flex:none;padding:0;display:grid;place-items:center;
+  .tl .lgo{flex:none;padding:0 11px;display:flex;align-items:center;gap:6px;
       border-color:var(--tel);color:var(--tel);background:var(--bg)}
   .tl .lgo .ic{width:17px;height:17px}
-  .tl .lgo.on{background:var(--tel);color:#fff}
+  .tl.mini .led{margin-left:2px}
+  .tl .lgo.on{background:var(--tel);color:var(--on)}
 
   /* Les rangées : un appareil et un gradateur se lisent pareil. */
   .pile{background:var(--sur);border-radius:16px;overflow:hidden;margin-bottom:10px}
@@ -538,20 +551,28 @@
        padding:0 12px;min-height:44px;font:600 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;
        color:var(--ink2);cursor:pointer}
   .pile .rien{padding:14px;font-size:13px;color:var(--ink3);margin:0}
-  .rg{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:10px;align-items:center;
-      padding:9px 14px;border-top:1px solid var(--line);font-size:13.5px}
-  .rg .bd{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;
-      font:700 10px/1 var(--mono);color:var(--bg);background:var(--tel)}
-  .rg .bd.ap{background:var(--dmx)}
+  /* Le circuit en tête de rangée, en grand : c'est ce qu'on cherche dans la
+     liste. L'ampoule, au bout, est le seul geste qui allume. */
+  .rg{display:grid;grid-template-columns:54px minmax(0,1fr) auto 44px;gap:10px;align-items:center;
+      padding:8px 10px 8px 12px;border-top:1px solid var(--line);font-size:13.5px}
+  .rg .cc{height:44px;min-width:54px;border-radius:11px;border:1.5px solid var(--line);background:var(--bg);
+      font:600 17px/1 var(--mono);color:var(--ink);cursor:pointer;padding:0 4px;overflow:hidden;
+      text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .rg .cc.vide{border-style:dashed;color:var(--ink3);font-size:15px}
+  .rg .lampe{width:44px;height:44px;border-radius:11px;border:1.5px solid var(--line);background:var(--bg);
+      color:var(--ink3);display:grid;place-items:center;cursor:pointer;padding:0}
+  .rg .lampe .ic{width:22px;height:22px}
+  .rg .lampe.on{background:var(--tel);border-color:var(--tel);color:var(--on)}
+  .rg .lampe.on .ic{fill:currentColor;fill-opacity:.3}
   .rg .tx{min-width:0}
   .rg .tx b{display:block;font:600 13.5px/1.25 var(--body);overflow:hidden;
       text-overflow:ellipsis;white-space:nowrap}
   .rg .tx span{font-size:11.5px;color:var(--ink3)}
   .rg .dm{font:500 11.5px/1.3 var(--mono);color:var(--ink3);text-align:right;white-space:nowrap}
-  .rg .dm b{display:block;font-size:13px;color:var(--ink)}
+  .rg .dm b{display:block;font-size:15px;color:var(--ink)}
   .rg .ac{border:1.5px solid var(--line);background:var(--bg);border-radius:9px;padding:8px 10px;
       font:600 11.5px/1 var(--body);color:var(--ink2);white-space:nowrap;min-width:62px;cursor:pointer}
-  .rg .ac.on{background:var(--tel);border-color:var(--tel);color:#fff}
+  .rg .ac.on{background:var(--tel);border-color:var(--tel);color:var(--on)}
   .rg .ac.vide{border-style:dashed;color:var(--ink3)}
   .rg.on{background:color-mix(in srgb,var(--tel) 10%,transparent)}
   .rg.cliquable{cursor:pointer}
@@ -559,22 +580,36 @@
       scroll-margin-top:132px}
 
   /* Les deux actions, au-dessus de la barre d'onglets de l'application. */
+  /* La barre d'onglets de l'application est masquée sur le patch : la liste
+     récupère sa place, le retour ramène où l'on était. */
+  body.patch-plein nav.tabbar{display:none}
+  body.patch-plein .shell{padding-bottom:env(safe-area-inset-bottom,0px)}
   .pecr .p-bas{position:fixed;left:0;right:0;z-index:9;
-      bottom:calc(66px + env(safe-area-inset-bottom,0px));
+      bottom:0;padding-bottom:calc(9px + env(safe-area-inset-bottom,0px))!important;
       background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);
       border-top:1.5px solid var(--line);padding:7px 16px}
   .pecr .p-bas .in{max-width:560px;margin:0 auto;display:flex;gap:7px}
   .pecr .p-bas button{flex:1;border:0;border-radius:11px;padding:0 10px;min-height:44px;
-      font:700 12.5px/1.2 var(--body);background:var(--tel);color:#fff;cursor:pointer;
+      font:700 12.5px/1.2 var(--body);background:var(--tel);color:var(--on);cursor:pointer;
       display:flex;align-items:center;justify-content:center;gap:7px;min-width:0}
   .pecr .p-bas button .et{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pecr .p-bas button.dmx{background:var(--dmx)}
-  .pecr .p-bas button.pdf{flex:none;background:var(--sur2);color:var(--ink2);padding:0 14px}
-  .pecr .p-bas button .cpt{font:600 10.5px/1 var(--mono);background:rgba(255,255,255,.22);
+  .pecr .p-bas button{min-height:50px;font-size:13.5px}
+  .pecr .p-bas button.att{background:var(--sur2);color:var(--ink)}
+  .pecr .p-bas button:disabled{opacity:.45;cursor:default}
+  .pecr .p-bas button .cpt{font:600 10.5px/1 var(--mono);background:color-mix(in srgb,currentColor 16%,transparent);
       border-radius:99px;padding:3px 6px}
-  .pecr .p-bas button[aria-expanded="true"]{box-shadow:inset 0 0 0 2px rgba(255,255,255,.45)}
+  .pecr .p-bas button[aria-expanded="true"]{box-shadow:inset 0 0 0 2px color-mix(in srgb,currentColor 45%,transparent)}
   /* La place que prend la barre du bas, rendue à la liste. */
-  .pecr{padding-bottom:62px}
+  .pecr{padding-bottom:78px}
+  /* Le bandeau « Annuler » d'une suppression, en haut : le volet tient le bas. */
+  .p-annul{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:30;
+      max-width:536px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:6px 6px 6px 16px;
+      background:var(--ink);color:var(--bg);border-radius:14px;box-shadow:0 8px 30px rgba(8,9,12,.3);
+      font:600 13.5px/1.3 var(--body)}
+  .p-annul span{flex:1;min-width:0}
+  .p-annul button{flex:none;min-height:44px;border:0;border-radius:10px;padding:0 14px;cursor:pointer;
+      background:var(--bg);color:var(--ink);font:700 13px/1 var(--body)}
 
   /* ------------------------------ volets -------------------------------- */
   /* À mi-écran : la liste reste visible au-dessus et se met à jour pendant
@@ -595,11 +630,16 @@
       border-bottom:1px solid var(--line)}
   .p-volet .tete h3{font:800 17px/1.1 var(--disp);letter-spacing:-.02em;margin:0}
   .p-volet .tete .cpt{margin-left:auto;font:500 12.5px/1 var(--body);color:var(--ink3)}
-  .p-volet .tete .x{border:0;background:var(--sur2);border-radius:99px;width:30px;height:30px;
+  .p-volet .tete{align-items:center}
+  .p-volet .tete .x{border:0;background:var(--sur2);border-radius:99px;width:44px;height:44px;flex:none;
       color:var(--ink2);font-size:15px;line-height:1;cursor:pointer}
   .p-volet .corps{flex:1;min-height:0;overflow-y:auto;padding:12px 16px
       calc(14px + env(safe-area-inset-bottom,0px))}
   .p-volet .aide{font:500 12.5px/1.5 var(--body);color:var(--ink3);margin:10px 2px}
+  .p-volet details.aide summary{cursor:pointer;min-height:44px;display:flex;align-items:center;
+      font:600 13px/1 var(--body);color:var(--ink2)}
+  .p-volet details.aide p{margin:4px 0 0}
+  .p-volet .rien{font:500 13.5px/1.5 var(--body);color:var(--ink3);margin:6px 2px 12px}
   .p-volet .alert{font:500 13px/1.5 var(--body);color:var(--ink2);margin:14px 0 0}
   .p-volet .alert b{color:var(--ko)}
   .p-volet .route{font:500 11.5px/1.4 var(--mono);color:var(--ink3);margin:10px 2px 0;text-align:center}
@@ -607,11 +647,12 @@
   .p-volet .rang2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
   .p-volet .mini{border:1.5px solid var(--line);background:var(--bg);border-radius:12px;
       padding:12px 6px;font:600 12.5px/1 var(--body);color:var(--ink2);cursor:pointer}
-  .p-volet .mini.on{background:var(--tel);border-color:var(--tel);color:#fff}
+  .p-volet .mini.sup{color:var(--ko)}
+  .p-volet .mini.on{background:var(--tel);border-color:var(--tel);color:var(--on)}
   .p-volet .gros{width:100%;border:0;border-radius:14px;padding:16px;font:700 16px/1 var(--body);
-      background:var(--tel);color:#fff;margin-bottom:9px;cursor:pointer}
+      background:var(--tel);color:var(--on);margin-bottom:9px;cursor:pointer}
   .p-volet .act{border:0;border-radius:13px;padding:14px;font:700 13.5px/1 var(--body);
-      background:var(--dmx);color:#fff;cursor:pointer;width:100%;margin-top:8px}
+      background:var(--dmx);color:var(--on);cursor:pointer;width:100%;margin-top:8px}
   .p-volet .rang2 .act{margin-top:0}
   .p-volet .act.sec{background:var(--bg);border:1.5px solid var(--line);color:var(--ink2)}
   .p-volet .act.sup{background:var(--bg);border:1.5px solid var(--ko);color:var(--ko)}
@@ -623,13 +664,39 @@
   .rel .avanc{height:5px;border-radius:99px;background:var(--sur2);overflow:hidden;margin-bottom:10px}
   .rel .avanc i{display:block;height:100%;background:var(--tel);transition:width .2s}
   .rel .ecr{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:center;
-      background:var(--sur2);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+      background:var(--sur2);border-radius:14px;padding:10px 14px;margin-bottom:10px}
+  .rel .ecr .n.app{display:block;font-size:36px;cursor:default;max-width:130px}
+  .rel .ecr .n.app small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:none;
+      letter-spacing:0;font-size:11px}
+  .rel .cval{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .rel .cval small{font:700 9.5px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+  .rel .cval b{display:flex;align-items:center;gap:3px;min-height:48px;background:var(--bg);
+      border:1.5px solid var(--tel);border-radius:11px;padding:0 12px;font:600 30px/1 var(--mono);
+      color:var(--ink);overflow:hidden;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .rel .cval b.vide{color:var(--ink3)}
+  .rel .cval .cur{display:inline-block;width:3px;height:26px;border-radius:2px;background:var(--tel);
+      animation:clign 1.1s steps(2,start) infinite}
+  @media (prefers-reduced-motion:reduce){ .rel .cval .cur{animation:none} }
+  .rel .cval input{min-height:48px;background:var(--bg);border:1.5px solid var(--tel);border-radius:11px;
+      padding:0 12px;font:600 22px/1 var(--mono);outline:none;width:100%}
+  .rel .ecr .ad{grid-column:1/-1}
+  .cpad{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
+  .cpad button{border:0;border-radius:12px;min-height:50px;background:var(--sur2);
+      font:600 21px/1 var(--mono);color:var(--ink);cursor:pointer}
+  .cpad button.fn{background:var(--bg);border:1.5px solid var(--line);font:600 13px/1 var(--body);color:var(--ink2)}
+  .cpad button.ok{grid-column:span 2;background:var(--tel);color:var(--on);font:700 15px/1 var(--body)}
+  .cpad button:active{transform:scale(.97)}
   .rel .ecr .n{grid-row:1/3;font:600 42px/1 var(--mono);color:var(--tel);border:0;background:none;
       font-variant-numeric:tabular-nums;min-width:74px;text-align:center;cursor:pointer;
       border-radius:11px;padding:2px}
   .rel .ecr .n small{display:block;font:600 9px/1.6 var(--body);letter-spacing:.1em;
       text-transform:uppercase;color:var(--ink3)}
   .rel .ecr .ad{font:500 11.5px/1.3 var(--mono);color:var(--ink3);align-self:end}
+  /* Le champ circuit de la fiche, avec son bouton de clavier. */
+  .p-volet .cirl{display:flex;gap:8px}
+  .p-volet .cirl .cir{flex:1;min-width:0}
+  .p-volet .cirl .abc{flex:none;min-width:56px;min-height:44px;border:1.5px solid var(--line);
+      background:var(--bg);border-radius:11px;font:700 13px/1 var(--body);color:var(--ink2);cursor:pointer}
   .rel .ecr .cir{background:var(--bg);border:1.5px solid var(--line);border-radius:11px;
       padding:11px 12px;font:600 22px/1 var(--mono);outline:none;width:100%;align-self:start}
   .rel .ecr .cir:focus{border-color:var(--tel)}
@@ -654,7 +721,7 @@
   .pave .touches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .pave .touches button{border:0;border-radius:13px;padding:15px 0;background:var(--sur2);
       font:600 21px/1 var(--mono);color:var(--ink);cursor:pointer}
-  .pave .touches button.acc{background:var(--tel);color:#fff}
+  .pave .touches button.acc{background:var(--tel);color:var(--on)}
   .pave .touches button.sec{background:var(--bg);border:1.5px solid var(--line);
       font:600 14px/1 var(--body);color:var(--ink2)}
 
@@ -685,13 +752,13 @@
       font:600 20px/1 var(--mono);color:var(--ink);cursor:pointer}
   .tcd .clav button.fn{background:var(--bg);border:1.5px solid var(--line);
       font:600 12.5px/1 var(--body);color:var(--ink2)}
-  .tcd .clav button.acc{background:var(--tel);border-color:var(--tel);color:#fff}
+  .tcd .clav button.acc{background:var(--tel);border-color:var(--tel);color:var(--on)}
   .tcd .clav button:active{transform:scale(.97)}
   .tcd .tenus{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
   .tcd .tenus button{border:1.5px solid var(--tel);border-radius:99px;padding:7px 11px;
       background:color-mix(in srgb,var(--tel) 12%,transparent);color:var(--tel);cursor:pointer;
       font:600 11px/1 var(--mono);font-variant-numeric:tabular-nums}
-  .tcd .tenus button.ici{background:var(--tel);color:#fff}
+  .tcd .tenus button.ici{background:var(--tel);color:var(--on)}
 
   /* Le tableau d'ajout de lignes. */
   .pf{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px;
@@ -734,7 +801,29 @@
   .pf .pied .tot b{color:var(--ink)}
   .pf .pied .tot b.ko{color:var(--ko)}
 
+  .add .vide-parc{display:flex;flex-direction:column;gap:6px;background:var(--bg);border:1.5px dashed var(--line);
+      border-radius:14px;padding:14px;margin-bottom:12px;font-size:14px}
+  .add .vide-parc span{color:var(--ink2)}
+  .add .choix{background:var(--bg);border:1.5px solid var(--tel);border-radius:14px;padding:10px;margin-bottom:12px}
+  .add .choix .q{display:flex;gap:8px}
+  .add .choix .q input{flex:1;min-width:0;min-height:44px;border:1.5px solid var(--line);border-radius:11px;
+      background:var(--sur);padding:0 12px;font:500 15px/1 var(--body);outline:none}
+  .add .choix .q input:focus{border-color:var(--tel)}
+  .add .choix .ann{flex:none;min-height:44px;border:0;background:none;color:var(--ink2);
+      font:600 13px/1 var(--body);cursor:pointer;padding:0 6px}
+  .add .choix .res{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:260px;overflow-y:auto}
+  .add .choix .res button{display:flex;justify-content:space-between;align-items:center;gap:10px;
+      min-height:48px;border:1.5px solid var(--line);background:var(--sur);border-radius:11px;padding:0 12px;
+      text-align:left;cursor:pointer;color:var(--ink)}
+  .add .choix .res b{font:700 14.5px/1.2 var(--body)}
+  .add .choix .res span{font:500 12px/1.2 var(--body);color:var(--ink3);white-space:nowrap}
+
   /* Les patchs. */
+  .pat .nom{font-family:var(--body)!important}
+  .pat .neuf{border:1.5px solid var(--tel);border-radius:14px;padding:4px 12px 12px;margin-top:10px;
+      background:var(--bg)}
+  .pat .kv.coche{grid-column:1/-1;cursor:pointer}
+  .pat .kv.coche input{width:22px;height:22px;accent-color:var(--tel)}
   .pat .plage{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
   .pat .plage .f{margin-bottom:0}
   .pat .plage .dest{grid-column:1/-1}
@@ -976,6 +1065,7 @@
   <symbol id="i-maj" viewBox="0 0 24 24"><path d="M12 2.5v11.5"/><path d="M7.5 9.5L12 14l4.5-4.5"/><path d="M4 15.5v3.5a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5v-3.5"/></symbol>
   <symbol id="i-reglages" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4L21 21"/></symbol>
+  <symbol id="i-ampoule" viewBox="0 0 24 24"><path d="M12 2.8a6.2 6.2 0 0 0-3.7 11.2c.8.6 1.2 1.4 1.2 2.3h5c0-.9.4-1.7 1.2-2.3A6.2 6.2 0 0 0 12 2.8z"/><path d="M9.6 18.6h4.8M10.4 21.2h3.2"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12l7.5 7.5"/></symbol>
   <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M15.7 4.3l4 4L8.4 19.6H4.4v-4z"/><path d="M13.2 6.8l4 4"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
@@ -2551,6 +2641,24 @@ const circuitApp = n => String(P.fiches[n] || "").trim();
 const restantsG = () => gradas().filter(n => !circuitGrada(n)).length;
 const relevesG = () => gradas().filter(n => circuitGrada(n)).length;
 const restantsA = () => appareils().filter(x => !circuitApp(x.n)).length;
+const relevesA = () => appareils().filter(x => circuitApp(x.n)).length;
+/* « 1 relevé », « 2 relevés » : l'accord suit le nombre. */
+const pl = (n, un, plusieurs) => n + " " + (n > 1 ? plusieurs || un + "s" : un);
+
+/* Les circuits des appareils sont rangés par numéro d'appareil, et ce numéro
+   change dès qu'une ligne disparaît ou change de quantité : tout ce qui suit
+   remonte ou descend. On relit donc chaque circuit par sa ligne et son rang
+   dans la ligne avant la modification, et on le repose au nouveau numéro
+   après. Sans ça, le circuit 14 du troisième Titan passait au quatrième. */
+function garderCircuits(modifier){
+  const avant = new Map();
+  appareils().forEach(x => { const c = P.fiches[x.n]; if(c != null && c !== "") avant.set(x.ligne + ":" + x.i, c); });
+  modifier();
+  const suite = {};
+  appareils().forEach(x => { const c = avant.get(x.ligne + ":" + x.i); if(c != null) suite[x.n] = c; });
+  P.fiches = suite;
+  HL = null;
+}
 
 /* Adresse DMX d'un gradateur : celle du premier, décalée d'un rang par
    gradateur, et l'univers suivant dès qu'on dépasse 512. */
@@ -2605,7 +2713,12 @@ let HL = null;       // appareil en évidence : { n, u, adr, fin, ch, nom }
 let DMX = {};
 const adressesTenues = () => Object.keys(DMX).filter(k => DMX[k] > 0);
 
-function envoyer(){
+/* Ce qui sort, univers par univers : les gradateurs appelés, l'appareil en
+   évidence et ce que tient le Pupitre, le plus haut des trois à chaque adresse.
+   Le Pupitre relit cette même table pour dire ce qui sort vraiment à une
+   adresse : il n'annonçait « plateau noir » que d'après ses propres canaux,
+   même avec un gradateur à fond. */
+function trames(){
   const t = {};
   const poser512 = u => (t[u] = t[u] || new Array(512).fill(0));
   Object.keys(NIV).forEach(k => {
@@ -2637,8 +2750,14 @@ function envoyer(){
      retombe quand on l'éteint. */
   const a = SEL ? adrGrada(SEL) : null;
   if(a) poser512(a.u);
-  NET.emission(t, P.reg.proto, P.reg.prio, P.reg.cible);
+  return t;
 }
+function envoyer(){ NET.emission(trames(), P.reg.proto, P.reg.prio, P.reg.cible); }
+/* Le niveau qui sort à une adresse, de 0 à 255. */
+const sortie = (u, c) => ((trames()[u] || [])[c - 1]) | 0;
+/* Le nombre d'adresses qui sortent au-dessus de zéro, toutes sources comprises. */
+const adressesAllumees = () => Object.values(trames())
+  .reduce((n, tr) => n + tr.filter(v => v > 0).length, 0);
 
 function allumerSeuls(ns, pct = 100){
   if(P.reg.solo) NIV = {};
@@ -2683,14 +2802,20 @@ function routeEmission(etat){
 /* ------------------------------ l'écran ---------------------------------- */
 let ONGLET = "tout";     // tout | app | grada — l'onglet survit aux rendus
 let MASQUE = true;       // n'afficher que les gradateurs qui portent un circuit
-let REPLIEE = false;     // télécommande réduite à une ligne
-let VOLET = null;        // null | relever | dmx | ajouter | fiche | patchs
-let CIBLE = null;        // élément ouvert dans la fiche : { t:"g"|"a", n }
-let POINTE = null;       // gradateur repéré dans la liste
+/* Le pupitre en barre part replié sur une ligne : déplié, il prenait deux
+   rangées même plateau noir, et la liste n'avait plus que 41 % de l'écran. */
+let REPLIEE = true;
+let VOLET = null;        // null | relever | attr | dmx | ajouter | fiche | patchs
+let CIBLE = null;        // élément ouvert dans la fiche : { t:"g"|"a", n, focus }
+let POINTE = null;       // gradateur ou appareil repéré dans la liste
 let PAVE = null;         // frappe du pavé numérique ; null = pavé fermé
-let TU = 0;              // univers de l'adresse courante ; 0 = télécommande jamais ouverte
+let ABC = false;         // le circuit se tape au clavier du téléphone (« 12b », « face »)
+let IA = 0;              // rang de l'appareil en cours d'attribution
+let CHOIX = null;        // recherche dans le parc du volet Ajouter ; null = fermée
+let NOUVEAU = null;      // le formulaire d'un nouveau patch, quand il est ouvert
+let TU = 0;              // univers de l'adresse courante ; 0 = Pupitre jamais ouvert
 let TC = 1;              // canal de l'adresse courante
-let DSEL = [];           // sélection de la télécommande DMX : des clés « u:c »
+let DSEL = [];           // sélection du Pupitre : des clés « u:c »
 let DCMD = [];           // sa ligne de commande, en jetons : ["1","/","137","At","50"]
 let DOUV = false;        // le dernier jeton est un nombre encore ouvert à la frappe
 let DMSG = "";           // ce qu'a donné la dernière ligne posée, quand ça mérite un mot
@@ -2704,7 +2829,8 @@ function vPatch(){
   /* Quitter l'écran relâche le flux et referme ce qui traîne : on ne laisse
      pas un gradateur allumé derrière soi. */
   poser(() => { fermerVolet(true); NET.emissionArret();
-                NIV = {}; SEL = 0; HL = null; DMX = {}; DSEL = []; });
+                NIV = {}; SEL = 0; HL = null; DMX = {}; DSEL = [];
+                const a = document.querySelector(".p-annul"); if(a) a.remove(); });
   setTimeout(() => {
     peindre();
     if(S.route.v === "tel" && !VOLET) ouvrirVolet("relever");
@@ -2715,8 +2841,10 @@ function vPatch(){
 
 function peindre(){
   const liste = appareils();
+  const nG = gradas().length;
 
-  /* En-tête : le nom du spectacle, la télécommande, les trois onglets. */
+  /* En-tête : le nom du spectacle et ce qui vaut pour tout le patch — le
+     protocole n'est plus répété sur chaque gradateur —, le pupitre, les onglets. */
   const h = el("div");
   /* Le retour est un bouton à lui : dans le même, un appui à côté du
      pictogramme ouvrait le menu des patchs. */
@@ -2725,19 +2853,24 @@ function peindre(){
   bk.setAttribute("aria-label", "Retour");
   bk.onclick = () => retour();
   const t = el("button", "p-titre");
-  t.innerHTML = `<b>${esc(P.nom || "Sans titre")}</b><span class="ch">▾</span>
-    <span class="n">${PATCHS.length} patch${PATCHS.length > 1 ? "s" : ""}</span>`;
-  t.setAttribute("aria-label", "Changer de patch");
+  t.innerHTML = `<span class="nm"><b>${esc(P.nom || "Sans titre")}</b><span class="ch">▾</span></span>
+    <small>${esc(P.reg.proto)} · univers ${P.reg.u} · ${pl(nG, "gradateur")}</small>`;
+  t.setAttribute("aria-label", "Changer de patch ou régler le flux");
   t.onclick = () => ouvrirVolet("patchs");
-  rang.append(bk, t);
+  const pdf = el("button", "p-pdf", "PDF");
+  pdf.setAttribute("aria-label", "Imprimer la feuille ou l'enregistrer en PDF");
+  pdf.onclick = exporterFeuille;
+  rang.append(bk, t, pdf);
   h.append(rang);
   h.append(barreTele());
 
+  /* Les compteurs disent tous la même chose : faits sur total. */
   const o = el("div", "ongl");
-  [["tout", "Tout", gradas().length + liste.length],
-   ["app", "Appareils", restantsA()],
-   ["grada", "Gradateurs", restantsG()]].forEach(([k, lib, n]) => {
-    const b = el("button", null, `${lib}<em>${n}</em>`);
+  [["tout", "Tout", ""],
+   ["app", "Appareils", `${relevesA()}/${liste.length}`],
+   ["grada", "Gradateurs", `${relevesG()}/${nG}`]].forEach(([k, lib, n]) => {
+    const b = el("button", null, `${lib}${n ? `<em>${n}</em>` : ""}`);
+    b.dataset.o = k;
     b.setAttribute("aria-pressed", ONGLET === k);
     b.onclick = () => { ONGLET = k; peindre(); };
     o.append(b);
@@ -2747,24 +2880,27 @@ function peindre(){
 
   majListe();
 
-  /* Libellés courts : les onglets au-dessus disent déjà de quoi on parle, et
-     « Relever gradateurs » se coupait en deux sur un téléphone. */
-  const bg = el("button", null,
+  /* Trois gestes en bas : relever les gradateurs, attribuer les circuits des
+     appareils, ajouter des appareils. Le compte dit ce qui reste à faire. */
+  const bg = el("button", "rel",
     `<span class="et">Relever</span><span class="cpt">${restantsG()}</span>`);
-  bg.setAttribute("aria-label", "Relever les gradateurs");
+  bg.setAttribute("aria-label", `Relever les gradateurs, ${restantsG()} sans circuit`);
   bg.setAttribute("aria-expanded", VOLET === "relever");
   bg.onclick = () => ouvrirVolet("relever");
-  const ba = el("button", "dmx",
-    `<span class="et">Ajouter</span><span class="cpt">${liste.length}</span>`);
+  const bt = el("button", "att",
+    `<span class="et">Attribuer</span><span class="cpt">${restantsA()}</span>`);
+  bt.setAttribute("aria-label", `Attribuer les circuits des appareils, ${restantsA()} sans circuit`);
+  bt.setAttribute("aria-expanded", VOLET === "attr");
+  bt.disabled = !liste.length;
+  bt.onclick = () => ouvrirVolet("attr");
+  const ba = el("button", "dmx", `<span class="et">Ajouter</span>`);
   ba.setAttribute("aria-label", "Ajouter des appareils");
   ba.setAttribute("aria-expanded", VOLET === "ajouter");
   ba.onclick = () => ouvrirVolet("ajouter");
-  const bp = el("button", "pdf", "PDF");
-  bp.setAttribute("aria-label", "Imprimer la feuille ou l'enregistrer en PDF");
-  bp.onclick = exporterFeuille;
-  $("#p-bas").replaceChildren(bg, ba, bp);
+  $("#p-bas").replaceChildren(bg, bt, ba);
 
   if(VOLET === "relever") majVoletRelever();
+  if(VOLET === "attr") majVoletAttribuer();
   if(VOLET === "dmx") majVoletDmx();
   if(VOLET === "ajouter") majVoletAjouter();
   if(VOLET === "fiche") majVoletFiche();
@@ -2782,7 +2918,7 @@ function majListe(){
   sauverPatchs();
 }
 
-/* ------------------------- télécommande en barre -------------------------- */
+/* ------------------------------ pupitre en barre -------------------------- */
 function barreTele(){
   const d = el("div", "tl compact" + (REPLIEE ? " mini" : ""));
   const on = Object.keys(NIV).filter(k => NIV[k] > 0);
@@ -2791,16 +2927,17 @@ function barreTele(){
   const lv = SEL ? (NIV[SEL] || 0) : 0;
   const a = SEL ? adrGrada(SEL) : null;
   const cir = SEL ? circuitGrada(SEL) : "";
+  const nAll = vivant ? adressesAllumees() : 0;
   const etat = a ? `U${a.u}·${a.canal}${cir ? " · circ. " + esc(cir) : ""}`
-              : on.length ? `${on.length} allumé${on.length > 1 ? "s" : ""}` : "plateau noir";
+              : nAll ? pl(nAll, "adresse allumée", "adresses allumées") : "plateau noir";
   const chev = `<button class="chev" data-a="plier" aria-expanded="${!REPLIEE}"
-      aria-label="${REPLIEE ? "Déplier la télécommande" : "Réduire la télécommande"}"
-    >${REPLIEE ? "⌃" : "⌄"}</button>`;
+      aria-label="${REPLIEE ? "Déplier le pupitre" : "Réduire le pupitre"}"
+    >${REPLIEE ? "⌄" : "⌃"}</button>`;
 
   d.innerHTML = REPLIEE
     ? `<span class="led${vivant ? " on" : ""}"></span>
-       <span class="ap"><b>${SEL || "—"}</b><span>${etat}</span></span>
-       <span class="niv">${lv} %</span>
+       <span class="ap">${SEL ? `<b>${SEL}</b>` : ""}<span>${etat}</span></span>
+       ${SEL ? `<span class="niv">${lv} %</span>` : ""}
        <button data-a="noir">Noir</button>${chev}`
     : `<span class="led${vivant ? " on" : ""}"></span>
        <span class="ap"><b>${SEL || "—"}</b><span>${etat}</span></span>
@@ -2810,17 +2947,16 @@ function barreTele(){
        <button data-a="noir">Noir</button><button data-a="full">Full</button>
        <button data-a="prec" aria-label="Gradateur précédent">◀</button>
        <button data-a="suiv" aria-label="Gradateur suivant">▶</button>
-       <button data-a="zero">Zéro</button>${chev}`;
+       <button data-a="zero" class="zero">Tout éteindre</button>${chev}`;
 
-  /* Le petit logo télécommande, en tête de la barre : il ouvre la vraie
-     télécommande DMX. La barre appelle des gradateurs, elle passe par la plage
-     du patch ; le logo mène à ce qui parle en univers et en canaux. */
-  const lgo = el("button", "lgo" + (tenus.length ? " on" : ""), ic("remote"));
+  /* Le Pupitre porte son nom : le logo seul passait pour une décoration. La
+     barre appelle des gradateurs, par la plage du patch ; le Pupitre parle en
+     univers et en canaux. */
+  const lgo = el("button", "lgo" + (tenus.length ? " on" : ""), `${ic("remote")}<span>Pupitre</span>`);
   lgo.dataset.a = "tcd";
   lgo.setAttribute("aria-label", tenus.length
-    ? `Pupitre — ${tenus.length} adresse${tenus.length > 1 ? "s tenues" : " tenue"}`
+    ? `Pupitre, ${pl(tenus.length, "adresse tenue", "adresses tenues")}`
     : "Ouvrir le pupitre");
-  lgo.title = "Pupitre";
   d.prepend(lgo);
 
   const niveau = pct => {
@@ -2829,13 +2965,19 @@ function barreTele(){
     Object.keys(NIV).forEach(k => { if(NIV[k] > 0 || +k === SEL) NIV[k] = v; });
     envoyer(); peindre();
   };
+  /* ◀ et ▶ passent par la feuille : un gradateur retiré n'est plus appelé. */
+  const voisin = sens => {
+    const l = gradas();
+    if(!l.length) return;
+    const k = l.indexOf(SEL);
+    allumerSeuls([l[k < 0 ? 0 : Math.max(0, Math.min(l.length - 1, k + sens))]]);
+    peindre();
+  };
   const gliss = d.querySelector("input");
   if(gliss) gliss.oninput = e => niveau(+e.target.value);
   const actes = {
     noir:() => niveau(0), full:() => niveau(100),
-    prec:() => { allumerSeuls([Math.max(P.reg.premier, (SEL || P.reg.premier + 1) - 1)]); peindre(); },
-    suiv:() => { allumerSeuls([Math.min(P.reg.premier + P.reg.nb - 1,
-                                        (SEL || P.reg.premier - 1) + 1)]); peindre(); },
+    prec:() => voisin(-1), suiv:() => voisin(1),
     zero:() => { toutEteindre(); peindre(); },
     tcd:() => ouvrirVolet("dmx"),
     plier:() => { REPLIEE = !REPLIEE; peindre(); }
@@ -2849,7 +2991,7 @@ function barreTele(){
   if(HL){
     /* L'appareil en évidence se range dans la même barre que le gradateur
        appelé : c'est le même plateau qui s'allume. */
-    const c = el("button", "hl", `◉ ${esc(HL.nom)} · U${HL.u}·${HL.adr}`);
+    const c = el("button", "hl", `${ic("ampoule")}${esc(HL.nom)} n° ${HL.n} · U${HL.u}·${HL.adr}`);
     c.setAttribute("aria-label", "Éteindre l'appareil en évidence");
     c.onclick = () => { HL = null; envoyer(); peindre(); };
     d.append(c);
@@ -2858,21 +3000,24 @@ function barreTele(){
 }
 
 /* ---------------------------- rangées et piles ---------------------------- */
-/* Un appareil et un gradateur se lisent pareil : badge, désignation, adresse
-   DMX à droite, une action. La pastille édite, le corps de la rangée allume. */
-function rangee({ badge, appareil, titre, sous, dmx, dmxHaut, action, actionEtat,
-                  onAction, onRangee, allume }){
-  const d = el("div", "rg" + (allume ? " on" : "") + (onRangee ? " cliquable" : ""));
-  d.innerHTML = `<span class="bd${appareil ? " ap" : ""}">${esc(badge)}</span>
-    <span class="tx"><b>${esc(titre)}</b><span>${esc(sous || "—")}</span></span>
-    <span class="dm">${esc(dmxHaut || "")}<b>${esc(dmx || "")}</b></span>`;
-  if(action){
-    const b = el("button", "ac" + (actionEtat === "on" ? " on"
-                                 : actionEtat === "vide" ? " vide" : ""), esc(action));
-    b.onclick = e => { e.stopPropagation(); onAction(); };
-    d.append(b);
-  }
-  if(onRangee) d.onclick = onRangee;
+/* Un appareil et un gradateur se lisent pareil : le circuit en tête, en grand
+   — c'est ce qu'on cherche —, la désignation, l'adresse, et l'ampoule qui
+   allume. Toucher la rangée ouvre sa fiche : l'allumer au moindre appui
+   envoyait une lyre à fond quand on voulait seulement regarder. */
+function rangee({ circuit, titre, sous, u, adr, allume, nomLampe, onFiche, onLampe }){
+  const d = el("div", "rg cliquable" + (allume ? " on" : ""));
+  const c = el("button", "cc" + (circuit ? "" : " vide"), esc(circuit || "?"));
+  c.setAttribute("aria-label", circuit ? `Circuit ${circuit}, modifier` : "Attribuer un circuit");
+  c.onclick = e => { e.stopPropagation(); onFiche(true); };
+  d.append(c);
+  d.insertAdjacentHTML("beforeend", `<span class="tx"><b>${esc(titre)}</b>${sous ? `<span>${esc(sous)}</span>` : ""}</span>
+    <span class="dm">U${esc(String(u))}<b>${esc(String(adr))}</b></span>`);
+  const l = el("button", "lampe" + (allume ? " on" : ""), ic("ampoule"));
+  l.setAttribute("aria-label", (allume ? "Éteindre " : "Allumer ") + nomLampe);
+  l.setAttribute("aria-pressed", allume ? "true" : "false");
+  l.onclick = e => { e.stopPropagation(); onLampe(); };
+  d.append(l);
+  d.onclick = () => onFiche(false);
   return d;
 }
 
@@ -2886,60 +3031,62 @@ function pile(titre, compte, elements, rien, bouton){
 }
 
 /* Deux cents gradateurs dans une liste, personne ne les lit : on n'affiche que
-   ceux qui portent un circuit. Les autres vivent dans le relevé, et le bouton
-   de l'en-tête les rend visibles le temps d'une vérification. */
+   ceux qui portent un circuit — plus celui qu'on relève, pour qu'on le voie
+   s'allumer dans la liste. Le bouton de l'en-tête rend les autres visibles le
+   temps d'une vérification. */
 function pileGradas(){
   const tous = gradas();
-  const vus = MASQUE ? tous.filter(n => circuitGrada(n)) : tous;
-  const caches = tous.length - vus.length;
+  const vus = MASQUE ? tous.filter(n => circuitGrada(n) || (VOLET === "relever" && n === POINTE)) : tous;
+  const caches = tous.length - tous.filter(n => circuitGrada(n)).length;
 
   const rangs = vus.map(n => {
     const a = adrGrada(n) || { u:"—", canal:"—" };
-    const c = circuitGrada(n), lv = NIV[n] || 0;
+    const c = circuitGrada(n), lv = NIV[n] || 0, note = noteGrada(n);
     const r = rangee({
-      badge:"G",
+      circuit:c,
       titre:"Gradateur " + n,
-      sous:c ? `circuit ${c}${noteGrada(n) ? " · " + noteGrada(n) : ""}` : "circuit à relever",
-      dmxHaut:`${P.reg.proto} · U${a.u}`, dmx:String(a.canal),
-      action:lv > 0 ? lv + " %" : (c || "relever"),
-      actionEtat:lv > 0 ? "on" : c ? "" : "vide",
-      allume:lv > 0,
-      onAction:() => c ? ouvrirVolet("fiche", { t:"g", n })
-                       : ouvrirVolet("relever", tous.indexOf(n)),
-      onRangee:() => {
+      sous:[note || (c ? "" : "à relever"), lv > 0 ? lv + " %" : ""].filter(Boolean).join(" · "),
+      u:a.u, adr:a.canal,
+      allume:lv > 0, nomLampe:"le gradateur " + n,
+      onFiche:focus => ouvrirVolet("fiche", { t:"g", n, focus }),
+      onLampe:() => {
         if(lv > 0){ NIV[n] = 0; envoyer(); } else allumerSeuls([n]);
         peindre();
       }
     });
     r.dataset.g = n;
-    if(n === POINTE) r.classList.add("pointe");
+    if(n === POINTE && VOLET === "relever") r.classList.add("pointe");
     return r;
   });
 
   const b = el("button", null, MASQUE ? `tout voir · ${caches}` : "masquer les vides");
   b.onclick = () => { MASQUE = !MASQUE; peindre(); };
-  return pile("Gradateurs", `${relevesG()} relevés / ${tous.length}`, rangs,
-              "Aucun gradateur relevé : touchez « Relever » en bas.", b);
+  return pile("Gradateurs", `${pl(relevesG(), "relevé")} sur ${tous.length}`, rangs,
+              tous.length ? "Aucun gradateur relevé : touchez « Relever » en bas."
+                          : "Pas de gradateurs dans ce patch.", tous.length ? b : null);
 }
 
 function pileApps(){
   const liste = appareils();
   const ko = collisions(liste);
+  const vise = VOLET === "attr" ? (liste[IA] || {}).n : null;
   const rangs = liste.map(x => {
     const c = circuitApp(x.n);
-    return rangee({
-      badge:"P", appareil:true,
-      titre:`${courtNom(x.app)} · n° ${x.n}`,
+    const r = rangee({
+      circuit:c,
+      titre:`${courtNom(x.app)} n° ${x.n}`,
       sous:`${x.mode || x.ch + " ch"}${ko.has(x.n) ? " · chevauchement" : ""}`,
-      dmxHaut:`U${x.u}`, dmx:String(x.adr),
-      action:c || "circ ?", actionEtat:c ? "" : "vide",
-      allume:!!(HL && HL.n === x.n),
-      onAction:() => ouvrirVolet("fiche", { t:"a", n:x.n }),
-      onRangee:() => evidence(x)
+      u:x.u, adr:x.adr,
+      allume:!!(HL && HL.n === x.n), nomLampe:`${courtNom(x.app)} n° ${x.n}`,
+      onFiche:focus => ouvrirVolet("fiche", { t:"a", n:x.n, focus }),
+      onLampe:() => evidence(x)
     });
+    r.dataset.a = x.n;
+    if(x.n === vise) r.classList.add("pointe");
+    return r;
   });
-  return pile("Appareils", `${liste.length} · ${puissanceTotale(liste)}`, rangs,
-              "Aucune ligne : touchez « Ajouter » en bas.");
+  return pile("Appareils", `${relevesA()} sur ${liste.length} avec circuit · ${puissanceTotale(liste)}`,
+              rangs, "Aucun appareil : touchez « Ajouter » en bas.");
 }
 
 /* Mettre un appareil en évidence : le geste des gradateurs, appliqué au patch. */
@@ -2949,13 +3096,39 @@ function evidence(x){
   envoyer(); peindre();
 }
 
+/* ---------------------- supprimer, avec un retour ------------------------- */
+/* Retirer un gradateur ou un appareil se faisait sans un mot, et « Supprimer »
+   est juste sous « Sauter » dans le relevé. Plutôt qu'une question à chaque
+   fois, le geste se fait et un bandeau propose de revenir en arrière. */
+let MINUT_ANNUL = null;
+function annulable(message, faire){
+  const copie = JSON.stringify(P), i = iPatch;
+  faire();
+  const vieux = document.querySelector(".p-annul");
+  if(vieux) vieux.remove();
+  clearTimeout(MINUT_ANNUL);
+  const b = el("div", "p-annul", `<span>${esc(message)}</span>`);
+  b.setAttribute("role", "status");
+  const a = el("button", null, "Annuler");
+  a.onclick = () => {
+    PATCHS[i] = JSON.parse(copie);
+    if(iPatch === i) P = PATCHS[i];
+    b.remove();
+    peindre();
+  };
+  b.append(a);
+  document.body.append(b);
+  MINUT_ANNUL = setTimeout(() => b.remove(), 7000);
+}
+
 /* -------------------------------- volets ---------------------------------- */
 function ouvrirVolet(quoi, arg){
   if(VOLET === quoi && arg == null){ fermerVolet(); return; }
   fermerVolet(true);
-  VOLET = quoi; PAVE = null; DCMD = []; DOUV = false; DMSG = "";
+  VOLET = quoi; PAVE = null; ABC = false; DCMD = []; DOUV = false; DMSG = "";
   if(quoi === "relever") INDICE = arg != null ? arg : (prochainVide() ?? 0);
-  /* La télécommande DMX s'ouvre là où on en était : sur le gradateur appelé la
+  if(quoi === "attr") IA = arg != null ? arg : (prochainApp() ?? 0);
+  /* Le Pupitre s'ouvre là où on en était : sur le gradateur appelé la
      première fois, sur l'univers du patch à défaut. */
   if(quoi === "dmx"){
     if(!TU){
@@ -2965,9 +3138,11 @@ function ouvrirVolet(quoi, arg){
     if(!DSEL.length) DSEL = [cleAdr(TU, TC)];
   }
   if(quoi === "fiche") CIBLE = arg;
+  if(quoi === "ajouter") CHOIX = null;
+  if(quoi === "patchs") NOUVEAU = null;
   fond = el("div", "p-fond");
   fond.onclick = () => fermerVolet();
-  const classe = { relever:"rel", dmx:"tcd", ajouter:"add", fiche:"fic", patchs:"pat" }[quoi];
+  const classe = { relever:"rel", attr:"rel att", dmx:"tcd", ajouter:"add", fiche:"fic", patchs:"pat" }[quoi];
   volet = el("div", "p-volet " + classe);
   volet.setAttribute("role", "dialog");
   volet.innerHTML = `<div class="poignee"><span class="barre"></span></div>
@@ -2979,19 +3154,102 @@ function ouvrirVolet(quoi, arg){
   document.body.append(fond, volet);
   requestAnimationFrame(() => { fond.classList.add("on"); volet.classList.add("on"); });
   /* Ouvrir le relevé, c'est déjà appeler le gradateur : il s'allume, la liste
-     se déplace dessus et le volet s'ouvre sur lui. */
+     se déplace dessus et le volet s'ouvre sur lui. L'attribution fait de même
+     avec les appareils. */
   if(quoi === "relever") allerA(INDICE);
+  else if(quoi === "attr") allerApp(IA);
   else peindre();
 }
 
 function fermerVolet(sansPeindre){
   if(!volet) return;
+  /* Refermer le relevé ou l'attribution éteint ce qu'ils ont allumé, quelle
+     que soit la façon de fermer : le ✕ laissait le gradateur à fond, alors que
+     « Terminer » l'éteignait. Le Pupitre, lui, garde ce qu'il tient. */
+  if(VOLET === "relever"){ NIV = {}; SEL = 0; envoyer(); }
+  if(VOLET === "attr"){ HL = null; envoyer(); }
   const f = fond, v = volet;
   f.classList.remove("on"); v.classList.remove("on");
   setTimeout(() => { f.remove(); v.remove(); }, 200);
-  fond = volet = null; VOLET = null; POINTE = null; CIBLE = null; PAVE = null;
+  fond = volet = null; VOLET = null; POINTE = null; CIBLE = null; PAVE = null; ABC = false;
   DCMD = []; DOUV = false; DMSG = "";
   if(!sansPeindre) peindre();
+}
+
+/* L'aide des volets se replie : une dizaine de lignes au-dessus de « Terminer »,
+   on ne les lit qu'une fois. */
+function aideRepliee(texte){
+  const d = el("details", "aide");
+  d.innerHTML = `<summary>Comment ça marche</summary><p>${esc(texte)}</p>`;
+  return d;
+}
+
+/* ----------------------- le pavé des circuits ----------------------------- */
+/* Relever deux cents gradateurs au clavier du téléphone, c'était toucher le
+   champ, attendre le clavier, taper, viser « Noté » sous le clavier. Le pavé
+   reste dans le volet, sous le pouce. « Abc » ouvre le clavier du téléphone
+   pour les circuits en lettres (« 12b », « face »). */
+function afficheCircuit(valeur, cle, ecrire, noter){
+  const d = el("div", "cval");
+  d.innerHTML = `<small>Circuit</small>`;
+  if(ABC){
+    const i = el("input", "cir txt");
+    i.dataset.focus = cle;
+    i.value = valeur;
+    i.placeholder = "12b, face…";
+    i.setAttribute("autocapitalize", "off");
+    i.setAttribute("enterkeyhint", "next");
+    i.setAttribute("aria-label", "Circuit, au clavier");
+    i.oninput = () => ecrire(i.value, true);
+    i.onkeydown = e => { if(e.key === "Enter") noter(); };
+    d.append(i);
+  } else {
+    d.insertAdjacentHTML("beforeend", `<b class="${valeur ? "" : "vide"}" aria-live="polite">${
+      esc(valeur || "—")}<i class="cur"></i></b>`);
+  }
+  return d;
+}
+
+function padCircuit({ valeur, ecrire, noter, prec, sauter }){
+  const d = el("div", "cpad");
+  d.setAttribute("role", "group");
+  d.setAttribute("aria-label", "Pavé du circuit");
+  ["1", "2", "3", "◀", "4", "5", "6", "Sauter", "7", "8", "9", ABC ? "123" : "Abc",
+   "⌫", "0", "Noté ▶"].forEach(x => {
+    const chiffre = /^\d$/.test(x);
+    const b = el("button", chiffre ? null : x === "Noté ▶" ? "ok" : "fn", x);
+    const aides = { "◀":"Précédent", "⌫":"Effacer le dernier caractère",
+                    Abc:"Taper le circuit au clavier", "123":"Revenir au pavé" };
+    if(aides[x]) b.setAttribute("aria-label", aides[x]);
+    b.onclick = () => {
+      if(chiffre){ if(String(valeur).length < 6) ecrire(String(valeur) + x); return; }
+      if(x === "⌫"){ ecrire(String(valeur).slice(0, -1)); return; }
+      if(x === "◀"){ prec(); return; }
+      if(x === "Sauter"){ sauter(); return; }
+      if(x === "Noté ▶"){ noter(); return; }
+      ABC = !ABC;
+      rafraichirVolet();
+      if(ABC){ const i = volet && volet.querySelector(".cval input"); if(i) i.focus(); }
+    };
+    d.append(b);
+  });
+  return d;
+}
+
+function rafraichirVolet(){
+  if(VOLET === "relever") majVoletRelever();
+  if(VOLET === "attr") majVoletAttribuer();
+}
+
+/* Garder le curseur du champ en lettres d'un rendu à l'autre. */
+function gardeFocus(c, faire){
+  const act = document.activeElement;
+  const cle = act && act.dataset ? act.dataset.focus : null;
+  let pos = null;
+  try { pos = act ? act.selectionStart : null; } catch(e){ }
+  faire();
+  const n = cle ? c.querySelector(`[data-focus="${cle}"]`) : null;
+  if(n){ n.focus(); try { if(pos != null) n.setSelectionRange(pos, pos); } catch(e){ } }
 }
 
 /* ------------------- volet : relever les gradateurs ----------------------- */
@@ -3003,7 +3261,7 @@ const prochainVide = (depuis = 0) => {
 
 function allerA(k, niveau = 100){
   const l = gradas();
-  if(k == null || k < 0 || k >= l.length) return;
+  if(k == null || k < 0 || k >= l.length){ peindre(); return; }
   INDICE = k;
   POINTE = l[k];
   allumerSeuls([l[k]], niveau);
@@ -3027,70 +3285,68 @@ function majVoletRelever(){
   const c = volet.querySelector(".corps");
 
   if(PAVE !== null){ c.replaceChildren(paveNumerique()); return; }
+  if(!n){
+    const d = el("div");
+    d.append(el("p", "rien", "Pas de gradateurs dans ce patch. Leur nombre se règle dans le menu du patch, en touchant son nom."));
+    const plus = el("button", "act sec", "+ un gradateur");
+    plus.onclick = () => { P.reg.nb++; P.exclus = P.exclus.filter(x => x !== P.reg.premier + P.reg.nb - 1);
+                           allerA(gradas().length - 1); };
+    d.append(plus);
+    c.replaceChildren(d);
+    return;
+  }
 
-  const garde = document.activeElement && document.activeElement.classList.contains("cir");
-  const pos = garde ? document.activeElement.selectionStart : null;
-
+  const ecrire = (v, depuisSaisie) => {
+    f.circuit = v; majListe(); majCompteurs();
+    if(!depuisSaisie) majVoletRelever();
+  };
   const d = el("div");
   d.innerHTML = `<div class="avanc"><i style="width:${
-      Math.round(faits / Math.max(1, l.length) * 100)}%"></i></div>
-    <div class="ecr">
-      <button class="n" aria-label="Appeler un gradateur par son numéro">${
-        n || "—"}<small>changer</small></button>
-      <span class="ad">${a ? `${esc(P.reg.proto)} · U${a.u} · canal ${a.canal}`
-                           : "aucun gradateur"}</span>
-      <input class="cir" data-focus="rel-cir" inputmode="numeric" placeholder="n° de circuit"
-             value="${esc(f.circuit)}" aria-label="Circuit du gradateur ${n || ""}">
-    </div>
-    <input class="note" placeholder="repère — face jardin, contre 2…" value="${esc(f.note)}"
-           aria-label="Repère">
-    <div class="jauge"><input type="range" min="0" max="100" value="${lv}"
-      aria-label="Niveau"><b>${lv} %</b></div>`;
+      Math.round(faits / Math.max(1, l.length) * 100)}%"></i></div>`;
+  const ecr = el("div", "ecr");
+  const num = el("button", "n", `${n}<small>changer</small>`);
+  num.setAttribute("aria-label", `Gradateur ${n}, appeler un autre gradateur par son numéro`);
+  num.onclick = () => { PAVE = ""; majVoletRelever(); };
+  ecr.append(num, afficheCircuit(f.circuit, "rel-cir", ecrire, suivantARelever));
+  ecr.insertAdjacentHTML("beforeend",
+    `<span class="ad">U${a.u} · canal ${a.canal} · ${lv} %</span>`);
+  d.append(ecr);
+  d.append(padCircuit({
+    valeur:f.circuit, ecrire, noter:suivantARelever,
+    prec:() => allerA(INDICE - 1),
+    sauter:() => allerA(prochainVide(INDICE + 1) ?? Math.min(l.length - 1, INDICE + 1))
+  }));
 
-  /* Le grand numéro est un bouton : il ouvre le pavé pour sauter à un
-     gradateur précis, ce qu'on ne fait pas en défilant sur deux cents. */
-  d.querySelector(".ecr .n").onclick = () => { PAVE = ""; majVoletRelever(); };
-  const cir = d.querySelector(".cir");
-  cir.oninput = () => { f.circuit = cir.value; majListe(); majCompteurs(); };
-  cir.onkeydown = e => { if(e.key === "Enter") suivantARelever(); };
-  d.querySelector(".note").oninput = e => { f.note = e.target.value; majListe(); };
-  const j = d.querySelector(".jauge input");
-  j.oninput = e => {
-    if(!n) return;
+  const note = el("input", "note");
+  note.dataset.focus = "rel-note";
+  note.placeholder = "repère : face jardin, contre 2…";
+  note.value = f.note;
+  note.setAttribute("aria-label", "Repère du gradateur " + n);
+  note.oninput = e => { f.note = e.target.value; majListe(); };
+  d.append(note);
+
+  const j = el("div", "jauge", `<input type="range" min="0" max="100" value="${lv}"
+      aria-label="Niveau"><b>${lv} %</b>`);
+  j.querySelector("input").oninput = e => {
     NIV[n] = +e.target.value; envoyer();
-    d.querySelector(".jauge b").textContent = NIV[n] + " %";
+    j.querySelector("b").textContent = NIV[n] + " %";
     majListe(); majBarre();
   };
-
-  const ok = el("button", "gros", "Noté — gradateur suivant ▶");
-  ok.onclick = suivantARelever;
-  d.append(ok);
-
-  const r1 = el("div", "rang");
-  const prec = el("button", "mini", "◀ précédent");
-  const saut = el("button", "mini", "Sauter");
-  const noir = el("button", "mini" + (lv === 0 ? " on" : ""), "Noir");
-  prec.onclick = () => allerA(INDICE - 1);
-  saut.onclick = () => allerA(prochainVide(INDICE + 1) ?? Math.min(l.length - 1, INDICE + 1));
-  noir.onclick = () => { if(n){ NIV[n] = 0; envoyer(); peindre(); } };
-  r1.append(prec, saut, noir);
-  d.append(r1);
+  d.append(j);
 
   const r2 = el("div", "rang");
   const plus = el("button", "mini", "+ un gradateur");
-  const sup = el("button", "mini", "Supprimer");
+  const sup = el("button", "mini sup", "Supprimer");
   const fin = el("button", "mini", "Terminer");
   plus.onclick = () => { P.reg.nb++; allerA(gradas().length - 1); };
-  sup.onclick = () => { if(n) supprimerGrada(n); };
-  fin.onclick = () => { toutEteindre(); fermerVolet(); };
+  sup.onclick = () => supprimerGrada(n);
+  fin.onclick = () => fermerVolet();
   r2.append(plus, sup, fin);
   d.append(r2);
 
-  const etat = NET.emissionEtat();
-  d.append(el("p", "route", esc(routeEmission(etat))));
+  d.append(el("p", "route", esc(routeEmission(NET.emissionEtat()))));
 
-  c.replaceChildren(d);
-  if(garde){ cir.focus(); try { cir.setSelectionRange(pos, pos); } catch(e){ } }
+  gardeFocus(c, () => c.replaceChildren(d));
 }
 
 /* Pavé numérique : taper le numéro du gradateur à appeler. Un numéro au-delà
@@ -3141,7 +3397,76 @@ function suivantARelever(){
   if(INDICE + 1 < l.length){ allerA(INDICE + 1); return; }
   const reprise = prochainVide(0);
   if(reprise != null && reprise !== INDICE){ allerA(reprise); return; }
-  toutEteindre(); fermerVolet();
+  fermerVolet();
+}
+
+/* ----------------- volet : attribuer les circuits des appareils ----------- */
+/* Le relevé, appliqué aux appareils : chacun s'allume à son tour, on tape son
+   circuit, « Noté » passe au suivant. Une fiche par appareil, c'était ouvrir,
+   taper, fermer, recommencer. */
+const prochainApp = (depuis = 0) => {
+  const l = appareils();
+  for(let k = depuis; k < l.length; k++) if(!circuitApp(l[k].n)) return k;
+  return null;
+};
+
+function allerApp(k){
+  const l = appareils();
+  if(k == null || k < 0 || k >= l.length){ peindre(); return; }
+  IA = k;
+  const x = l[k];
+  HL = { n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x.app) };
+  envoyer();
+  peindre();
+  const r = $(`.rg[data-a="${x.n}"]`);
+  if(r) r.scrollIntoView({ block:"start",
+    behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+function suivantAAttribuer(){
+  const l = appareils();
+  const k = prochainApp(IA + 1);
+  if(k != null){ allerApp(k); return; }
+  if(IA + 1 < l.length){ allerApp(IA + 1); return; }
+  const reprise = prochainApp(0);
+  if(reprise != null && reprise !== IA){ allerApp(reprise); return; }
+  fermerVolet();
+}
+
+function majVoletAttribuer(){
+  const l = appareils();
+  const x = l[IA];
+  volet.querySelector(".tete h3").textContent = "Attribuer les circuits";
+  volet.querySelector(".tete .cpt").textContent = `${relevesA()} / ${l.length} attribués`;
+  const c = volet.querySelector(".corps");
+  if(!x){
+    c.replaceChildren(el("p", "rien", "Aucun appareil dans ce patch : touchez « Ajouter » en bas."));
+    return;
+  }
+  const v = circuitApp(x.n);
+  const ecrire = (val, depuisSaisie) => {
+    P.fiches[x.n] = val; majListe(); majCompteurs();
+    if(!depuisSaisie) majVoletAttribuer();
+  };
+  const d = el("div");
+  d.innerHTML = `<div class="avanc"><i style="width:${
+      Math.round(relevesA() / Math.max(1, l.length) * 100)}%"></i></div>`;
+  const ecr = el("div", "ecr");
+  ecr.append(el("span", "n app", `${x.n}<small>${esc(courtNom(x.app))}</small>`));
+  ecr.append(afficheCircuit(v, "att-cir", ecrire, suivantAAttribuer));
+  ecr.insertAdjacentHTML("beforeend",
+    `<span class="ad">U${x.u} · ${x.adr} → ${x.fin} · ${esc(x.mode || x.ch + " ch")}</span>`);
+  d.append(ecr);
+  d.append(padCircuit({
+    valeur:v, ecrire, noter:suivantAAttribuer,
+    prec:() => allerApp(IA - 1),
+    sauter:() => allerApp(prochainApp(IA + 1) ?? Math.min(l.length - 1, IA + 1))
+  }));
+  const fin = el("button", "act sec", "Terminer");
+  fin.onclick = () => fermerVolet();
+  d.append(fin);
+  d.append(el("p", "route", esc(routeEmission(NET.emissionEtat()))));
+  gardeFocus(c, () => c.replaceChildren(d));
 }
 
 /* ------------------ volet : la télécommande DMX --------------------------- */
@@ -3346,9 +3671,13 @@ function majVoletDmx(){
   const v = DMX[cle] | 0;
   const tenus = adressesTenues();
   const nsel = DSEL.length;
+  /* L'en-tête dit ce qui sort, toutes sources comprises : un gradateur appelé
+     depuis la barre ou le relevé compte aussi. */
+  const nAll = adressesAllumees();
   volet.querySelector(".tete h3").textContent = "Pupitre";
-  volet.querySelector(".tete .cpt").textContent = tenus.length
-    ? `${tenus.length} adresse${tenus.length > 1 ? "s tenues" : " tenue"}` : "plateau noir";
+  volet.querySelector(".tete .cpt").textContent = nAll
+    ? pl(nAll, "adresse allumée", "adresses allumées") : "plateau noir";
+  const vs = sortie(TU, TC);
   const c = volet.querySelector(".corps");
 
   const an = artnet(TU), sa = sacn(TU);
@@ -3356,9 +3685,10 @@ function majVoletDmx(){
   d.innerHTML = `<div class="ecr">
       <span class="adr"><b>${TU}/${TC}</b>${
         nsel > 1 ? `<i>+ ${nsel - 1} adresse${nsel > 2 ? "s" : ""}</i>` : ""}</span>
-      <span class="lv">${pcent(v)} %<small>${v} sur 255</small></span>
-      <span class="oc">${esc(quiEstLa(TU, TC))}</span>
-      <span class="ad">${esc(P.reg.proto)} · Art-Net ${an.net}.${an.sub}.${an.uni} · sACN ${esc(sa.ip)}</span>
+      <span class="lv">${pcent(Math.max(v, vs))} %<small>${Math.max(v, vs)} sur 255</small></span>
+      <span class="oc">${esc(quiEstLa(TU, TC))}${vs > v
+        ? ` · sort à ${pcent(vs)} % par la feuille` : ""}</span>
+      <span class="ad">Art-Net ${an.net}.${an.sub}.${an.uni} · sACN ${esc(sa.ip)}</span>
     </div>
     <div class="jauge"><input type="range" min="0" max="255" value="${v}"
       aria-label="Niveau de la sélection"><b>${pcent(v)} %</b></div>`;
@@ -3418,7 +3748,7 @@ function majVoletDmx(){
 
   const etat = NET.emissionEtat();
   d.append(el("p", "route", esc(routeEmission(etat))));
-  d.append(el("p", "aide", "La ligne de commande se tape comme sur un Eos : "
+  d.append(aideRepliee("La ligne de commande se tape comme sur un Eos : "
     + "« 1/137 At 50 Enter » pose l'adresse 137 de l'univers 1 à 50 %. Un nombre seul est "
     + "une adresse de l'univers en cours, « / » désigne l'univers, « Thru » une plage — "
     + "elle traverse les univers —, « + » et « − » ajoutent ou retirent de la sélection, et "
@@ -3506,7 +3836,7 @@ function clavierEos(){
   };
   const d = el("div", "clav");
   d.setAttribute("role", "group");
-  d.setAttribute("aria-label", "Clavier de la télécommande DMX");
+  d.setAttribute("aria-label", "Clavier du Pupitre");
   /* « Circ » prend la place du « Chan » d'un Eos, en bas à gauche du pavé. */
   ["1", "2", "3", "Thru", "4", "5", "6", "At", "7", "8", "9", "+",
    "Circ", "0", "/", "−", "Clear", "Out", "Full", "Enter"].forEach(x => {
@@ -3520,6 +3850,27 @@ function clavierEos(){
 }
 
 /* --------------------------- volet : la fiche ----------------------------- */
+/* Le champ du circuit s'ouvre sur le pavé chiffres, et « Abc » passe au
+   clavier complet : l'inputmode numérique seul interdisait « 12b » ou « face »,
+   que la feuille et le Pupitre savent pourtant lire. */
+function champCircuit(valeur, etiquette){
+  const lettres = /\D/.test(valeur || "");
+  return `<div class="cirl"><input class="cir" data-focus="fic-cir" inputmode="${lettres ? "text" : "numeric"}"
+      value="${esc(valeur || "")}" placeholder="—" autocapitalize="off" aria-label="${esc(etiquette)}">
+    <button type="button" class="abc" aria-label="Changer de clavier">${lettres ? "123" : "Abc"}</button></div>`;
+}
+function brancherAbc(d){
+  const b = d.querySelector(".abc"), i = d.querySelector(".cirl .cir");
+  if(!b || !i) return;
+  b.onclick = () => {
+    const txt = i.getAttribute("inputmode") !== "text";
+    i.setAttribute("inputmode", txt ? "text" : "numeric");
+    b.textContent = txt ? "123" : "Abc";
+    /* Le clavier ne change qu'à la prise de focus suivante. */
+    i.blur(); setTimeout(() => i.focus(), 60);
+  };
+}
+
 /* Changer un numéro de circuit, corriger un repère, ou retirer l'élément de la
    feuille — pour un gradateur comme pour un appareil. */
 function majVoletFiche(){
@@ -3533,10 +3884,9 @@ function majVoletFiche(){
     const a = adrGrada(n), f = ficheGrada(n), lv = NIV[n] || 0;
     volet.querySelector(".tete h3").textContent = "Gradateur " + n;
     volet.querySelector(".tete .cpt").textContent =
-      `${P.reg.proto} · U${a.u} · canal ${a.canal}`;
+      `U${a.u} · canal ${a.canal}`;
     d.innerHTML = `<div class="f"><label>Circuit</label>
-        <input class="cir" data-focus="fic-cir" inputmode="numeric" value="${esc(f.circuit)}"
-               placeholder="—" aria-label="Circuit du gradateur ${n}"></div>
+        ${champCircuit(f.circuit, "Circuit du gradateur " + n)}</div>
       <div class="f"><label>Repère</label>
         <input class="txt rep" value="${esc(f.note)}" placeholder="face jardin, contre 2…"
                aria-label="Repère du gradateur ${n}"></div>
@@ -3561,10 +3911,10 @@ function majVoletFiche(){
     const reg = el("button", "act sec", "Univers et 1re adresse de la plage…");
     reg.onclick = () => ouvrirVolet("patchs");
     d.append(reg);
-    d.append(el("p", "aide", "L'adresse d'un gradateur se déduit de la plage — univers, "
-      + "première adresse et premier numéro — qui se règlent dans le menu du patch. "
-      + "Pour envoyer sur un canal quelconque, sans passer par la plage, le logo "
-      + "télécommande en haut de l'écran ouvre la télécommande DMX."));
+    d.append(aideRepliee("L'adresse d'un gradateur se déduit de la plage (univers, "
+      + "première adresse et premier numéro), qui se règle dans le menu du patch, en "
+      + "touchant son nom. Pour envoyer sur un canal quelconque sans passer par la "
+      + "plage, le bouton Pupitre en haut de l'écran ouvre le Pupitre."));
 
     const sup = el("button", "act sup", "Supprimer ce gradateur");
     sup.onclick = () => supprimerGrada(n);
@@ -3577,8 +3927,7 @@ function majVoletFiche(){
     volet.querySelector(".tete .cpt").textContent = `appareil ${x.n} · U${x.u} · ${x.adr}`;
     const modes = BIB[x.app] || [];
     d.innerHTML = `<div class="f"><label>Circuit</label>
-        <input class="cir" data-focus="fic-cir" inputmode="numeric" value="${esc(circuitApp(x.n))}"
-               placeholder="—" aria-label="Circuit de l'appareil ${x.n}"></div>
+        ${champCircuit(circuitApp(x.n), "Circuit de l'appareil " + x.n)}</div>
       <div class="f"><label>Type d'appareil</label>
         <select class="sa" aria-label="Type de l'appareil ${x.n}">${marques().map(m =>
           `<optgroup label="${esc(m)}">${PROJECTEURS.filter(y => y.marque === m).map(y =>
@@ -3596,14 +3945,9 @@ function majVoletFiche(){
         <div class="f"><label>Adresse DMX</label>
           <input class="aa" inputmode="numeric" value="${x.adr}"
                  aria-label="Adresse DMX de l'appareil ${x.n}"></div></div>
-      <div class="kv"><span>Empreinte</span><b>${x.ch} canaux · U${x.u}·${x.adr} → ${x.fin}</b></div>
-      <div class="kv"><span>Mise en évidence sur tous les canaux</span>
-        <input type="checkbox" class="hltout"${P.reg.hlTout ? " checked" : ""}
-               aria-label="Mettre en évidence sur tous les canaux"></div>`;
+      <div class="kv"><span>Empreinte</span><b>${x.ch} canaux · U${x.u}·${x.adr} → ${x.fin}</b></div>`;
     d.querySelector(".cir").oninput = e => {
       P.fiches[x.n] = e.target.value; majListe(); majCompteurs(); };
-    d.querySelector(".hltout").onchange = e => {
-      P.reg.hlTout = e.target.checked; envoyer(); sauverPatchs(); };
 
     /* L'adresse se choisit ici, appareil par appareil : la ligne se scinde comme
        pour un changement de mode, et les autres exemplaires gardent la leur. */
@@ -3658,21 +4002,27 @@ function majVoletFiche(){
     const sup = el("button", "act sup", "Supprimer cet appareil");
     sup.onclick = () => supprimerAppareil(x);
     d.append(sup);
-    d.append(el("p", "aide", "Par défaut, la mise en évidence envoie le premier canal "
-      + "à fond — l'intensité, sur la plupart des appareils. Changer le type ou le mode "
+    d.append(aideRepliee("Par défaut, la mise en évidence envoie le premier canal "
+      + "à fond : l'intensité, sur la plupart des appareils. Le menu du patch peut "
+      + "l'étendre à tous les canaux. Changer le type ou le mode "
       + "ne touche que cet appareil : les autres exemplaires de sa ligne gardent leur adresse, "
       + "quitte à ce que la nouvelle empreinte les chevauche. Retirer un appareil enlève un "
-      + "exemplaire à sa ligne : les appareils suivants remontent d'un cran."));
+      + "exemplaire à sa ligne : les appareils suivants remontent d'un cran, avec leurs circuits."));
   }
 
+  brancherAbc(d);
   c.replaceChildren(d);
-  if(garde){ const i = d.querySelector(".cir");
-    i.focus(); try { i.setSelectionRange(pos, pos); } catch(e){ } }
+  const i = d.querySelector(".cir");
+  if(garde && i){ i.focus(); try { i.setSelectionRange(pos, pos); } catch(e){ } }
+  /* La pastille du circuit ouvre la fiche curseur dans le champ. */
+  else if(CIBLE.focus && i){ CIBLE.focus = false; i.focus(); }
 }
 
 function supprimerGrada(n){
-  if(!P.exclus.includes(n)) P.exclus.push(n);
-  delete P.grada[n];
+  annulable(`Gradateur ${n} retiré`, () => {
+    if(!P.exclus.includes(n)) P.exclus.push(n);
+    delete P.grada[n];
+  });
   delete NIV[n];
   if(SEL === n) SEL = 0;
   envoyer();
@@ -3684,6 +4034,10 @@ function supprimerGrada(n){
 
 function supprimerAppareil(x){
   if(HL && HL.n === x.n){ HL = null; envoyer(); }
+  annulable(`${courtNom(x.app)} n° ${x.n} retiré`, () => retirerAppareil(x));
+  fermerVolet();
+}
+function retirerAppareil(x){
   const l = P.lignes.find(y => y.id === x.ligne);
   if(l){
     l.nb = Math.max(0, l.nb - 1);
@@ -3697,7 +4051,6 @@ function supprimerAppareil(x){
     else if(i > x.n) suite[i - 1] = P.fiches[k];
   });
   P.fiches = suite;
-  fermerVolet();
 }
 
 /* ---------------------- volet : ajouter des appareils --------------------- */
@@ -3708,12 +4061,26 @@ function majVoletAjouter(){
   const liste = appareils();
   const ko = collisions(liste);
   volet.querySelector(".tete h3").textContent = "Ajouter des appareils";
-  volet.querySelector(".tete .cpt").textContent = `${liste.length} appareils`;
+  volet.querySelector(".tete .cpt").textContent = pl(liste.length, "appareil");
 
   const c = volet.querySelector(".corps");
   const d = el("div");
-  const pf = el("div", "pf");
 
+  /* Le parc est livré vide : sans projecteur, il n'y a rien à poser, et le
+     bouton d'ajout ne réagissait pas. On le dit, avec le chemin. */
+  if(!PROJECTEURS.length){
+    const v = el("div", "vide-parc");
+    v.innerHTML = `<b>Le parc n'a encore aucun projecteur.</b>
+      <span>Ajoute ceux de ta salle dans Parc, ils apparaîtront ici.</span>`;
+    const go1 = el("button", "act", "Ouvrir les projecteurs du parc");
+    go1.onclick = () => { fermerVolet(true); go({ v:"proj" }); };
+    v.append(go1);
+    d.append(v);
+  } else if(CHOIX !== null){
+    d.append(choixParc(liste));
+  }
+
+  const pf = el("div", "pf");
   P.lignes.forEach(l => {
     const modes = BIB[l.app] || [];
     const mes = liste.filter(x => x.ligne === l.id);
@@ -3764,8 +4131,12 @@ function majVoletAjouter(){
       peindre();
     };
     else sm.onchange = e => { l.ch = Math.max(1, +e.target.value.replace(/\D/g, "") || 1); peindre(); };
+    /* Changer la quantité renumérote ce qui suit : les circuits suivent leurs
+       appareils. */
     r.querySelector(".qn").onchange = e => {
-      l.nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0); peindre(); };
+      garderCircuits(() => { l.nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0); });
+      peindre();
+    };
     /* Écrire un univers ou une adresse impose le départ de la ligne : c'était
        jusqu'ici le seul réglage qu'on ne pouvait pas choisir — la ligne se posait
        où l'application voulait bien. */
@@ -3787,7 +4158,10 @@ function majVoletAjouter(){
       peindre();
     };
     r.querySelector(".x").onclick = () => {
-      P.lignes = P.lignes.filter(y => y.id !== l.id); peindre(); };
+      annulable(`Ligne ${courtNom(l.app)} retirée`, () =>
+        garderCircuits(() => { P.lignes = P.lignes.filter(y => y.id !== l.id); }));
+      peindre();
+    };
     const lib = r.querySelector(".lib");
     if(lib) lib.onclick = () => {
       const span = Math.min(512, Math.max(1, l.ch || 1) * Math.max(1, l.nb || 1));
@@ -3800,24 +4174,14 @@ function majVoletAjouter(){
   });
 
   const pied = el("div", "pied");
-  const add = el("button", null, "+ Ligne d'appareils");
-  add.onclick = () => {
-    const modele = PROJECTEURS[0];
-    if(!modele) return;          // plus un seul projecteur à l'inventaire
-    const modes = BIB[cleApp(modele)] || [];
-    const foot = modes.length ? modes[0].ch : 1;
-    /* La ligne neuve se pose sur la première adresse qui ne gêne personne — ni un
-       appareil déjà posé, ni un gradateur de la feuille — au lieu de se chaîner
-       à l'aveugle sur une plage occupée. */
-    const libre = premiereLibre(foot, liste);
-    P.lignes.push({ id:idLigne(), app:cleApp(modele),
-                    mode:modes.length ? modes[0].nom : "", ch:foot,
-                    nb:1, suite:false, u:libre.u, adr:libre.adr });
-    peindre();
-  };
-  pied.append(add);
+  if(PROJECTEURS.length && CHOIX === null){
+    const add = el("button", null, "+ Ligne d'appareils");
+    add.onclick = () => { CHOIX = ""; majVoletAjouter();
+      const q = volet && volet.querySelector(".choix input"); if(q) q.focus(); };
+    pied.append(add);
+  }
   pied.insertAdjacentHTML("beforeend",
-    `<span class="tot"><b>${liste.length}</b> appareils · <b>${
+    `<span class="tot"><b>${liste.length}</b> ${liste.length > 1 ? "appareils" : "appareil"} · <b>${
       [...new Set(liste.map(x => x.u))].length}</b> univers · ${puissanceTotale(liste)}<br>${
       ko.size ? `<b class="ko">${ko.size} en chevauchement</b>` : "aucun chevauchement"}</span>`);
   pf.append(pied);
@@ -3832,33 +4196,150 @@ function majVoletAjouter(){
     }).join("");
     d.append(res);
   }
-  d.append(el("p", "aide", "Les modes viennent de la bibliothèque : la fiche d'un appareil "
+  d.append(aideRepliee("Les modes viennent de la bibliothèque : la fiche d'un appareil "
     + "permet de les saisir à la main ou de les importer d'un fichier GDTF. Une ligne neuve "
     + "arrive sur la première adresse libre ; « départ imposé » la fixe là où elle est, "
-    + "« à la suite » la chaîne sur la ligne d'avant."));
+    + "« à la suite » la chaîne sur la ligne d'avant. Retirer une ligne ou changer une "
+    + "quantité renumérote les appareils suivants, et leurs circuits les suivent."));
   const fin = el("button", "act", "Terminer");
   fin.onclick = () => fermerVolet();
   d.append(fin);
+  /* Un champ encore actif lance son « change » en perdant le focus : on le
+     laisse partir avant de reconstruire, pas pendant. */
+  if(c.contains(document.activeElement)) document.activeElement.blur();
   c.replaceChildren(d);
+}
+
+/* Choisir l'appareil d'une ligne neuve par une recherche dans le parc : la
+   ligne prenait d'office le premier projecteur, qu'il fallait ensuite changer
+   dans une liste de toute la salle. */
+function choixParc(liste){
+  const b = el("div", "choix");
+  b.innerHTML = `<div class="q"><input data-focus="aj-q" placeholder="Chercher dans le parc : spiider, pc…"
+      autocomplete="off" enterkeyhint="search" aria-label="Chercher un projecteur du parc"
+      value="${esc(CHOIX)}"><button class="ann">Annuler</button></div><div class="res"></div>`;
+  const res = b.querySelector(".res");
+  const lister = () => {
+    const q = plat(CHOIX.trim());
+    const r = PROJECTEURS.filter(p => !q || plat(p.nom + " " + p.marque + " " + (p.fam || "")).includes(q))
+      .slice(0, 40);
+    res.replaceChildren();
+    if(!r.length) res.append(el("p", "rien", "Aucun projecteur du parc ne correspond."));
+    r.forEach(p => {
+      const modes = BIB[cleApp(p)] || [];
+      const o = el("button", null, `<b>${esc(p.nom)}</b><span>${esc(p.marque)}${
+        modes.length ? " · " + pl(modes.length, "mode") : ""}</span>`);
+      o.onclick = () => {
+        const foot = modes.length ? modes[0].ch : 1;
+        /* La ligne neuve se pose sur la première adresse qui ne gêne personne —
+           ni un appareil déjà posé, ni un gradateur de la feuille. */
+        const libre = premiereLibre(foot, liste);
+        P.lignes.push({ id:idLigne(), app:cleApp(p),
+                        mode:modes.length ? modes[0].nom : "", ch:foot,
+                        nb:1, suite:false, u:libre.u, adr:libre.adr });
+        CHOIX = null;
+        peindre();
+      };
+      res.append(o);
+    });
+  };
+  const q = b.querySelector("input");
+  q.oninput = () => { CHOIX = q.value; lister(); };
+  b.querySelector(".ann").onclick = () => { CHOIX = null; majVoletAjouter(); };
+  lister();
+  return b;
 }
 
 /* --------------------------- volet : les patchs --------------------------- */
 /* Chaque spectacle a son patch : on en ouvre un, on en crée un, on duplique
    celui de la reprise. Changer de patch éteint le plateau — on ne laisse pas
-   une lampe allumée d'un spectacle à l'autre. */
+   une lampe allumée d'un spectacle à l'autre. La liste vient d'abord ; les
+   réglages du flux, qu'on touche une fois par salle, après. */
 function majVoletPatchs(){
   volet.querySelector(".tete h3").textContent = "Patchs";
-  volet.querySelector(".tete .cpt").textContent =
-    `${PATCHS.length} spectacle${PATCHS.length > 1 ? "s" : ""}`;
+  volet.querySelector(".tete .cpt").textContent = pl(PATCHS.length, "patch");
   const c = volet.querySelector(".corps");
-  const garde = document.activeElement && document.activeElement.classList.contains("nom");
-  const pos = garde ? document.activeElement.selectionStart : null;
+  const act = document.activeElement;
+  const cle = act && act.dataset ? act.dataset.focus : null;
+  let pos = null;
+  try { pos = act ? act.selectionStart : null; } catch(e){ }
 
   const d = el("div");
+  const z = el("div", "liste2");
+  PATCHS.forEach((p, i) => {
+    const l = adresser(p.lignes);
+    const rel = Object.keys(p.grada || {})
+      .filter(n => String((p.grada[n] || {}).circuit || "").trim()).length;
+    const r = el("div", "p" + (i === iPatch ? " ici" : ""));
+    r.innerHTML = `<span><b>${esc(p.nom || "Sans titre")}</b>
+      <span>${pl(l.length, "appareil")} · ${pl(rel, "circuit relevé", "circuits relevés")} · ${
+        pl(p.reg.nb, "gradateur")}</span></span>`;
+    const ouv = el("button", "ouv", i === iPatch ? "en cours" : "ouvrir");
+    ouv.onclick = () => { if(i !== iPatch) chargerPatch(i); };
+    const sup = el("button", "sup", "✕");
+    sup.setAttribute("aria-label", "Supprimer le patch " + (p.nom || "sans titre"));
+    sup.onclick = () => supprimerPatch(i);
+    r.append(ouv, sup);
+    z.append(r);
+  });
+  d.append(z);
+
+  if(NOUVEAU){
+    /* Un patch neuf demande ce qui change d'une salle à l'autre : son nom, le
+       protocole et le nombre de gradateurs — zéro pour une salle sans
+       gradateurs, au lieu des 96 posés d'office. */
+    const f = el("div", "neuf");
+    f.innerHTML = `<h5>Nouveau patch</h5>
+      <div class="f"><label for="np-nom">Nom</label>
+        <input id="np-nom" class="nom" data-focus="np-nom" value="${esc(NOUVEAU.nom)}"
+               placeholder="Création, série 2026…"></div>
+      <div class="plage"><div class="f"><label for="np-proto">Protocole</label>
+          <select id="np-proto"><option${NOUVEAU.proto === "sACN" ? " selected" : ""}>sACN</option>
+            <option${NOUVEAU.proto === "Art-Net" ? " selected" : ""}>Art-Net</option></select></div>
+        <div class="f"><label for="np-nb">Gradateurs</label>
+          <input id="np-nb" data-focus="np-nb" inputmode="numeric" value="${NOUVEAU.nb}"></div></div>`;
+    f.querySelector("#np-nom").oninput = e => { NOUVEAU.nom = e.target.value; };
+    f.querySelector("#np-proto").onchange = e => { NOUVEAU.proto = e.target.value; };
+    f.querySelector("#np-nb").oninput = e => { NOUVEAU.nb = e.target.value.replace(/\D/g, ""); };
+    const r = el("div", "rang2");
+    const ok = el("button", "act", "Créer le patch");
+    const an = el("button", "act sec", "Annuler");
+    ok.onclick = () => {
+      const p = patchVide(NOUVEAU.nom.trim() || "Nouveau patch " + (PATCHS.length + 1));
+      p.reg.proto = NOUVEAU.proto;
+      p.reg.nb = Math.max(0, Math.min(999, parseInt(NOUVEAU.nb, 10) || 0));
+      PATCHS.push(p);
+      NOUVEAU = null;
+      chargerPatch(PATCHS.length - 1);
+    };
+    an.onclick = () => { NOUVEAU = null; majVoletPatchs(); };
+    r.append(ok, an);
+    f.append(r);
+    d.append(f);
+  } else {
+    const rang = el("div", "rang2");
+    const neuf = el("button", "act", "+ Nouveau patch");
+    const dupl = el("button", "act sec", "Dupliquer celui-ci");
+    neuf.onclick = () => {
+      NOUVEAU = { nom:"", proto:P.reg.proto, nb:"0" };
+      majVoletPatchs();
+      const i = volet.querySelector("#np-nom"); if(i) i.focus();
+    };
+    dupl.onclick = () => {
+      const copie = JSON.parse(JSON.stringify(P));
+      copie.nom = (P.nom || "Sans titre") + " (copie)";
+      PATCHS.push(copie);
+      chargerPatch(PATCHS.length - 1);
+    };
+    rang.append(neuf, dupl);
+    d.append(rang);
+  }
+
+  d.insertAdjacentHTML("beforeend", `<h5>Ce patch</h5>`);
   const f = el("div", "f");
-  f.innerHTML = `<label>Nom du patch en cours</label>
-    <input class="nom" data-focus="pat-nom" value="${esc(P.nom)}"
-           placeholder="Création, série 2026…" aria-label="Nom du patch en cours">`;
+  f.innerHTML = `<label for="pat-nom">Nom</label>
+    <input id="pat-nom" class="nom" data-focus="pat-nom" value="${esc(P.nom)}"
+           placeholder="Création, série 2026…">`;
   f.querySelector("input").oninput = e => {
     P.nom = e.target.value;
     const t = $(".p-titre b");
@@ -3871,76 +4352,49 @@ function majVoletPatchs(){
 
   /* Les réglages du flux appartiennent au patch : une reprise dans une autre
      salle, c'est un autre univers et un autre nombre de gradateurs. */
-  const pl = el("div", "plage");
-  pl.innerHTML = `<div class="f"><label>Protocole</label>
-      <select class="r-proto"><option${P.reg.proto === "sACN" ? " selected" : ""}>sACN</option>
-        <option${P.reg.proto === "Art-Net" ? " selected" : ""}>Art-Net</option></select></div>
+  d.insertAdjacentHTML("beforeend", `<h5>Réglages du flux</h5>`);
+  const sacnP = P.reg.proto === "sACN";
+  const pla = el("div", "plage");
+  pla.innerHTML = `<div class="f"><label>Protocole</label>
+      <select class="r-proto"><option${sacnP ? " selected" : ""}>sACN</option>
+        <option${!sacnP ? " selected" : ""}>Art-Net</option></select></div>
     <div class="f"><label>Univers</label>
       <input class="r-u" data-focus="r-u" inputmode="numeric" value="${P.reg.u}"></div>
     <div class="f"><label>1re adresse</label>
       <input class="r-a" data-focus="r-a" inputmode="numeric" value="${P.reg.adr}"></div>
-    <div class="f"><label>1er n°</label>
+    <div class="f"><label>1er n° de gradateur</label>
       <input class="r-p" data-focus="r-p" inputmode="numeric" value="${P.reg.premier}"></div>
     <div class="f"><label>Nb de gradateurs</label>
       <input class="r-n" data-focus="r-n" inputmode="numeric" value="${P.reg.nb}"></div>
-    <div class="f"><label>Priorité sACN</label>
-      <input class="r-prio" data-focus="r-prio" inputmode="numeric" value="${P.reg.prio}"></div>
+    ${sacnP ? `<div class="f"><label>Priorité sACN</label>
+      <input class="r-prio" data-focus="r-prio" inputmode="numeric" value="${P.reg.prio}"></div>` : ""}
     <div class="f dest"><label>Destination</label>
       <input class="r-cible" data-focus="r-cible" inputmode="url" value="${esc(P.reg.cible)}"
-             placeholder="multicast"></div>`;
+             placeholder="${sacnP ? "multicast" : "diffusion"}"></div>
+    <label class="kv coche"><span>Mise en évidence sur tous les canaux</span>
+      <input type="checkbox" class="hltout"${P.reg.hlTout ? " checked" : ""}></label>`;
   const nbre = (v, min, max, d0) => {
     const x = parseInt(String(v).replace(/\D/g, ""), 10);
     return isNaN(x) ? d0 : Math.max(min, Math.min(max, x));
   };
-  pl.querySelector(".r-proto").onchange = e => { P.reg.proto = e.target.value; envoyer(); peindre(); };
-  pl.querySelector(".r-u").onchange = e => { P.reg.u = nbre(e.target.value, 1, 63999, 1); peindre(); };
-  pl.querySelector(".r-a").onchange = e => { P.reg.adr = nbre(e.target.value, 1, 512, 1); peindre(); };
-  pl.querySelector(".r-p").onchange = e => { P.reg.premier = nbre(e.target.value, 1, 9999, 1); peindre(); };
-  pl.querySelector(".r-n").onchange = e => { P.reg.nb = nbre(e.target.value, 1, 999, 96); peindre(); };
-  pl.querySelector(".r-prio").onchange = e => { P.reg.prio = nbre(e.target.value, 1, 200, 100); envoyer(); };
-  pl.querySelector(".r-cible").onchange = e => { P.reg.cible = e.target.value.trim(); envoyer(); };
-  d.append(pl);
+  pla.querySelector(".r-proto").onchange = e => { P.reg.proto = e.target.value; envoyer(); peindre(); };
+  pla.querySelector(".r-u").onchange = e => { P.reg.u = nbre(e.target.value, 1, 63999, 1); peindre(); };
+  pla.querySelector(".r-a").onchange = e => { P.reg.adr = nbre(e.target.value, 1, 512, 1); peindre(); };
+  pla.querySelector(".r-p").onchange = e => { P.reg.premier = nbre(e.target.value, 1, 9999, 1); peindre(); };
+  pla.querySelector(".r-n").onchange = e => { P.reg.nb = nbre(e.target.value, 0, 999, 0); peindre(); };
+  const pr = pla.querySelector(".r-prio");
+  if(pr) pr.onchange = e => { P.reg.prio = nbre(e.target.value, 1, 200, 100); envoyer(); };
+  pla.querySelector(".r-cible").onchange = e => { P.reg.cible = e.target.value.trim(); envoyer(); };
+  pla.querySelector(".hltout").onchange = e => { P.reg.hlTout = e.target.checked; envoyer(); sauverPatchs(); };
+  d.append(pla);
   d.insertAdjacentHTML("beforeend", `<p class="aide">Sans destination, sACN part en multicast
-    et Art-Net en diffusion — le cas normal. Une adresse IP force l'envoi vers ce seul nœud.</p>`);
-
-  d.insertAdjacentHTML("beforeend", `<h5>Les patchs</h5>`);
-  const z = el("div", "liste2");
-  PATCHS.forEach((p, i) => {
-    const l = adresser(p.lignes);
-    const rel = Object.keys(p.grada || {})
-      .filter(n => String((p.grada[n] || {}).circuit || "").trim()).length;
-    const r = el("div", "p" + (i === iPatch ? " ici" : ""));
-    r.innerHTML = `<span><b>${esc(p.nom || "Sans titre")}</b>
-      <span>${l.length} appareils · ${rel} circuits relevés · ${p.reg.nb} gradateurs</span></span>`;
-    const ouv = el("button", "ouv", i === iPatch ? "en cours" : "ouvrir");
-    ouv.onclick = () => { if(i !== iPatch) chargerPatch(i); };
-    const sup = el("button", "sup", "✕");
-    sup.setAttribute("aria-label", "Supprimer le patch " + (p.nom || "sans titre"));
-    sup.onclick = () => supprimerPatch(i);
-    r.append(ouv, sup);
-    z.append(r);
-  });
-  d.append(z);
-
-  const rang = el("div", "rang2");
-  const neuf = el("button", "act", "+ Nouveau patch");
-  const dupl = el("button", "act sec", "Dupliquer celui-ci");
-  neuf.onclick = () => {
-    PATCHS.push(patchVide("Nouveau patch " + (PATCHS.length + 1)));
-    chargerPatch(PATCHS.length - 1);
-  };
-  dupl.onclick = () => {
-    const copie = JSON.parse(JSON.stringify(P));
-    copie.nom = (P.nom || "Sans titre") + " (copie)";
-    PATCHS.push(copie);
-    chargerPatch(PATCHS.length - 1);
-  };
-  rang.append(neuf, dupl);
-  d.append(rang);
+    et Art-Net en diffusion : c'est le cas normal. Une adresse IP force l'envoi vers ce seul nœud.
+    La mise en évidence envoie d'ordinaire le premier canal d'un appareil ; cochée, elle les
+    envoie tous à fond.</p>`);
 
   c.replaceChildren(d);
-  if(garde){ const i = d.querySelector(".nom");
-    i.focus(); try { i.setSelectionRange(pos, pos); } catch(e){ } }
+  const n = cle ? d.querySelector(`[data-focus="${cle}"]`) : null;
+  if(n){ n.focus(); try { if(pos != null) n.setSelectionRange(pos, pos); } catch(e){ } }
 }
 
 function chargerPatch(i){
@@ -3975,15 +4429,22 @@ function majBarre(){
   $("#p-haut").replaceChildren(h);
 }
 function majCompteurs(){
-  const b = $("#p-bas button");
-  if(b) b.innerHTML = `<span class="et">Relever</span><span class="cpt">${restantsG()}</span>`;
-  const i = $("#p-haut .ongl button:last-child em");
-  if(i) i.textContent = restantsG();
+  const nG = gradas().length, nA = appareils().length;
+  const r = $("#p-bas .rel .cpt"), a = $("#p-bas .att .cpt");
+  if(r) r.textContent = restantsG();
+  if(a) a.textContent = restantsA();
+  const og = $('#p-haut .ongl [data-o="grada"] em'), oa = $('#p-haut .ongl [data-o="app"] em');
+  if(og) og.textContent = `${relevesG()}/${nG}`;
+  if(oa) oa.textContent = `${relevesA()}/${nA}`;
   if(volet && VOLET === "relever"){
-    const l = gradas(), faits = relevesG();
-    volet.querySelector(".tete .cpt").textContent = `${faits} / ${l.length} relevés`;
-    const a = volet.querySelector(".avanc i");
-    if(a) a.style.width = Math.round(faits / Math.max(1, l.length) * 100) + "%";
+    volet.querySelector(".tete .cpt").textContent = `${relevesG()} / ${nG} relevés`;
+    const i = volet.querySelector(".avanc i");
+    if(i) i.style.width = Math.round(relevesG() / Math.max(1, nG) * 100) + "%";
+  }
+  if(volet && VOLET === "attr"){
+    volet.querySelector(".tete .cpt").textContent = `${relevesA()} / ${nA} attribués`;
+    const i = volet.querySelector(".avanc i");
+    if(i) i.style.width = Math.round(relevesA() / Math.max(1, nA) * 100) + "%";
   }
 }
 
@@ -4006,7 +4467,8 @@ function exporterFeuille(){
 
   const tCircuits = circuits.map(c => `<tr>
       <td class="n f">${esc(c.circuit)}</td>
-      <td>${esc(P.reperes[c.circuit] || "")}</td>
+      <td>${esc([P.reperes[c.circuit], ...c.gradas.map(noteGrada)].filter(Boolean)
+        .filter((x, i, l) => l.indexOf(x) === i).join(", "))}</td>
       <td class="n">${c.gradas.join(", ") || "—"}</td>
       <td>${c.apps.map(x => esc(courtNom(x.app)) + " (U" + x.u + "·" + x.adr + ")").join(", ") || "—"}</td>
     </tr>`).join("");
@@ -6148,6 +6610,7 @@ function render(){
           : ["log", "logf", "logr"].includes(r.v) ? "agenda"
           : ["home", "favoris"].includes(r.v) ? "home" : "tools";
   document.querySelectorAll(".tb").forEach(b => b.setAttribute("aria-current", b.dataset.t === t ? "true" : "false"));
+  document.body.classList.toggle("patch-plein", VUES_PATCH.includes(r.v));
   peindreMaj();          // le rendu a jeté le bandeau : on le repose s'il a lieu d'être
   peindreReseau();
 }
