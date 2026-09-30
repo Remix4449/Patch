@@ -3856,12 +3856,15 @@ function clavierEos(){
 function champCircuit(valeur, etiquette){
   const lettres = /\D/.test(valeur || "");
   return `<div class="cirl"><input class="cir" data-focus="fic-cir" inputmode="${lettres ? "text" : "numeric"}"
-      value="${esc(valeur || "")}" placeholder="—" autocapitalize="off" aria-label="${esc(etiquette)}">
+      value="${esc(valeur || "")}" placeholder="—" autocapitalize="off" enterkeyhint="done"
+      aria-label="${esc(etiquette)}">
     <button type="button" class="abc" aria-label="Changer de clavier">${lettres ? "123" : "Abc"}</button></div>`;
 }
 function brancherAbc(d){
   const b = d.querySelector(".abc"), i = d.querySelector(".cirl .cir");
   if(!b || !i) return;
+  /* « Suiv. » ne saute plus au type d'appareil : on reste sur le circuit. */
+  i.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); i.select(); } };
   b.onclick = () => {
     const txt = i.getAttribute("inputmode") !== "text";
     i.setAttribute("inputmode", txt ? "text" : "numeric");
@@ -4519,12 +4522,6 @@ function exporterFeuille(){
 </tr></thead><tbody>${tGradas
   || `<tr><td colspan="5">Aucun gradateur relevé.</td></tr>`}</tbody></table>
 
-<h2>Par circuit</h2>
-<table><thead><tr>
-  <th>Circuit</th><th>Repère</th><th>Gradateurs</th><th>Appareils</th>
-</tr></thead><tbody>${tCircuits
-  || `<tr><td colspan="4">Aucun circuit.</td></tr>`}</tbody></table>
-
 <h2>Appareils</h2>
 <table><thead><tr>
   <th>N°</th><th>Circuit</th><th>Appareil</th><th>Mode</th><th>Ch.</th>
@@ -4537,6 +4534,12 @@ function exporterFeuille(){
   const a = artnet(u), sa = sacn(u);
   return `<div>U${u} — Art-Net <b>${a.net}.${a.sub}.${a.uni}</b> · sACN <b>${sa.ip}</b></div>`;
 }).join("") : "<div>Aucun univers.</div>"}</div>
+
+<h2>Par circuit</h2>
+<table><thead><tr>
+  <th>Circuit</th><th>Repère</th><th>Gradateurs</th><th>Appareils</th>
+</tr></thead><tbody>${tCircuits
+  || `<tr><td colspan="4">Aucun circuit.</td></tr>`}</tbody></table>
 
 <footer>${gradas().length - releves.length} gradateurs sans circuit ne figurent pas dans le
 premier tableau.${puissanceTotale(liste).endsWith("*")
