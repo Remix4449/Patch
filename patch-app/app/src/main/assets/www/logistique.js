@@ -188,7 +188,7 @@ function logEtat(x, j){
     if(fin < j) return { g:"fini", cle:fin, r:"terminé", r2:jourCourt(fin) };
     const s = seancesDu(x, j);
     if(s.length) return { g:"auj", cle:j + s[0], r:s.length > 1 ? "séances " + heuresDites(s) : heureDite(s[0]),
-                          r2:fin === j ? "dernière" : "jusqu'au " + jourCourt(fin) };
+                          r2:fin === x.debut ? "" : fin === j ? "dernière" : "jusqu'au " + jourCourt(fin) };
     const pro = prochaineDe(x, j);
     if(x.debut <= j) return { g:"cours", cle:fin, r:"relâche",
                               r2:pro ? "reprise " + jourCourt(pro.j, true) : "jusqu'au " + jourCourt(fin) };
@@ -515,7 +515,7 @@ function voletJour(tous, etats){
     du.forEach(({ x }) => {
       /* Pour un spectacle, les heures de ce jour-là plutôt que l'état du jour. */
       const s = seancesDu(x, jj);
-      const e = x.type === "spec" ? { g:"auj", r:heuresDites(s), r2:finDe(x) === jj ? "dernière" : x.debut === jj ? "première" : "" }
+      const e = x.type === "spec" ? { g:"auj", r:heuresDites(s), r2:finDe(x) === x.debut ? "" : finDe(x) === jj ? "dernière" : x.debut === jj ? "première" : "" }
                                   : etats.get(x.id);
       const r = rowLog(x, e);
       r.style.setProperty("--c", couleurLog(x, etats.get(x.id)));
@@ -621,11 +621,16 @@ function vLogListe(){
 const CLE_LOG_CAL = "logistique.agendas.v1";
 let LOG_CAL = null;
 function logCal(){
-  if(!LOG_CAL) LOG_CAL = Object.assign({ ids:[], noms:{}, derniere:0 }, lireLocal(CLE_LOG_CAL, {}));
+  if(!LOG_CAL) LOG_CAL = Object.assign({ ids:[], noms:{}, spec:[], derniere:0 }, lireLocal(CLE_LOG_CAL, {}));
   return LOG_CAL;
 }
 const sauverCal = () => ecrireLocal(CLE_LOG_CAL, logCal());
 const CAL_AVANT = 30, CAL_APRES = 180;         // jours lus de part et d'autre d'aujourd'hui
+/* Un agenda peut être celui des spectacles : ses rendez-vous arrivent comme
+   des représentations, avec leur heure de jeu. Un nom qui le dit le coche
+   d'office au premier choix. */
+const estSpec = id => (logCal().spec || []).map(String).includes(String(id));
+const nomDeSpec = n => /spectacle|sceneflow|repr[ée]sentation|programmation|saison|tourn[ée]e/i.test(n || "");
 
 function syncAgenda(){
   if(!NET.agendaTel.dispo || !NET.agendaTel.autorise()) return { erreur:"autorisation refusée" };
@@ -644,6 +649,16 @@ function syncAgenda(){
                 source:"agenda:" + o.agenda, maj:1 };
     if(o.fin && o.fin !== o.debut) x.fin = o.fin;
     ["hdebut", "hfin", "lieu", "note"].forEach(k => { if(o[k]) x[k] = o[k]; });
+    /* Chaque rendez-vous est une représentation : un jour, une heure de jeu.
+       Sans heure, il reste un événement, sinon il ne s'afficherait nulle part. */
+    if(estSpec(o.agenda) && o.hdebut){
+      x.type = "spec"; x.seances = o.hdebut; delete x.cat;
+      if(o.hfin && o.hfin > o.hdebut){
+        const [a1, b1] = o.hdebut.split(":").map(Number), [a2, b2] = o.hfin.split(":").map(Number);
+        const mn = a2 * 60 + b2 - a1 * 60 - b1;
+        x.duree = Math.floor(mn / 60) + "h" + String(mn % 60).padStart(2, "0");
+      }
+    }
     return x;
   });
   const r = fusionner(fiches);
@@ -714,10 +729,13 @@ function carteAgenda(){
   }
 
   if(!LOGV.calChoix && cal.ids.length){
-    const noms = cal.ids.map(i => cal.noms[i] || "agenda " + i);
+    const nom = i => cal.noms[i] || "agenda " + i;
+    const specs = cal.ids.filter(estSpec), autres = cal.ids.filter(i => !estSpec(i));
     const quand = cal.derniere ? new Date(cal.derniere).toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" }) : "";
-    c.insertAdjacentHTML("beforeend", `<p class="muted">Suivi : <b>${esc(noms.join(", "))}</b>${
-      quand ? ` · lu à ${esc(quand)}` : ""}. Les rendez-vous arrivent dans la liste comme des événements.</p>`);
+    c.insertAdjacentHTML("beforeend", `<p class="muted">${
+      autres.length ? `Suivi : <b>${esc(autres.map(nom).join(", "))}</b>, en événements. ` : ""}${
+      specs.length ? `Spectacles : <b>${esc(specs.map(nom).join(", "))}</b>, chaque rendez-vous en représentation. ` : ""}${
+      quand ? `Lu à ${esc(quand)}.` : ""}</p>`);
     btn("Actualiser", actualiser, true);
     btn("Changer d'agendas", () => { LOGV.calChoix = true; render(); });
     c.append(g, msg);
@@ -731,20 +749,33 @@ function carteAgenda(){
       ? "Aucun agenda sur ce téléphone." : "Les agendas ne se lisent pas : " + esc((liste && liste.erreur) || "erreur") + "."}</p>`);
     return c;
   }
-  c.insertAdjacentHTML("beforeend", `<p class="muted">Cochez les agendas à suivre.</p>`);
+  c.insertAdjacentHTML("beforeend", `<p class="muted">Cochez les agendas à suivre. Le bouton
+    Spectacles désigne le calendrier des spectacles : ses rendez-vous s'affichent en représentations,
+    avec leur heure de jeu.</p>`);
   const cases = el("div", "lg-agendas");
   const suivis = cal.ids.map(String);
+  const specs = new Set((cal.ids.length ? cal.spec || [] : liste.filter(a => nomDeSpec(a.nom)).map(a => a.id)).map(String));
   liste.forEach(a => {
+    const r = el("div", "lg-ag");
     const l = el("label", "lg-coche");
     l.style.setProperty("--c", a.couleur || "var(--log)");
-    l.innerHTML = `<input type="checkbox" value="${esc(a.id)}"${suivis.includes(String(a.id)) ? " checked" : ""}>
+    l.innerHTML = `<input type="checkbox" value="${esc(a.id)}"${suivis.includes(String(a.id)) || specs.has(String(a.id)) ? " checked" : ""}>
       <span class="pt"></span><span class="nm"><b>${esc(a.nom || "Sans nom")}</b>${
       a.compte && a.compte !== a.nom ? `<i>${esc(a.compte)}</i>` : ""}</span>`;
-    cases.append(l);
+    const sp = el("button", "lg-spec", ic("spec") + "<span>Spectacles</span>");
+    sp.type = "button";
+    sp.dataset.id = String(a.id);
+    sp.setAttribute("aria-pressed", String(specs.has(String(a.id))));
+    /* Désigner un agenda comme celui des spectacles le fait aussi suivre. */
+    sp.onclick = () => { toucher(); const on = sp.getAttribute("aria-pressed") !== "true";
+      sp.setAttribute("aria-pressed", String(on)); if(on) l.querySelector("input").checked = true; };
+    r.append(l, sp);
+    cases.append(r);
   });
   c.append(cases);
   btn("Suivre ces agendas", () => {
     const ch = [...cases.querySelectorAll("input:checked")].map(i => i.value);
+    cal.spec = [...cases.querySelectorAll('.lg-spec[aria-pressed="true"]')].map(b => b.dataset.id).filter(i => ch.includes(i));
     cal.ids = ch;
     cal.noms = Object.fromEntries(liste.filter(a => ch.includes(String(a.id))).map(a => [String(a.id), a.nom]));
     cal.couleurs = Object.fromEntries(liste.map(a => [String(a.id), a.couleur]));
