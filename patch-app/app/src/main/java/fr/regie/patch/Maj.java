@@ -352,7 +352,7 @@ public class Maj {
         Network n = reseauInternet();
         HttpURLConnection c = (HttpURLConnection)
                 (n != null ? n.openConnection(u) : u.openConnection());
-        c.setConnectTimeout(10000);
+        c.setConnectTimeout(20000);
         c.setReadTimeout(30000);
         c.setUseCaches(false);
         c.setInstanceFollowRedirects(true);
