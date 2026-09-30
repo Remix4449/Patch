@@ -31,8 +31,11 @@ const logId = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 const LOG_TYPES = {
   ev:   { t:"Événement", pl:"Événements", un:"un événement", i:"camion", c:"var(--log)",
           debut:"Date", fin:"Jusqu'au", sup:"Retirer cet événement" },
-  spec: { t:"Spectacle", pl:"Spectacles", un:"un spectacle", i:"spec", c:"var(--spec)",
-          debut:"Première", fin:"Dernière", sup:"Retirer ce spectacle" },
+  /* Un spectacle est un événement comme un autre : même nom, même couleur,
+     même bouton. Le carnet reste pour les fiches déjà notées avec leurs
+     heures de jeu (`ferme` : on n'en crée plus). */
+  spec: { t:"Événement", pl:"Événements", un:"un événement", i:"camion", c:"var(--log)", ferme:true, comme:"ev",
+          debut:"Première", fin:"Dernière", sup:"Retirer cet événement" },
   pret: { t:"Prêt", pl:"Prêts", un:"un prêt", i:"pret", c:"var(--pret)",
           debut:"Sortie", fin:"Retour prévu", sup:"Retirer ce prêt" },
   stag: { t:"Stagiaire", pl:"Stagiaires", un:"un stagiaire", i:"stag", c:"var(--stag)",
@@ -47,13 +50,13 @@ const LOG_CATS = ["Livraison", "Enlèvement", "Montage", "Démontage", "Transpor
 const LOG_CHAMPS = {
   ev: [
     { c:"titre", l:"Quoi", ph:"Livraison des pendrillons", req:true },
-    { c:"cat", l:"Catégorie", sel:LOG_CATS },
+    { c:"cat", l:"Catégorie", sel:LOG_CATS, seg:true },
     { rang:[{ c:"debut", l:"Date", type:"date", req:true }, { c:"hdebut", l:"Heure", type:"time" }] },
     { rang:[{ c:"fin", l:"Jusqu'au", type:"date" }, { c:"hfin", l:"Heure de fin", type:"time" }] },
     { c:"lieu", l:"Lieu", ph:"Quai de déchargement" },
-    { c:"spectacle", l:"Spectacle", ph:"Nom du spectacle", liste:"spectacles" },
-    { c:"contact", l:"Contact", ph:"Nom, téléphone" },
-    { c:"note", l:"Note", zone:true, ph:"Ce qu'il faut savoir" },
+    { c:"spectacle", l:"Spectacle", ph:"Nom du spectacle", liste:"spectacles", plus:true },
+    { c:"contact", l:"Contact", ph:"Nom, téléphone", plus:true },
+    { c:"note", l:"Note", zone:true, ph:"Ce qu'il faut savoir", plus:true },
     { c:"fait", l:"Fait", coche:true }
   ],
   /* Un spectacle court de sa première à sa dernière ; il se joue chaque jour
@@ -71,14 +74,15 @@ const LOG_CHAMPS = {
     { c:"note", l:"Note", zone:true, ph:"Service, montage, équipe…" }
   ],
   pret: [
-    { c:"titre", l:"Matériel", ph:"Découpe 614SX", req:true, liste:"materiel" },
-    { rang:[{ c:"qte", l:"Quantité", ph:"1", mode:"numeric" },
-            { c:"sens", l:"Sens", sel:["Prêté à", "Emprunté à"] }] },
+    /* Le matériel s'écrit comme on le dit, quantités comprises : « 2x 613sx
+       4x F1 ». Ce que le parc connaît est reconnu sous le champ. */
+    { c:"titre", l:"Matériel", ph:"2x 613sx, 4x F1", req:true, materiel:true },
+    { c:"sens", l:"Sens", sel:["Prêté à", "Emprunté à"], seg:true },
     { c:"tiers", l:"Qui", ph:"Théâtre, compagnie, personne", req:true },
     { rang:[{ c:"debut", l:"Sortie", type:"date", req:true }, { c:"fin", l:"Retour prévu", type:"date" }] },
-    { c:"contact", l:"Contact", ph:"Nom, téléphone" },
-    { c:"spectacle", l:"Pour", ph:"Spectacle, événement", liste:"spectacles" },
-    { c:"note", l:"Note", zone:true, ph:"État au départ, numéros de série…" },
+    { c:"contact", l:"Contact", ph:"Nom, téléphone", plus:true },
+    { c:"spectacle", l:"Pour", ph:"Spectacle, événement", liste:"spectacles", plus:true },
+    { c:"note", l:"Note", zone:true, ph:"État au départ, numéros de série…", plus:true },
     { c:"fait", l:"Rendu", coche:true }
   ],
   stag: [
@@ -86,8 +90,8 @@ const LOG_CHAMPS = {
     { c:"formation", l:"École ou formation", ph:"BTS, CFPTS, licence pro…" },
     { rang:[{ c:"service", l:"Service", ph:"Lumière" }, { c:"tuteur", l:"Tuteur", ph:"Qui l'encadre" }] },
     { rang:[{ c:"debut", l:"Arrivée", type:"date", req:true }, { c:"fin", l:"Départ", type:"date" }] },
-    { c:"contact", l:"Contact", ph:"Téléphone, mail" },
-    { c:"note", l:"Note", zone:true, ph:"Horaires, convention, objectifs…" }
+    { c:"contact", l:"Contact", ph:"Téléphone, mail", plus:true },
+    { c:"note", l:"Note", zone:true, ph:"Horaires, convention, objectifs…", plus:true }
   ]
 };
 const champsPlats = t => LOG_CHAMPS[t].flatMap(f => f.rang || [f]);
@@ -234,7 +238,50 @@ function logSous(x){
     return [x.formation, x.service, x.tuteur && "avec " + x.tuteur].filter(Boolean).join(" · ") || "Stagiaire";
   return [x.cat, x.lieu, x.spectacle].filter(Boolean).join(" · ") || "Événement";
 }
-const logTitre = x => x.type === "pret" && x.qte && x.qte !== "1" ? x.qte + " × " + x.titre : x.titre;
+/* Un prêt se lit comme le parc l'appelle : « 2 × 613 SX · 4 × F1 ». Les
+   fiches d'avant gardent leur champ quantité. */
+function logTitre(x){
+  if(x.type !== "pret") return x.titre;
+  if(x.qte && x.qte !== "1") return x.qte + " × " + x.titre;
+  const l = materielLu(x.titre);
+  if(!l.length || (l.length === 1 && l[0].q === 1)) return l.length && l[0].court ? l[0].court : x.titre;
+  return l.map(o => o.q + " × " + (o.court || o.texte)).join(" · ");
+}
+
+/* --------------------------- le matériel écrit -------------------------- */
+/* « 2x 613sx 4xf1 », « 3 × PC 1 kW, pendrillons » : chaque morceau garde sa
+   quantité (1 sans chiffre) et se cherche dans le parc, sans tenir compte des
+   espaces ni de la casse. Un morceau que le parc ne connaît pas reste tel
+   qu'écrit. */
+const compact = t => plat(t).replace(/[^a-z0-9]/g, "");
+function materielLu(texte){
+  const parc = [
+    ...PROJECTEURS.map(p => ({ nom:p.marque + " " + p.nom, court:p.nom, cles:[p.nom, p.marque + p.nom], nb:p.nb })),
+    ...MACHINERIE.map(m => ({ nom:m.nom, court:m.nom, cles:[m.nom], nb:m.nb })),
+    ...HAUTEURS.map(h => ({ nom:h.nom, court:h.nom, cles:[h.nom], nb:h.nb }))
+  ].sort((a, b) => b.cles[0].length - a.cles[0].length);    // « 614 SX » avant « 614 S »
+  const trouver = q => {
+    const c = compact(q);
+    if(c.length < 2) return null;
+    return parc.find(p => p.cles.some(k => compact(k) === c))
+        || parc.find(p => p.cles.some(k => { const k2 = compact(k); return k2.length > 2 && (k2.includes(c) || c.includes(k2)); }));
+  };
+  const out = [];
+  String(texte || "").split(/[,;+\n]|\s(?:et|avec)\s/i).forEach(bloc => {
+    /* Une quantité en tête de morceau : « 2x », « 2 x », « 2× », « x2 » à la fin. */
+    const morceaux = bloc.split(/(?=(?:^|\s)\d{1,3}\s*[x×*]\s*[^\s\d])/i);
+    morceaux.forEach(m => {
+      let t = m.trim(), q = 1, r;
+      if(!t) return;
+      if((r = t.match(/^(\d{1,3})\s*[x×*]\s*(.+)$/i))){ q = +r[1]; t = r[2]; }
+      else if((r = t.match(/^(.+?)\s*[x×*]\s*(\d{1,3})$/i))){ q = +r[2]; t = r[1]; }
+      else if((r = t.match(/^(\d{1,3})\s+(\D.*)$/))){ q = +r[1]; t = r[2]; }
+      const p = trouver(t);
+      out.push({ q, texte:t.trim(), nom:p ? p.nom : "", court:p ? p.court : "", nb:p && p.nb !== "" && p.nb != null ? +p.nb : null });
+    });
+  });
+  return out.filter(o => o.texte);
+}
 
 /* ------------------------------- la liste ------------------------------- */
 const LOGV = { type:null, fini:false, msg:"", mois:null, jour:null, plus:false };
@@ -343,8 +390,10 @@ function vLogMois(){
   const d = el("div", "lg cal");
   /* Changer de mois choisit aussi un jour de ce mois : aujourd'hui s'il y
      est, sinon le premier. */
+  /* Le mois suivant arrive du côté d'où on va : la grille glisse et s'éclaire
+     au lieu d'être remplacée d'un coup. */
   const aller = n => { const t = iso(new Date(a, m - 1 + n, 1)); LOGV.mois = t.slice(0, 7);
-    LOGV.jour = j.slice(0, 7) === LOGV.mois ? j : t; render(); };
+    LOGV.jour = j.slice(0, 7) === LOGV.mois ? j : t; LOGV.sens = n; render(); };
   d.append(teteLog(MOIS[m - 1].replace(/^./, c => c.toUpperCase()) + (a !== new Date().getFullYear() ? " " + a : ""), aller));
 
   const tous = logVivants().filter(x => x.debut);
@@ -382,11 +431,11 @@ function vLogMois(){
         + (jj === LOGV.jour ? " choisi" : ""));
       f.style.gridColumn = String(i + 2);
       f.setAttribute("aria-label", jourCourt(jj, true));
-      /* Un premier toucher choisit le jour ; un second sur le même jour
-         déplie le volet, avec ses fiches et les ajouts. */
+      /* Toucher un jour l'ouvre : le volet se déplie sur son contenu. */
       f.onclick = () => { toucher();
-        if(jj === LOGV.jour && !LOGV.volet){ LOGV.volet = true; ecrireLocal(CLE_LOG_VOLET, true); }
-        LOGV.jour = jj; if(jj.slice(0, 7) !== mois) LOGV.mois = jj.slice(0, 7); render(); };
+        LOGV.jour = jj; LOGV.volet = true; ecrireLocal(CLE_LOG_VOLET, true);
+        if(jj.slice(0, 7) !== mois) LOGV.mois = jj.slice(0, 7);
+        render(); };
       f.append(el("span", "cal-n" + (jj === j ? " auj" : ""), String(+jj.slice(8))));
       sem.append(f);
     });
@@ -454,6 +503,7 @@ function vLogMois(){
   };
   const dessiner = (L, h) => corps.replaceChildren(...lundis.map(l => semaine(l, L, h)));
   dessiner(CAL_LIGNES, 0);
+  if(LOGV.sens){ corps.classList.add(LOGV.sens > 0 ? "vient-d" : "vient-g"); LOGV.sens = 0; }
 
   /* Un glissement du doigt change de mois, comme dans l'agenda. */
   let x0 = null, y0 = null;
@@ -514,7 +564,7 @@ function voletJour(tous, etats){
   /* Les ajouts d'abord : c'est ce qu'on vient chercher en dépliant. */
   const c = el("div", "cal-contenu");
   const aj = el("div", "lg-ajouts");
-  Object.entries(LOG_TYPES).forEach(([k, t]) => {
+  Object.entries(LOG_TYPES).filter(([, t]) => !t.ferme).forEach(([k, t]) => {
     const b = el("button", "ajout", ic("plus") + "<span>" + esc(t.t) + "</span>");
     b.style.setProperty("--c", t.c);
     b.onclick = () => { toucher(); go({ v:"logf", i:null, k, p:jj }); };
@@ -567,7 +617,7 @@ function vLogListe(){
 
   /* Les trois ajouts restent en haut : c'est la moitié de ce qu'on vient faire. */
   const aj = el("div", "lg-ajouts");
-  Object.entries(LOG_TYPES).forEach(([k, t]) => {
+  Object.entries(LOG_TYPES).filter(([, t]) => !t.ferme).forEach(([k, t]) => {
     const b = el("button", "ajout", ic("plus") + "<span>" + esc(t.t) + "</span>");
     b.style.setProperty("--c", t.c);
     b.onclick = () => { toucher(); go({ v:"logf", i:null, k }); };
@@ -577,8 +627,9 @@ function vLogListe(){
 
   d.append(recherche("log", "Nom, matériel, lieu, école…"));
   const p = el("div", "pills");
-  [[null, "Tout", tous.length], ...Object.entries(LOG_TYPES).map(([k, t]) =>
-      [k, t.pl, tous.filter(x => x.type === k).length])].forEach(([k, lab, n]) => {
+  const carnet = x => LOG_TYPES[x.type].comme || x.type;
+  [[null, "Tout", tous.length], ...Object.entries(LOG_TYPES).filter(([, t]) => !t.ferme).map(([k, t]) =>
+      [k, t.pl, tous.filter(x => carnet(x) === k).length])].forEach(([k, lab, n]) => {
     const b = el("button", "pill", esc(lab) + (n ? ` <i>${n}</i>` : ""));
     b.setAttribute("aria-pressed", String(LOGV.type === k));
     b.onclick = () => { toucher(); LOGV.type = k; render(); };
@@ -587,7 +638,7 @@ function vLogListe(){
   d.append(p);
 
   const q = plat(S.qs.log || "");
-  const vus = etats.filter(({ x }) => (!LOGV.type || x.type === LOGV.type)
+  const vus = etats.filter(({ x }) => (!LOGV.type || carnet(x) === LOGV.type)
     && (!q || plat([x.titre, x.lieu, x.tiers, x.tuteur, x.formation, x.service, x.spectacle,
                     x.cat, x.contact, x.note].join(" ")).includes(q)));
 
@@ -632,16 +683,12 @@ function vLogListe(){
 const CLE_LOG_CAL = "logistique.agendas.v1";
 let LOG_CAL = null;
 function logCal(){
-  if(!LOG_CAL) LOG_CAL = Object.assign({ ids:[], noms:{}, spec:[], derniere:0 }, lireLocal(CLE_LOG_CAL, {}));
+  if(!LOG_CAL) LOG_CAL = Object.assign({ ids:[], noms:{}, derniere:0 }, lireLocal(CLE_LOG_CAL, {}));
   return LOG_CAL;
 }
 const sauverCal = () => ecrireLocal(CLE_LOG_CAL, logCal());
 const CAL_AVANT = 30, CAL_APRES = 180;         // jours lus de part et d'autre d'aujourd'hui
-/* Un agenda peut être celui des spectacles : ses rendez-vous arrivent comme
-   des représentations, avec leur heure de jeu. Un nom qui le dit le coche
-   d'office au premier choix. */
-const estSpec = id => (logCal().spec || []).map(String).includes(String(id));
-const nomDeSpec = n => /spectacle|sceneflow|repr[ée]sentation|programmation|saison|tourn[ée]e/i.test(n || "");
+
 
 function syncAgenda(){
   if(!NET.agendaTel.dispo || !NET.agendaTel.autorise()) return { erreur:"autorisation refusée" };
@@ -660,16 +707,6 @@ function syncAgenda(){
                 source:"agenda:" + o.agenda, maj:1 };
     if(o.fin && o.fin !== o.debut) x.fin = o.fin;
     ["hdebut", "hfin", "lieu", "note"].forEach(k => { if(o[k]) x[k] = o[k]; });
-    /* Chaque rendez-vous est une représentation : un jour, une heure de jeu.
-       Sans heure, il reste un événement, sinon il ne s'afficherait nulle part. */
-    if(estSpec(o.agenda) && o.hdebut){
-      x.type = "spec"; x.seances = o.hdebut; delete x.cat;
-      if(o.hfin && o.hfin > o.hdebut){
-        const [a1, b1] = o.hdebut.split(":").map(Number), [a2, b2] = o.hfin.split(":").map(Number);
-        const mn = a2 * 60 + b2 - a1 * 60 - b1;
-        x.duree = Math.floor(mn / 60) + "h" + String(mn % 60).padStart(2, "0");
-      }
-    }
     return x;
   });
   const r = fusionner(fiches);
@@ -740,13 +777,10 @@ function carteAgenda(){
   }
 
   if(!LOGV.calChoix && cal.ids.length){
-    const nom = i => cal.noms[i] || "agenda " + i;
-    const specs = cal.ids.filter(estSpec), autres = cal.ids.filter(i => !estSpec(i));
+    const noms = cal.ids.map(i => cal.noms[i] || "agenda " + i);
     const quand = cal.derniere ? new Date(cal.derniere).toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" }) : "";
-    c.insertAdjacentHTML("beforeend", `<p class="muted">${
-      autres.length ? `Suivi : <b>${esc(autres.map(nom).join(", "))}</b>, en événements. ` : ""}${
-      specs.length ? `Spectacles : <b>${esc(specs.map(nom).join(", "))}</b>, chaque rendez-vous en représentation. ` : ""}${
-      quand ? `Lu à ${esc(quand)}.` : ""}</p>`);
+    c.insertAdjacentHTML("beforeend", `<p class="muted">Suivi : <b>${esc(noms.join(", "))}</b>${
+      quand ? ` · lu à ${esc(quand)}` : ""}. Les rendez-vous arrivent dans l'agenda comme des événements.</p>`);
     btn("Actualiser", actualiser, true);
     btn("Changer d'agendas", () => { LOGV.calChoix = true; render(); });
     c.append(g, msg);
@@ -760,33 +794,21 @@ function carteAgenda(){
       ? "Aucun agenda sur ce téléphone." : "Les agendas ne se lisent pas : " + esc((liste && liste.erreur) || "erreur") + "."}</p>`);
     return c;
   }
-  c.insertAdjacentHTML("beforeend", `<p class="muted">Cochez les agendas à suivre. Le bouton
-    Spectacles désigne le calendrier des spectacles : ses rendez-vous s'affichent en représentations,
-    avec leur heure de jeu.</p>`);
+  c.insertAdjacentHTML("beforeend", `<p class="muted">Cochez les agendas à suivre, celui des
+    spectacles compris.</p>`);
   const cases = el("div", "lg-agendas");
   const suivis = cal.ids.map(String);
-  const specs = new Set((cal.ids.length ? cal.spec || [] : liste.filter(a => nomDeSpec(a.nom)).map(a => a.id)).map(String));
   liste.forEach(a => {
-    const r = el("div", "lg-ag");
     const l = el("label", "lg-coche");
     l.style.setProperty("--c", a.couleur || "var(--log)");
-    l.innerHTML = `<input type="checkbox" value="${esc(a.id)}"${suivis.includes(String(a.id)) || specs.has(String(a.id)) ? " checked" : ""}>
+    l.innerHTML = `<input type="checkbox" value="${esc(a.id)}"${suivis.includes(String(a.id)) ? " checked" : ""}>
       <span class="pt"></span><span class="nm"><b>${esc(a.nom || "Sans nom")}</b>${
       a.compte && a.compte !== a.nom ? `<i>${esc(a.compte)}</i>` : ""}</span>`;
-    const sp = el("button", "lg-spec", ic("spec") + "<span>Spectacles</span>");
-    sp.type = "button";
-    sp.dataset.id = String(a.id);
-    sp.setAttribute("aria-pressed", String(specs.has(String(a.id))));
-    /* Désigner un agenda comme celui des spectacles le fait aussi suivre. */
-    sp.onclick = () => { toucher(); const on = sp.getAttribute("aria-pressed") !== "true";
-      sp.setAttribute("aria-pressed", String(on)); if(on) l.querySelector("input").checked = true; };
-    r.append(l, sp);
-    cases.append(r);
+    cases.append(l);
   });
   c.append(cases);
   btn("Suivre ces agendas", () => {
     const ch = [...cases.querySelectorAll("input:checked")].map(i => i.value);
-    cal.spec = [...cases.querySelectorAll('.lg-spec[aria-pressed="true"]')].map(b => b.dataset.id).filter(i => ch.includes(i));
     cal.ids = ch;
     cal.noms = Object.fromEntries(liste.filter(a => ch.includes(String(a.id))).map(a => [String(a.id), a.nom]));
     cal.couleurs = Object.fromEntries(liste.map(a => [String(a.id), a.couleur]));
@@ -950,7 +972,6 @@ function typeLu(v){
   const s = plat(v);
   if(/^(pret|emprunt|materiel)/.test(s)) return "pret";
   if(/^stag/.test(s)) return "stag";
-  if(/^(spec|repres)/.test(s)) return "spec";
   return "ev";
 }
 
@@ -1136,6 +1157,10 @@ function vLogFiche(){
     const v = src ? src[f.c] : (f.c === "debut" ? r.p || logAuj() : f.sel ? f.sel[0] : "");
     if(f.coche) return `<label class="lg-coche"><input type="checkbox" id="${id}"${src && src.fait ? " checked" : ""}>
       <span>${esc(f.l)}</span></label>`;
+    /* Peu de choix : des boutons côte à côte plutôt qu'un menu à ouvrir. */
+    if(f.seg) return `<div class="f"><label>${esc(f.l)}</label><div class="lg-seg" id="${id}" data-v="${esc(v || f.sel[0])}">${
+      (v && !f.sel.includes(v) ? [v, ...f.sel] : f.sel).map(o => `<button type="button" data-o="${esc(o)}" aria-pressed="${
+        o === (v || f.sel[0])}">${esc(o)}</button>`).join("")}</div></div>`;
     if(f.sel) return `<div class="f"><label for="${id}">${esc(f.l)}</label><select id="${id}">${
       (v && !f.sel.includes(v) ? [v, ...f.sel] : f.sel).map(o => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></div>`;
     /* Les jours de la semaine, un bouton chacun ; la valeur est la suite des
@@ -1150,10 +1175,41 @@ function vLogFiche(){
         autocomplete="off"${f.mode ? ` inputmode="${f.mode}"` : ""}${f.liste ? ` list="dl-${id}"` : ""}>${
       f.liste ? `<datalist id="dl-${id}">${listes[f.liste]().slice(0, 300).map(o =>
         `<option value="${esc(o)}"></option>`).join("")}</datalist>` : ""}${
-      f.aide ? `<p class="lg-aide">${esc(f.aide)}</p>` : ""}</div>`;
+      f.aide ? `<p class="lg-aide">${esc(f.aide)}</p>` : ""}${
+      f.materiel ? `<div class="lg-reco" id="reco-${id}"></div>` : ""}</div>`;
   };
-  LOG_CHAMPS[type].forEach(f => c.insertAdjacentHTML("beforeend",
-    f.rang ? `<div class="ff">${f.rang.map(champ).join("")}</div>` : champ(f)));
+  /* La fiche tient sur l'écran : l'essentiel en clair, le reste (contact,
+     note…) replié sous une ligne, déplié d'office s'il est déjà rempli. La
+     case « fait » n'a de sens qu'une fois la fiche créée. */
+  const rendu = f => f.rang ? `<div class="ff">${f.rang.map(champ).join("")}</div>` : champ(f);
+  const vus = LOG_CHAMPS[type].filter(f => !(f.coche && neuf));
+  vus.filter(f => !f.plus).forEach(f => c.insertAdjacentHTML("beforeend", rendu(f)));
+  const plus = vus.filter(f => f.plus);
+  if(plus.length){
+    const rempli = src && plus.some(f => src[f.c]);
+    c.insertAdjacentHTML("beforeend", `<details class="lg-plus"${rempli ? " open" : ""}><summary>${
+      esc("Plus : " + plus.map(f => f.l.toLowerCase()).join(", "))}</summary>${plus.map(rendu).join("")}</details>`);
+  }
+  c.querySelectorAll(".lg-seg button").forEach(b => b.onclick = () => {
+    toucher();
+    const g = b.parentNode;
+    g.querySelectorAll("button").forEach(n => n.setAttribute("aria-pressed", String(n === b)));
+    g.dataset.v = b.dataset.o;
+  });
+  /* Ce que le parc reconnaît dans le matériel écrit, à mesure qu'on tape. */
+  const mat = c.querySelector("#lg-titre");
+  const reco = c.querySelector("#reco-lg-titre");
+  if(mat && reco){
+    const montrer = () => {
+      const l = materielLu(mat.value);
+      reco.innerHTML = l.map(o => `<span class="${o.nom ? "ok" : ""}"><b>${o.q} ×</b> ${esc(o.nom || o.texte)}${
+        o.nom ? (o.nb != null ? `<i>${o.q > o.nb ? "plus que les " : ""}${o.nb} au parc</i>` : "")
+              : "<i>pas au parc</i>"}</span>`).join("");
+      reco.hidden = !l.length;
+    };
+    mat.addEventListener("input", montrer);
+    montrer();
+  }
   c.querySelectorAll(".lg-jours button").forEach(b => b.onclick = () => {
     toucher();
     b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
@@ -1173,8 +1229,9 @@ function vLogFiche(){
     const o = { id:src ? src.id : logId(), type, maj:Date.now() }, manque = [];
     champsPlats(type).forEach(f => {
       const n = c.querySelector("#lg-" + f.c);
+      if(!n) return;
       if(f.coche){ if(n.checked) o.fait = true; return; }
-      const v = (f.jours ? n.dataset.v : n.value).trim();
+      const v = (f.jours || f.seg ? n.dataset.v : n.value).trim();
       if(v) o[f.c] = v; else if(f.req) manque.push(f.l);
     });
     /* L'heure de la première séance sert au tri et à l'accueil. */

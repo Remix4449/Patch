@@ -15,7 +15,7 @@
 .lg-point span{display:block;margin-top:5px;font-size:11px;line-height:1.2;color:var(--ink2)}
 .lg-point .ko b{color:var(--ko)}
 
-.lg-ajouts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.lg-ajouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .lg-ajouts .ajout{margin-top:0;padding:12px 6px;border-color:var(--c);color:var(--c);min-height:48px}
 
 .lg .pill i{font-style:normal;font-family:var(--mono);opacity:.7;margin-left:3px}
@@ -97,7 +97,7 @@
 /* La grille : une colonne étroite pour le numéro de semaine, sept pour les
    jours ; chaque semaine est sa propre grille, pour que les barres courent
    d'un jour à l'autre sur une même ligne. */
-.cal-grille{margin:0 -8px;user-select:none;-webkit-user-select:none}
+.cal-grille{margin:0 -8px;overflow:hidden;user-select:none;-webkit-user-select:none}
 .cal-jours,.cal-sem{display:grid;grid-template-columns:22px repeat(7,minmax(0,1fr));column-gap:3px}
 .cal-jours span{text-align:center;font:600 11.5px/1 var(--body);color:var(--ink2);padding:2px 0 6px}
 .cal-jours span.auj{color:var(--log)}
@@ -156,12 +156,56 @@
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .lg-jours button[aria-pressed="true"]{color:#0B0C10} }
 :root[data-theme="dark"] .lg-jours button[aria-pressed="true"]{color:#0B0C10}
 
-/* Un agenda par ligne, avec de quoi le désigner comme celui des spectacles. */
-.lg-ag{display:flex;align-items:center;gap:8px}
-.lg-ag .lg-coche{flex:1;min-width:0}
-.lg-spec{display:flex;align-items:center;gap:5px;flex:none;border:1.5px solid var(--line);background:var(--bg);
-  border-radius:99px;padding:7px 10px;cursor:pointer;font:700 12px/1 var(--body);color:var(--ink2);min-height:36px}
-.lg-spec .ic{width:15px;height:15px}
-.lg-spec[aria-pressed="true"]{border-color:var(--spec);background:var(--spec);color:#fff}
-@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .lg-spec[aria-pressed="true"]{color:#0B0C10} }
-:root[data-theme="dark"] .lg-spec[aria-pressed="true"]{color:#0B0C10}
+
+/* Les choix courts en boutons côte à côte. */
+.lg-seg{display:flex;flex-wrap:wrap;gap:6px}
+.lg-seg button{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;padding:10px 14px;cursor:pointer;
+  font:700 13.5px/1 var(--body);color:var(--ink2);min-height:42px}
+.lg-seg button[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#fff}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .lg-seg button[aria-pressed="true"]{color:#0B0C10} }
+:root[data-theme="dark"] .lg-seg button[aria-pressed="true"]{color:#0B0C10}
+
+/* Ce que le parc reconnaît dans le matériel écrit. */
+.lg-reco{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.lg-reco span{display:inline-flex;align-items:baseline;gap:5px;border-radius:10px;padding:7px 10px;
+  background:var(--sur);border:1.5px dashed var(--line);font-size:13px;color:var(--ink2)}
+.lg-reco span.ok{border-style:solid;border-color:var(--c);color:var(--ink)}
+.lg-reco b{font:700 13px/1 var(--mono)}
+.lg-reco i{font-style:normal;font-size:11.5px;color:var(--ink3)}
+
+/* Enregistrer reste à portée : collé au-dessus des onglets, où qu'on soit
+   dans la fiche. */
+.lg-fiche .fin{position:sticky;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:5;
+  background:var(--bg);margin:0 -16px;padding:10px 16px;border-top:1px solid var(--line)}
+
+/* La fiche tient sur un écran : champs plus serrés, catégories sur une
+   ligne qui défile, le secondaire replié. */
+.lg-fiche .bar{padding:8px 0 8px;margin-bottom:8px}
+.lg-fiche .card{padding:12px 14px 4px}
+.lg-fiche .f{gap:4px;margin-bottom:10px}
+.lg-fiche .f input,.lg-fiche .f select{padding:9px 12px;font-size:16px;min-height:44px}
+.lg-fiche .f input[type="date"],.lg-fiche .f input[type="time"]{min-height:44px;font-size:14.5px}
+.lg-fiche .f textarea{padding:9px 12px}
+.lg-fiche .ff{gap:8px}
+.lg-fiche .lg-seg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px}
+.lg-fiche .lg-seg::-webkit-scrollbar{display:none}
+.lg-fiche .lg-seg button{flex:none;padding:9px 13px;min-height:40px}
+.lg-fiche .lg-reco{margin-top:6px}
+.lg-fiche .lg-reco span{padding:5px 9px}
+.lg-plus{margin:0 0 10px}
+.lg-plus summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:44px;
+  font:700 13px/1.2 var(--body);color:var(--ink2)}
+.lg-plus summary::-webkit-details-marker{display:none}
+.lg-plus summary::before{content:"+";display:grid;place-items:center;width:24px;height:24px;border-radius:99px;
+  border:1.5px solid var(--line);font:700 15px/1 var(--body);flex:none}
+.lg-plus[open] summary::before{content:"−"}
+.lg-fiche .fin{padding:8px 16px;margin-top:6px}
+.lg-fiche .fin button{padding:12px}
+
+/* Le changement de mois : la grille entre du côté d'où l'on vient. */
+@keyframes cal-d{from{opacity:.35;transform:translateX(7%)}to{opacity:1;transform:none}}
+@keyframes cal-g{from{opacity:.35;transform:translateX(-7%)}to{opacity:1;transform:none}}
+.cal-corps.vient-d{animation:cal-d .26s cubic-bezier(.22,.7,.3,1)}
+.cal-corps.vient-g{animation:cal-g .26s cubic-bezier(.22,.7,.3,1)}
+.cal-tete h2{transition:opacity .2s}
+@media (prefers-reduced-motion:reduce){ .cal-corps.vient-d,.cal-corps.vient-g{animation:none} }
