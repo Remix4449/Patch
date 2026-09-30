@@ -70,7 +70,8 @@ Quelques détails qui ont leur importance :
 | Écran | Fonctionnement |
 | --- | --- |
 | Projecteurs, machinerie, hauteurs | Recherche, filtres, et l'inventaire se modifie depuis l'application |
-| Manuels | Bibliothèque de notes de fonctionnement, une fiche par appareil, hors ligne ; range aussi des fiches de référence (type « Convertisseur » : distance, température, volume) |
+| Manuels | Bibliothèque de notes de fonctionnement, une fiche par appareil, hors ligne (onglet Outils, groupe Références) |
+| Convertisseur | Distance, température et volume : une valeur, son unité, la réponse dans toutes les autres, et les repères usuels |
 | Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé, l'ajout d'appareils et la télécommande DMX en volets, l'impression |
 | Gélatines | 262 Lee (chromaticité publiée par Lee), 165 GAM et 265 Rosco avec leurs équivalents Lee ; recherche, Lee proches, mélange RGBWA, RGBW, RGB ou CMY |
 | LED | Puissance et courant d'un ruban avec règle d'usage sur la réinjection, résistance série d'une LED seule, code couleur d'une résistance (norme E12) |
@@ -110,7 +111,7 @@ haut.
 
 ## La bibliothèque de manuels
 
-L'écran **Manuels**, dans le parc, a pris la place de l'écran MDG, dont la
+L'écran **Manuels**, dans les outils (groupe Références), a pris la place de l'écran MDG, dont la
 procédure est devenue la première fiche. Les fiches sont rangées par type,
 filtrées par le bandeau, cherchées en plein texte — « purge » trouve la MDG —
 et la recherche de l'accueil les trouve aussi.

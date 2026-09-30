@@ -1,6 +1,6 @@
 # Bibliothèque de manuels
 
-Une fiche par appareil, dans ce dossier. L'écran **Manuels** (onglet Parc) les
+Une fiche par appareil, dans ce dossier. L'écran **Manuels** (onglet Outils, groupe Références) les
 range par type, les cherche en plein texte, et la recherche de l'accueil les
 trouve aussi. Les fiches sont livrées dans l'APK : elles se lisent sans réseau,
 et une fiche nouvelle arrive sur le téléphone avec la mise à jour suivante.

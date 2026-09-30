@@ -10,7 +10,7 @@
 --------------------------------------------------------------------------- */
 
 const FICHES_MANUELS = [
-  "mdg", "distance", "temperature", "volume"
+  "mdg"
 ];
 
 const MANUELS = [];

@@ -21,7 +21,7 @@
     --proj:#2F4BFF; --mach:#008379; --haut:#D92085; --mdg:#7A3FF2; --div:#6B6300;
     --dmx:#B45E16; --gel:#C2185B; --ndi:#0E7BC4; --net:#118542; --art:#5B3FD6;
     --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757; --cab:#A34E1D; --rig:#3C5A73;
-    --bil:#8A1F2B; --led:#3A8400; --elec:#243B6B; --sub:#0A6E7C;
+    --bil:#8A1F2B; --led:#3A8400; --elec:#243B6B; --sub:#0A6E7C; --conv:#7A4A1E;
     /* Assombris : en petites capitales sur une surface claire, ils passaient
        sous le seuil lisible — ici et partout où ils servent de texte. */
     --ok:#0C6E36; --ko:#B01F1A;
@@ -36,7 +36,7 @@
       --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
       --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF; --div:#D6C84E;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8;
+      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8; --conv:#E0A36B;
       --ok:#45C47B; --ko:#FF6B63;
     }
   }
@@ -45,7 +45,7 @@
     --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
     --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF; --div:#D6C84E;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8;
+    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8; --conv:#E0A36B;
     --ok:#45C47B; --ko:#FF6B63;
   }
   *{box-sizing:border-box}
@@ -916,6 +916,28 @@
   .sub .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
   .sub .f input:focus{border-color:var(--sub)}
   .sub .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
+
+  /* --------------------------------- convertisseur ------------------------ */
+  .conv .res{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px;
+       box-shadow:inset 3px 0 0 var(--conv)}
+  .conv .res .kick{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3)}
+  .conv .res .big{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+  .conv .res .big b{font:600 38px/1 var(--mono);color:var(--conv);font-variant-numeric:tabular-nums;
+       overflow-wrap:anywhere}
+  .conv .res .big span{font:600 16px/1 var(--mono);color:var(--ink2)}
+  .conv .res>p{margin:0 0 6px;font-size:13.5px;color:var(--ink2)}
+  .conv .kv b{font-variant-numeric:tabular-nums}
+  .conv .kv.on b{color:var(--conv)}
+  .conv .f input:focus,.conv .f select:focus{border-color:var(--conv)}
+  .conv .deux{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .conv .deux .f{min-width:0}
+  .conv .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px}
+  .conv .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:0 4px;min-height:44px;cursor:pointer;
+       font:700 13px/1 var(--body);color:var(--ink2);white-space:nowrap}
+  .conv .onglets button[aria-selected="true"]{background:var(--conv);color:var(--bg)}
+  .conv .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
+  .conv .man-note{margin:4px 16px 16px;border-left-color:var(--conv)}
 </style>
 <link rel="stylesheet" href="logistique.css">
 </head>
@@ -963,6 +985,7 @@
   <symbol id="i-bil" viewBox="0 0 24 24"><path d="M3 2.5v19M3 20.5h18"/><rect x="6" y="13" width="3.6" height="7.5" rx="1"/><rect x="10.8" y="8.5" width="3.6" height="12" rx="1"/><rect x="15.6" y="15" width="3.6" height="5.5" rx="1"/></symbol>
   <symbol id="i-led" viewBox="0 0 24 24"><path d="M3 12h6"/><path d="M9 6v12l7.5-6z"/><path d="M16.5 6v12"/><path d="M14 5l1.6-2.4M17.3 6.6l1.8-1.8"/></symbol>
   <symbol id="i-elec" viewBox="0 0 24 24"><path d="M13 2.5L5 14h5.5L10 21.5 19 10h-5.5z"/></symbol>
+  <symbol id="i-conv" viewBox="0 0 24 24"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></symbol>
   <symbol id="i-sub" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.4"/><path d="M12 3v18M3 12h18"/></symbol>
   <symbol id="i-log" viewBox="0 0 24 24"><rect x="4.5" y="4" width="15" height="17.5" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8 10.5l1.5 1.5 2.5-2.5M8 16l1.5 1.5 2.5-2.5M14 11h2.5M14 16.5h2.5"/></symbol>
   <symbol id="i-camion" viewBox="0 0 24 24"><path d="M2.5 6h11v10.5h-11z"/><path d="M13.5 9.5h4.2l3.3 3.6v3.4h-7.5"/><circle cx="6.5" cy="17.5" r="1.9"/><circle cx="17" cy="17.5" r="1.9"/></symbol>
@@ -1018,10 +1041,7 @@ const CATS = [
   { k:"proj", t:"Projecteurs", s:"Parc lumière", c:"var(--proj)", n:() => PROJECTEURS.length, i:"lyre" },
   { k:"mach", t:"Machinerie", s:"Structure & textile", c:"var(--mach)", n:() => MACHINERIE.length, i:"structure" },
   { k:"haut", t:"Hauteurs", s:"Passerelles & PEMP", c:"var(--haut)", n:() => HAUTEURS.length, i:"passerelle" },
-  { k:"div", t:"Autre matériel", s:"Son, vidéo, câbles, réseau", c:"var(--div)", n:() => DIVERS.length, i:"caisse" },
-  /* La bibliothèque garde la clé et la couleur de l'ancien écran MDG, qui en
-     est devenu la première fiche. */
-  { k:"mdg", t:"Manuels", s:"Notes de fonctionnement", c:"var(--mdg)", n:() => MANUELS.length, i:"manuel" }
+  { k:"div", t:"Autre matériel", s:"Son, vidéo, câbles, réseau", c:"var(--div)", n:() => DIVERS.length, i:"caisse" }
 ];
 /* Le patch prend la tuile large : c'est l'outil qu'on ouvre le plus. L'ordre
    ici ne dicte plus l'affichage — TOOL_GROUPES range les tuiles par métier —
@@ -1043,6 +1063,11 @@ const TOOLS = [
   { k:"sub", t:"Sous-réseau", s:"Masque, plage, broadcast", c:"var(--sub)", i:"sub" },
   { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" },
   { k:"rdm", t:"RDM", s:"Adresse, mode, nom", c:"var(--rdm)", i:"rdm" },
+  { k:"conv", t:"Convertisseur", s:"Distance, température, volume", c:"var(--conv)", i:"conv" },
+  /* La bibliothèque garde la clé et la couleur de l'ancien écran MDG, qui en
+     est devenu la première fiche. Elle vivait dans le Parc : ce n'est pas du
+     matériel de la salle, elle est passée dans les Outils. */
+  { k:"mdg", t:"Manuels", s:"Notes de fonctionnement", c:"var(--mdg)", i:"manuel" },
   { k:"log", t:"Logistique", s:"Événements, prêts, stagiaires", c:"var(--log)", i:"log", large:true,
     n:() => logVivants().filter(x => logEtat(x, logAuj()).g !== "fini").length || "" }
 ];
@@ -1066,7 +1091,8 @@ const MOTS = {
   art:"dmx artnet sacn univers ecoute noeud node",
   rdm:"dmx adresse node noeud rdmnet llrp",
   proj:"lumiere lyre decoupe pc wash", mach:"structure accroche moteur pendrillon frise",
-  haut:"nacelle pemp passerelle", mdg:"notice manuel fiche",
+  haut:"nacelle pemp passerelle", mdg:"notice manuel fiche mode d'emploi",
+  conv:"convertir conversion unite distance longueur metre pouce pied yard temperature celsius fahrenheit kelvin volume litre gallon m3",
   div:"materiel son video cable reseau console micro enceinte ajouter",
   maj:"version theme sombre clair mise a jour apk"
 };
@@ -1084,7 +1110,8 @@ const TOOL_GROUPES = [
   { t:"DMX", cles:["dmx", "tel", "tcd", "art", "rdm"] },
   { t:"Lumière & image", cles:["gel", "led", "dist"] },
   { t:"Électricité & levage", cles:["elec", "bil", "cab", "ups", "rig"] },
-  { t:"Réseau IP", cles:["net", "sub", "ndi"] }
+  { t:"Réseau IP", cles:["net", "sub", "ndi"] },
+  { t:"Références", cles:["conv", "mdg"] }
 ];
 
 /* Accueil : les favoris, et eux seuls. Les « derniers ouverts » changeaient
@@ -5289,6 +5316,123 @@ function vSub(){
   return d;
 }
 
+/* ------------------------------ convertisseur ----------------------------
+   Il vivait en trois fiches de la bibliothèque de manuels, rangées dans le
+   Parc : on y lisait des tableaux sans pouvoir rien convertir. C'est
+   maintenant un outil : une valeur, son unité, et la réponse dans toutes les
+   autres. Les tableaux des fiches restent en bas, dans « Repères ». */
+const CONV_UNITES = {
+  /* facteur vers l'unité de base : le mètre, le litre */
+  dist:[["mm", "Millimètre", 0.001], ["cm", "Centimètre", 0.01], ["m", "Mètre", 1],
+        ["km", "Kilomètre", 1000], ["in", "Pouce", 0.0254], ["ft", "Pied", 0.3048],
+        ["yd", "Yard", 0.9144], ["mi", "Mile", 1609.344]],
+  vol:[["mL", "Millilitre", 0.001], ["cL", "Centilitre", 0.01], ["L", "Litre", 1],
+       ["m³", "Mètre cube", 1000], ["gal US", "Gallon US", 3.785411784],
+       ["gal UK", "Gallon UK", 4.54609], ["ft³", "Pied cube", 28.316846592]],
+  temp:[["°C", "Celsius"], ["°F", "Fahrenheit"], ["K", "Kelvin"]]
+};
+const CONV_ONGLETS = [["dist", "Distance"], ["temp", "Température"], ["vol", "Volume"]];
+const CLE_CONV = "convertisseur.v1";
+const CONV = lireCalcul(CLE_CONV, { onglet:"dist",
+  dist:"1", distDe:"ft", distVers:"m",
+  temp:"20", tempDe:"°C", tempVers:"°F",
+  vol:"1", volDe:"m³", volVers:"L" });
+
+const versCelsius = (v, u) => u === "°F" ? (v - 32) * 5 / 9 : u === "K" ? v - 273.15 : v;
+const deCelsius = (c, u) => u === "°F" ? c * 9 / 5 + 32 : u === "K" ? c + 273.15 : c;
+function convertir(onglet, v, de, vers){
+  if(onglet === "temp") return deCelsius(versCelsius(v, de), vers);
+  const u = CONV_UNITES[onglet], f = s => (u.find(x => x[0] === s) || [])[2];
+  return v * f(de) / f(vers);
+}
+/* Six chiffres significatifs, à la française ; les très grands et très
+   petits nombres passent en puissance de dix plutôt qu'en ligne de zéros. */
+function chiffreConv(n){
+  if(!isFinite(n)) return "—";
+  const a = Math.abs(n);
+  if(a && (a >= 1e9 || a < 1e-4)) return n.toExponential(3).replace(".", ",").replace("e+", " × 10^").replace("e-", " × 10^-");
+  return n.toLocaleString("fr-FR", { maximumSignificantDigits:6 });
+}
+function peindreConv(zone){
+  const c = CONV, o = c.onglet, v = nombre(c[o]);
+  const de = c[o + "De"], vers = c[o + "Vers"];
+  if(!isFinite(v)){
+    zone.innerHTML = `<div class="kick">Résultat</div><div class="big"><b>—</b></div>
+      <p>Saisissez une valeur à convertir.</p>`;
+    return;
+  }
+  const tous = CONV_UNITES[o].filter(u => u[0] !== de).map(u =>
+    `<div class="kv${u[0] === vers ? " on" : ""}"><span>${esc(u[1])}</span><b>${esc(chiffreConv(convertir(o, v, de, u[0])))} ${esc(u[0])}</b></div>`);
+  zone.innerHTML = `<div class="kick">${esc(chiffreConv(v))} ${esc(de)} =</div>
+    <div class="big"><b>${esc(chiffreConv(convertir(o, v, de, vers)))}</b><span>${esc(vers)}</span></div>
+    ${o === "temp" && versCelsius(v, de) < -273.15 ? `<p>Sous le zéro absolu (−273,15 °C) : la valeur n'a pas de sens physique.</p>` : ""}
+    ${tous.join("")}`;
+}
+function vConv(){
+  const c = CONV;
+  const d = el("div", "conv");
+  d.append(bar("Convertisseur"));
+  const garder = () => ecrireLocal(CLE_CONV, c);
+
+  const menu = el("div", "onglets");
+  menu.setAttribute("role", "tablist");
+  CONV_ONGLETS.forEach(([v, t]) => {
+    const b = el("button", null, t);
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(c.onglet === v));
+    b.onclick = () => { toucher(); c.onglet = v; garder(); render(); };
+    menu.append(b);
+  });
+  const res = el("div", "res");
+  d.append(menu);
+
+  const o = c.onglet;
+  const cc = el("div", "card");
+  const f = el("div", "f");
+  f.innerHTML = `<label for="conv-v">Valeur à convertir</label>
+    <input id="conv-v" data-focus="conv-v" inputmode="${o === "temp" ? "text" : "decimal"}" autocomplete="off"
+      value="${esc(c[o])}" placeholder="ex. 1">`;
+  f.querySelector("input").addEventListener("input", e => { c[o] = e.target.value; garder(); peindreConv(res); });
+  cc.append(f);
+  const deux = el("div", "deux");
+  const liste = (lab, cle) => {
+    const g = el("div", "f");
+    g.innerHTML = `<label for="conv-${cle}">${lab}</label><select id="conv-${cle}">${
+      CONV_UNITES[o].map(u => `<option value="${esc(u[0])}"${u[0] === c[o + cle] ? " selected" : ""}>${esc(u[1])} (${esc(u[0])})</option>`).join("")}</select>`;
+    g.querySelector("select").addEventListener("change", e => { c[o + cle] = e.target.value; garder(); peindreConv(res); });
+    return g;
+  };
+  deux.append(liste("De", "De"), liste("Vers", "Vers"));
+  cc.append(deux);
+  const inv = el("div", "tri");
+  const bi = el("button", null, "Inverser les unités");
+  bi.onclick = () => { toucher(); [c[o + "De"], c[o + "Vers"]] = [c[o + "Vers"], c[o + "De"]]; garder(); render(); };
+  inv.append(bi);
+  cc.append(inv);
+  d.append(cc, res);
+
+  const rep = el("details", "card formules");
+  rep.innerHTML = o === "dist"
+    ? `<summary>Repères</summary><p class="formule">1 m = 100 cm = 1000 mm<br>1 pouce = 2,54 cm<br>
+        1 pied = 12 pouces = 30,48 cm<br>1 yard = 3 pieds = 0,9144 m<br>1 mile = 1609,344 m</p>
+        <div class="man-note">La diagonale d'un écran donnée en pouces : largeur et hauteur s'en déduisent
+        avec le format (16:9, 4:3…), voir l'outil Projection.</div>`
+    : o === "temp"
+    ? `<summary>Repères</summary><p class="formule">°F = °C × 9/5 + 32<br>°C = (°F − 32) × 5/9<br>K = °C + 273,15<br><br>
+        0 °C = 32 °F · gel de l'eau<br>20 °C = 68 °F · température de salle<br>
+        37 °C = 98,6 °F · corps humain<br>100 °C = 212 °F · ébullition de l'eau</p>
+        <div class="man-note">Une lampe à décharge ou un laser donnent leur température de couleur en kelvins :
+        ce n'est pas la chaleur dégagée. Voir l'outil Gélatines pour les équivalences.</div>`
+    : `<summary>Repères</summary><p class="formule">1 m³ = 1000 L · 1 L = 1000 mL<br>
+        Pavé (caisse, flight-case) : longueur × largeur × hauteur<br>
+        Cylindre (bouteille, fût) : π × rayon² × hauteur<br>Sphère : 4/3 × π × rayon³</p>
+        <div class="man-note">Pour une bouteille de brume ou de CO2, le volume utile se lit sur l'étiquette :
+        le calcul géométrique donne le contenant, pas la charge.</div>`;
+  d.append(rep);
+  peindreConv(res);
+  return d;
+}
+
 function vArt(){
   const d = el("div");
   d.append(bar("Art-Net / sACN"));
@@ -5950,7 +6094,7 @@ function vMaj(){
 const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps, dist:vDist,
                 proj:vProj, mach:vMach, haut:vHaut, div:vDiv, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 tcd:vPatch, gel:vGel, led:vLed, cab:vCable, bil:vBil, elec:vElec, rig:vRig, ndi:vNdi,
-                net:vNet, sub:vSub, art:vArt, rdm:vRdm, maj:vMaj,
+                net:vNet, sub:vSub, conv:vConv, art:vArt, rdm:vRdm, maj:vMaj,
                 log:vLog, logf:vLogFiche, logr:vLogReglages, favoris:vFavoris };
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
@@ -6000,7 +6144,7 @@ function render(){
     q.addEventListener("input", e => { S.q = e.target.value; const pos = e.target.selectionStart; render();
       const n = $("#q"); if(n){ n.focus({ preventScroll:true }); n.setSelectionRange(pos, pos); } });
   }
-  const t = ["parc", "proj", "mach", "haut", "div", "mdg", "manuel", "fiche", "edit"].includes(r.v) ? "parc"
+  const t = ["parc", "proj", "mach", "haut", "div", "fiche", "edit"].includes(r.v) ? "parc"
           : ["log", "logf", "logr"].includes(r.v) ? "agenda"
           : ["home", "favoris"].includes(r.v) ? "home" : "tools";
   document.querySelectorAll(".tb").forEach(b => b.setAttribute("aria-current", b.dataset.t === t ? "true" : "false"));
