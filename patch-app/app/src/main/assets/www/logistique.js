@@ -31,6 +31,8 @@ const logId = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 const LOG_TYPES = {
   ev:   { t:"Événement", pl:"Événements", un:"un événement", i:"camion", c:"var(--log)",
           debut:"Date", fin:"Jusqu'au", sup:"Retirer cet événement" },
+  spec: { t:"Spectacle", pl:"Spectacles", un:"un spectacle", i:"spec", c:"var(--spec)",
+          debut:"Première", fin:"Dernière", sup:"Retirer ce spectacle" },
   pret: { t:"Prêt", pl:"Prêts", un:"un prêt", i:"pret", c:"var(--pret)",
           debut:"Sortie", fin:"Retour prévu", sup:"Retirer ce prêt" },
   stag: { t:"Stagiaire", pl:"Stagiaires", un:"un stagiaire", i:"stag", c:"var(--stag)",
@@ -53,6 +55,20 @@ const LOG_CHAMPS = {
     { c:"contact", l:"Contact", ph:"Nom, téléphone" },
     { c:"note", l:"Note", zone:true, ph:"Ce qu'il faut savoir" },
     { c:"fait", l:"Fait", coche:true }
+  ],
+  /* Un spectacle court de sa première à sa dernière ; il se joue chaque jour
+     entre les deux, sauf les jours de relâche, aux heures de jeu. */
+  spec: [
+    { c:"titre", l:"Spectacle", ph:"Titre du spectacle", req:true, liste:"spectacles" },
+    { c:"tiers", l:"Compagnie", ph:"Compagnie, production" },
+    { c:"lieu", l:"Salle", ph:"Grande salle" },
+    { rang:[{ c:"debut", l:"Première", type:"date", req:true }, { c:"fin", l:"Dernière", type:"date" }] },
+    { c:"seances", l:"Heures de jeu", ph:"20:30, dim 16:00", req:true,
+      aide:"Une heure vaut pour tous les jours de jeu. Un jour devant une heure fait une exception : "
+         + "« 20:30, sam 15:00 20:30, dim 16:00 »." },
+    { c:"relache", l:"Relâche", jours:true },
+    { rang:[{ c:"duree", l:"Durée", ph:"1h30", mode:"text" }, { c:"contact", l:"Contact", ph:"Régie, production" }] },
+    { c:"note", l:"Note", zone:true, ph:"Service, montage, équipe…" }
   ],
   pret: [
     { c:"titre", l:"Matériel", ph:"Découpe 614SX", req:true, liste:"materiel" },
@@ -99,6 +115,51 @@ function jourCourt(j, avecJour){
 const heureDite = h => { if(!h) return ""; const [a, b] = h.split(":");
   return +a + " h" + (b && b !== "00" ? " " + b : ""); };
 
+/* ------------------------------ les séances ---------------------------- */
+/* Les heures de jeu s'écrivent comme on les dit : « 20:30 » pour tous les
+   soirs, « dim 16:00 » pour une exception, « sam 15:00 20:30 » pour deux
+   séances. Les jours se comptent de 1 (lundi) à 7 (dimanche). */
+const JOURS_ABR = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+const jourSem = j => { const [a, m, d] = j.split("-").map(Number); return (new Date(a, m - 1, d).getDay() + 6) % 7 + 1; };
+function seancesLues(s){
+  const r = { defaut:[], jours:{} };
+  String(s || "").split(/[,;\n]+/).forEach(seg => {
+    const p = plat(seg);
+    const hs = [...p.matchAll(/(\d{1,2})\s*[:h]([0-5]\d)?/g)]
+      .map(m => String(Math.min(23, +m[1])).padStart(2, "0") + ":" + (m[2] || "00"));
+    if(!hs.length) return;
+    const js = [...p.matchAll(/(?:^|[^a-z])(lun|mar|mer|jeu|ven|sam|dim)/g)].map(m => JOURS_ABR.indexOf(m[1]) + 1);
+    if(js.length) js.forEach(d => r.jours[d] = [...new Set([...(r.jours[d] || []), ...hs])].sort());
+    else r.defaut.push(...hs);
+  });
+  r.defaut = [...new Set(r.defaut)].sort();
+  return r;
+}
+const finDe = x => x.fin && x.fin >= x.debut ? x.fin : x.debut;
+/* Les séances d'un spectacle un jour donné : aucune hors de ses dates ou un
+   jour de relâche. */
+function seancesDu(x, j){
+  if(x.type !== "spec" || !x.debut || j < x.debut || j > finDe(x)) return [];
+  const d = jourSem(j);
+  if(String(x.relache || "").includes(String(d))) return [];
+  const r = seancesLues(x.seances || x.hdebut);
+  return r.jours[d] || r.defaut;
+}
+/* La prochaine représentation à partir d'un jour, sur trois mois au plus. */
+function prochaineDe(x, j){
+  let k = x.debut > j ? x.debut : j;
+  for(let n = 0; n < 92 && k <= finDe(x); n++, k = plusJours(k, 1)){
+    const s = seancesDu(x, k);
+    if(s.length) return { j:k, s };
+  }
+  return null;
+}
+const heuresDites = s => s.map(heureDite).join(" · ");
+/* « 20:30 » plus « 1:45 », sans passer minuit. */
+const ajouterHeure = (h, d) => { const [a, b] = h.split(":").map(Number), [c, e] = d.split(":").map(Number);
+  const t = Math.min(23 * 60 + 59, a * 60 + b + c * 60 + e);
+  return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
+
 /* Où ranger une fiche aujourd'hui, et ce que la colonne de droite en dit. */
 const LOG_GROUPES = [
   { k:"retard", t:"En retard" }, { k:"auj", t:"Aujourd'hui" }, { k:"cours", t:"En cours" },
@@ -120,6 +181,20 @@ function logEtat(x, j){
                r:x.fin ? (x.fin === j ? "retour ce jour" : "retour " + jourCourt(x.fin)) : "sans retour prévu",
                r2:"sorti " + jourCourt(x.debut) };
     return { g:aVenir(), cle:x.debut, r:jourCourt(x.debut, true), r2:x.fin ? "→ " + jourCourt(x.fin) : "" };
+  }
+  if(x.type === "spec"){
+    if(!x.debut) return { g:"sansdate", cle:"", r:"", r2:"" };
+    const fin = finDe(x);
+    if(fin < j) return { g:"fini", cle:fin, r:"terminé", r2:jourCourt(fin) };
+    const s = seancesDu(x, j);
+    if(s.length) return { g:"auj", cle:j + s[0], r:s.length > 1 ? "séances " + heuresDites(s) : heureDite(s[0]),
+                          r2:fin === j ? "dernière" : "jusqu'au " + jourCourt(fin) };
+    const pro = prochaineDe(x, j);
+    if(x.debut <= j) return { g:"cours", cle:fin, r:"relâche",
+                              r2:pro ? "reprise " + jourCourt(pro.j, true) : "jusqu'au " + jourCourt(fin) };
+    return { g:aVenir(), cle:x.debut + (pro ? pro.s[0] : ""), r:jourCourt(x.debut, true),
+             r2:[pro && pro.j === x.debut ? heuresDites(pro.s) : "", x.fin && x.fin !== x.debut ? "→ " + jourCourt(x.fin) : ""]
+               .filter(Boolean).join(" ") };
   }
   if(x.type === "stag"){
     if(!x.debut) return { g:"sansdate", cle:"", r:"", r2:"" };
@@ -147,12 +222,14 @@ function logDuJour(){
   return logVivants().map(x => ({ x, e:logEtat(x, j) }))
     .filter(o => ordre.includes(o.e.g))
     .sort((a, b) => ordre.indexOf(a.e.g) - ordre.indexOf(b.e.g) || String(a.e.cle).localeCompare(b.e.cle))
-    .map(({ x, e }) => ({ fiche:x, groupe:e.g, titre:logTitre(x), sous:logSous(x), quand:e.r, detail:e.r2 }));
+    .map(({ x, e }) => ({ fiche:x.type === "spec" ? Object.assign({}, x, { hdebut:seancesDu(x, j)[0] || "" }) : x, groupe:e.g, titre:logTitre(x), sous:logSous(x), quand:e.r, detail:e.r2 }));
 }
 
 function logSous(x){
   if(x.type === "pret")
     return [(x.sens || "Prêté à") + " " + (x.tiers || "?"), x.spectacle].filter(Boolean).join(" · ");
+  if(x.type === "spec")
+    return [x.tiers, x.lieu].filter(Boolean).join(" · ") || "Spectacle";
   if(x.type === "stag")
     return [x.formation, x.service, x.tuteur && "avec " + x.tuteur].filter(Boolean).join(" · ") || "Stagiaire";
   return [x.cat, x.lieu, x.spectacle].filter(Boolean).join(" · ") || "Événement";
@@ -182,7 +259,9 @@ function vLog(){
   return LOGV.mode === "liste" ? vLogListe() : vLogMois();
 }
 
-/* En-tête commun aux deux vues : le mois ou le titre, la bascule, les réglages. */
+/* En-tête commun aux deux vues, sur une seule ligne pour laisser la hauteur
+   au mois : le mois entre ses flèches ou le titre, aujourd'hui, la bascule
+   vers l'autre vue, la synchronisation. */
 function teteLog(titre, nav){
   const t = el("div", "cal-tete");
   if(nav){
@@ -194,28 +273,23 @@ function teteLog(titre, nav){
     sv.onclick = () => { toucher(); nav(1); };
     t.append(pr, el("h2", null, esc(titre)), sv);
   } else t.append(el("h2", null, esc(titre)));
-  const esp = el("span", "cal-esp");
-  t.append(esp);
+  t.append(el("span", "cal-esp"));
   if(nav){
     const auj = el("button", "cal-auj", `<span>${new Date().getDate()}</span>`);
     auj.setAttribute("aria-label", "Revenir à aujourd'hui");
     auj.onclick = () => { toucher(); LOGV.mois = null; LOGV.jour = logAuj(); render(); };
     t.append(auj);
   }
+  const autre = LOGV.mode === "liste" ? "mois" : "liste";
+  const bv = el("button", "cal-reg", ic(autre === "mois" ? "agenda" : "liste"));
+  bv.setAttribute("aria-label", autre === "mois" ? "Voir le mois" : "Voir la liste par urgence");
+  bv.onclick = () => { toucher(); LOGV.mode = autre; ecrireLocal(CLE_LOG_VUE, autre); window.scrollTo(0, 0); render(); };
   const reg = el("button", "cal-reg", ic("sync"));
   reg.setAttribute("aria-label", "Synchroniser : agenda du téléphone et fichiers");
   reg.onclick = () => { toucher(); go({ v:"logr" }); };
-  t.append(reg);
-
-  const seg = el("div", "cal-seg");
-  [["mois", "Mois"], ["liste", "Liste"]].forEach(([k, l]) => {
-    const b = el("button", null, l);
-    b.setAttribute("aria-pressed", String(LOGV.mode === k));
-    b.onclick = () => { toucher(); LOGV.mode = k; ecrireLocal(CLE_LOG_VUE, k); window.scrollTo(0, 0); render(); };
-    seg.append(b);
-  });
+  t.append(bv, reg);
   const w = el("div", "cal-haut");
-  w.append(t, seg);
+  w.append(t);
   return w;
 }
 
@@ -223,11 +297,14 @@ function teteLog(titre, nav){
 /* Sur le modèle de l'agenda Google en vue mois : une rangée par semaine avec
    son numéro, sept colonnes, les fiches de plusieurs jours en barres qui
    courent sur les jours, les autres en pastilles, aujourd'hui dans un rond.
-   Toucher un jour le choisit ; ce qu'il contient se lit dessous, et les
-   ajouts partent de cette date. */
+   Le mois tient sur l'écran : la hauteur des semaines se calcule sur la place
+   qui reste, et le nombre de pastilles visibles avec. Toucher un jour le
+   choisit ; ce qu'il contient et les ajouts sont dans le volet du bas. */
 const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
               "septembre", "octobre", "novembre", "décembre"];
-const CAL_LIGNES = 4;                          // rangées de pastilles visibles par semaine
+const CAL_LIGNES = 3;                          // pastilles par semaine avant la mesure de l'écran
+const CAL_T = 26, CAL_L = 17, CAL_E = 2;       // numéro du jour, ligne de pastille, écart (px)
+const CLE_LOG_VOLET = "logistique.volet.v1";
 
 const numSemaine = j => {
   const [a, m, d] = j.split("-").map(Number);
@@ -253,11 +330,14 @@ function couleurLog(x, e){
   return (LOG_TYPES[x.type] || LOG_TYPES.ev).c;
 }
 const etiquette = x => (x.type === "ev" && x.hdebut ? heureCourte(x.hdebut) + " " : "") + logTitre(x);
-const surJour = (x, j) => x.debut && x.debut <= j && (x.fin && x.fin >= x.debut ? x.fin : x.debut) >= j;
+/* Un spectacle n'occupe que ses jours de jeu ; le reste, tout son intervalle. */
+const surJour = (x, j) => x.type === "spec" ? seancesDu(x, j).length > 0
+  : x.debut && x.debut <= j && finDe(x) >= j;
 
 function vLogMois(){
   const j = logAuj();
   if(!LOGV.jour) LOGV.jour = j;
+  if(LOGV.volet == null) LOGV.volet = lireLocal(CLE_LOG_VOLET, false) === true;
   const mois = LOGV.mois || LOGV.jour.slice(0, 7);
   const [a, m] = mois.split("-").map(Number);
   const d = el("div", "lg cal");
@@ -273,7 +353,7 @@ function vLogMois(){
   if(retards.length){
     const b = el("button", "cal-alerte", `<b>${retards.length}</b> ${retards.length > 1 ? "prêts" : "prêt"} en retard`
       + `<span>${esc(retards.map(logTitre).slice(0, 2).join(", "))}${retards.length > 2 ? "…" : ""}</span>`);
-    b.onclick = () => { toucher(); LOGV.mode = "liste"; render(); };
+    b.onclick = () => { toucher(); LOGV.mode = "liste"; ecrireLocal(CLE_LOG_VUE, "liste"); render(); };
     d.append(b);
   }
 
@@ -281,11 +361,16 @@ function vLogMois(){
   const tete = el("div", "cal-jours");
   tete.innerHTML = `<span></span>` + ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
     .map((n, i) => `<span${i === (new Date().getDay() + 6) % 7 && mois === j.slice(0, 7) ? ' class="auj"' : ""}>${n}</span>`).join("");
-  grille.append(tete);
+  const corps = el("div", "cal-corps");
+  grille.append(tete, corps);
 
-  const premier = mois + "-01";
-  const dernier = iso(new Date(a, m, 0));
-  for(let l = lundiDe(premier); l <= dernier; l = plusJours(l, 7)){
+  const premier = mois + "-01", dernier = iso(new Date(a, m, 0));
+  const lundis = [];
+  for(let l = lundiDe(premier); l <= dernier; l = plusJours(l, 7)) lundis.push(l);
+
+  /* Une semaine, avec au plus `L` lignes de pastilles et, si elle a une
+     hauteur imposée, étirée jusqu'à elle. */
+  const semaine = (l, L, h) => {
     const jours = [...Array(7)].map((_, i) => plusJours(l, i));
     const dim = jours[6];
     const sem = el("div", "cal-sem");
@@ -298,50 +383,67 @@ function vLogMois(){
       f.style.gridColumn = String(i + 2);
       f.setAttribute("aria-label", jourCourt(jj, true));
       f.onclick = () => { toucher(); LOGV.jour = jj; if(jj.slice(0, 7) !== mois) LOGV.mois = jj.slice(0, 7); render(); };
-      const n = el("span", "cal-n" + (jj === j ? " auj" : ""), String(+jj.slice(8)));
-      f.append(n);
+      f.append(el("span", "cal-n" + (jj === j ? " auj" : ""), String(+jj.slice(8))));
       sem.append(f);
     });
 
-    /* Les fiches de la semaine, rangées en lignes : les plus longues d'abord,
-       chacune sur la première ligne libre de son premier à son dernier jour. */
-    const items = tous.filter(x => x.debut <= dim && (x.fin && x.fin >= x.debut ? x.fin : x.debut) >= l)
-      .map(x => {
-        const fin = x.fin && x.fin >= x.debut ? x.fin : x.debut;
-        const cs = x.debut < l ? 0 : ecartJours(l, x.debut), ce = fin > dim ? 6 : ecartJours(l, fin);
-        return { x, cs, ce, long:fin !== x.debut, avant:x.debut < l, apres:fin > dim };
-      })
-      .sort((p, q) => (q.ce - q.cs) - (p.ce - p.cs) || p.cs - q.cs
-        || String(p.x.hdebut || "").localeCompare(q.x.hdebut || "") || p.x.titre.localeCompare(q.x.titre));
-    const lignes = [], cache = Array(7).fill(0);
-    let prises = 0;
-    items.forEach(it => {
-      let li = 0;
-      while(lignes[li] && lignes[li].slice(it.cs, it.ce + 1).some(Boolean)) li++;
-      if(li >= CAL_LIGNES){ for(let c = it.cs; c <= it.ce; c++) cache[c]++; return; }
-      (lignes[li] = lignes[li] || Array(7).fill(false)).fill(true, it.cs, it.ce + 1);
-      prises = Math.max(prises, li + 1);
-      const e = etats.get(it.x.id);
+    /* Les fiches de la semaine. Un spectacle donne une pastille par jour de
+       jeu, avec ses heures ; les autres fiches, une barre de leur premier à
+       leur dernier jour. */
+    const items = [];
+    tous.forEach(x => {
+      if(x.type === "spec"){
+        if(x.debut > dim || finDe(x) < l) return;
+        jours.forEach((jj, i) => { const s = seancesDu(x, jj);
+          if(s.length) items.push({ x, cs:i, ce:i, h:s[0], lab:s.map(heureCourte).join(" ") + " " + x.titre }); });
+        return;
+      }
+      const fin = finDe(x);
+      if(x.debut > dim || fin < l) return;
+      items.push({ x, cs:x.debut < l ? 0 : ecartJours(l, x.debut), ce:fin > dim ? 6 : ecartJours(l, fin),
+                   long:fin !== x.debut, avant:x.debut < l, apres:fin > dim, h:x.hdebut || "", lab:etiquette(x) });
+    });
+    /* Les plus longues d'abord, chacune sur la première ligne libre. */
+    items.sort((p, q) => (q.ce - q.cs) - (p.ce - p.cs) || p.cs - q.cs
+      || p.h.localeCompare(q.h) || p.x.titre.localeCompare(q.x.titre));
+    const placer = n => {
+      const lignes = [], cache = Array(7).fill(0), pos = [];
+      items.forEach(it => {
+        let li = 0;
+        while(lignes[li] && lignes[li].slice(it.cs, it.ce + 1).some(Boolean)) li++;
+        if(li >= n){ for(let c = it.cs; c <= it.ce; c++) cache[c]++; return; }
+        (lignes[li] = lignes[li] || Array(7).fill(false)).fill(true, it.cs, it.ce + 1);
+        pos.push([it, li]);
+      });
+      return { pos, cache };
+    };
+    /* Ce qui déborde laisse sa dernière ligne au « +n ». */
+    let pl = placer(L);
+    if(pl.cache.some(Boolean)) pl = placer(L - 1);
+    pl.pos.forEach(([it, li]) => {
       const p = el("span", "cal-ev" + (it.long ? " long" : "") + (it.avant ? " avant" : "") + (it.apres ? " apres" : "")
-        + (it.x.fait ? " fait" : ""), esc(etiquette(it.x)));
+        + (it.x.fait ? " fait" : ""), esc(it.lab));
       p.style.gridColumn = (it.cs + 2) + " / " + (it.ce + 3);
       p.style.gridRow = String(li + 2);
-      p.style.setProperty("--c", couleurLog(it.x, e));
+      p.style.setProperty("--c", couleurLog(it.x, etats.get(it.x.id)));
       sem.append(p);
     });
-    cache.forEach((n, i) => {
+    pl.cache.forEach((n, i) => {
       if(!n) return;
       const p = el("span", "cal-plus", "+" + n);
       p.style.gridColumn = String(i + 2);
-      p.style.gridRow = String(CAL_LIGNES + 2);
+      p.style.gridRow = String(L + 1);
       sem.append(p);
     });
-    const rangs = 1 + Math.max(CAL_LIGNES - 1, prises) + (cache.some(Boolean) ? 1 : 0);
-    sem.style.gridTemplateRows = `var(--cal-t) repeat(${rangs - 1}, var(--cal-l))`;
-    num.style.gridRow = `1 / ${rangs + 1}`;
-    sem.querySelectorAll(".cal-fond").forEach(f => f.style.gridRow = `1 / ${rangs + 1}`);
-    grille.append(sem);
-  }
+    sem.style.gridTemplateRows = `${CAL_T}px repeat(${L}, ${CAL_L}px)` + (h ? " 1fr" : "");
+    if(h) sem.style.height = h + "px";
+    num.style.gridRow = "1 / -1";
+    sem.querySelectorAll(".cal-fond").forEach(f => f.style.gridRow = "1 / -1");
+    return sem;
+  };
+  const dessiner = (L, h) => corps.replaceChildren(...lundis.map(l => semaine(l, L, h)));
+  dessiner(CAL_LIGNES, 0);
+
   /* Un glissement du doigt change de mois, comme dans l'agenda. */
   let x0 = null, y0 = null;
   grille.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive:true });
@@ -353,19 +455,53 @@ function vLogMois(){
   });
   d.append(grille);
 
-  /* Le jour choisi : sa date, ce qu'il contient, et de quoi y ajouter. */
-  const jj = LOGV.jour;
+  const volet = voletJour(tous, etats);
+  d.append(volet);
+
+  /* Une fois la page posée, on mesure la place entre le haut de la grille et
+     le volet replié, au-dessus de la barre d'onglets, et on la partage. */
+  const ajuster = () => {
+    if(!corps.isConnected) return;
+    const tb = document.querySelector("nav.tabbar");
+    const bas = tb ? tb.getBoundingClientRect().height : 0;     // 0 si la barre est cachée
+    volet.style.bottom = bas + "px";
+    const poi = volet.querySelector(".cal-poignee");
+    const place = window.innerHeight - bas - (poi ? poi.getBoundingClientRect().height + 10 : 60)
+                - (corps.getBoundingClientRect().top + window.scrollY) - 6;
+    const h = Math.max(58, Math.floor(place / lundis.length));
+    const L = Math.max(1, Math.floor((h - 3 - CAL_T - CAL_E) / (CAL_L + CAL_E)));
+    dessiner(L, h - 3);
+  };
+  requestAnimationFrame(ajuster);
+  const surTaille = () => requestAnimationFrame(ajuster);
+  window.addEventListener("resize", surTaille);
+  poser(() => window.removeEventListener("resize", surTaille));
+  return d;
+}
+
+/* Le volet du jour choisi, collé au-dessus des onglets : replié, une ligne
+   avec la date et le compte ; déplié, les fiches du jour et les ajouts, qui
+   partent de cette date. Replié ou non, le choix est gardé. */
+function voletJour(tous, etats){
+  const j = logAuj(), jj = LOGV.jour;
+  const v = el("div", "cal-volet" + (LOGV.volet ? " ouvert" : ""));
   const du = tous.filter(x => surJour(x, jj))
-    .sort((p, q) => String(p.hdebut || "").localeCompare(q.hdebut || "") || p.titre.localeCompare(q.titre));
-  const titreJour = new Date(...jj.split("-").map((v, i) => i === 1 ? v - 1 : +v))
+    .map(x => ({ x, h:x.type === "spec" ? seancesDu(x, jj)[0] : x.hdebut || "" }))
+    .sort((p, q) => p.h.localeCompare(q.h) || p.x.titre.localeCompare(q.x.titre));
+  const titreJour = new Date(...jj.split("-").map((n, i) => i === 1 ? n - 1 : +n))
     .toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long" });
-  d.insertAdjacentHTML("beforeend", `<h2 class="sec cal-jour">${esc(titreJour)}${jj === j ? " · aujourd'hui" : ""}</h2>`);
-  if(du.length){
-    const l = el("div", "rowlist");
-    du.forEach(x => { const r = rowLog(x, etats.get(x.id)); r.style.setProperty("--c", couleurLog(x, etats.get(x.id)));
-      l.append(r); });
-    d.append(l);
-  } else d.append(el("p", "vide", "Rien ce jour-là."));
+  const poi = el("button", "cal-poignee",
+    `<span class="g"><b>${esc(titreJour)}</b><span>${jj === j ? "aujourd'hui · " : ""}${
+      du.length ? du.length + (du.length > 1 ? " fiches" : " fiche") : "rien de prévu"}</span></span>
+     <span class="cal-ouvrir">${ic("plus")}</span>`);
+  const montrer = o => { v.classList.toggle("ouvert", o); poi.setAttribute("aria-expanded", String(o));
+    poi.setAttribute("aria-label", (o ? "Replier" : "Déplier") + " : " + titreJour + ", ajouter une fiche"); };
+  montrer(LOGV.volet);
+  poi.onclick = () => { toucher(); LOGV.volet = !LOGV.volet; ecrireLocal(CLE_LOG_VOLET, LOGV.volet); montrer(LOGV.volet); };
+  v.append(poi);
+
+  /* Les ajouts d'abord : c'est ce qu'on vient chercher en dépliant. */
+  const c = el("div", "cal-contenu");
   const aj = el("div", "lg-ajouts");
   Object.entries(LOG_TYPES).forEach(([k, t]) => {
     const b = el("button", "ajout", ic("plus") + "<span>" + esc(t.t) + "</span>");
@@ -373,8 +509,22 @@ function vLogMois(){
     b.onclick = () => { toucher(); go({ v:"logf", i:null, k, p:jj }); };
     aj.append(b);
   });
-  d.append(aj);
-  return d;
+  c.append(aj);
+  if(du.length){
+    const l = el("div", "rowlist");
+    du.forEach(({ x }) => {
+      /* Pour un spectacle, les heures de ce jour-là plutôt que l'état du jour. */
+      const s = seancesDu(x, jj);
+      const e = x.type === "spec" ? { g:"auj", r:heuresDites(s), r2:finDe(x) === jj ? "dernière" : x.debut === jj ? "première" : "" }
+                                  : etats.get(x.id);
+      const r = rowLog(x, e);
+      r.style.setProperty("--c", couleurLog(x, etats.get(x.id)));
+      l.append(r);
+    });
+    c.append(l);
+  }
+  v.append(c);
+  return v;
 }
 
 /* ------------------------------ les réglages ---------------------------- */
@@ -648,7 +798,8 @@ function carteEchange(){
 }
 
 const LOG_COLS = ["id", "type", "titre", "cat", "debut", "hdebut", "fin", "hfin", "lieu", "spectacle",
-                  "qte", "sens", "tiers", "formation", "service", "tuteur", "contact", "note", "fait", "source", "maj"];
+                  "qte", "sens", "tiers", "formation", "service", "tuteur", "contact", "note", "fait", "source",
+                  "seances", "relache", "duree", "maj"];
 
 function exportJson(){
   return JSON.stringify({ format:"patch-logistique", version:1, exporte:new Date().toISOString(),
@@ -680,7 +831,44 @@ function exportIcs(){
   const now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
   const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Patch//Logistique//FR", "CALSCALE:GREGORIAN",
              "X-WR-CALNAME:Patch logistique"];
+  /* Un spectacle devient une série par heure de jeu : chaque jour à 20:30
+     sauf relâche, puis le dimanche à 16:00, etc. Seule la première porte les
+     champs de Patch ; les autres se reconnaissent à leur « ~ ». */
+  const JOURS_ICS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+  const specIcs = x => {
+    const r = seancesLues(x.seances || x.hdebut), fin = finDe(x);
+    const parHeure = {};
+    for(let d = 1; d <= 7; d++){
+      if(String(x.relache || "").includes(String(d))) continue;
+      (r.jours[d] || r.defaut).forEach(h => (parHeure[h] = parHeure[h] || []).push(d));
+    }
+    const dur = heureLue(x.duree) || "02:00";
+    let n = 0;
+    Object.keys(parHeure).sort().forEach(h => {
+      const jours = parHeure[h];
+      let prem = x.debut;
+      while(prem <= fin && !jours.includes(jourSem(prem))) prem = plusJours(prem, 1);
+      if(prem > fin) return;
+      L.push("BEGIN:VEVENT", "UID:" + x.id + (n ? "~" + h.replace(":", "") : "") + "@patch", "DTSTAMP:" + now,
+             "SUMMARY:" + txt(x.titre),
+             "DTSTART:" + d8(prem) + "T" + h.replace(":", "") + "00",
+             "DTEND:" + d8(prem) + "T" + ajouterHeure(h, dur).replace(":", "") + "00");
+      if(fin > prem) L.push("RRULE:FREQ=WEEKLY;BYDAY=" + jours.map(d => JOURS_ICS[d - 1]).join(",")
+                            + ";UNTIL=" + d8(fin) + "T235959");
+      if(x.lieu) L.push("LOCATION:" + txt(x.lieu));
+      const desc = [logSous(x), "Heures de jeu : " + (x.seances || h), x.contact && "Contact : " + x.contact, x.note]
+        .filter(Boolean).join("\n");
+      L.push("DESCRIPTION:" + txt(desc), "CATEGORIES:Spectacle");
+      if(!n) L.push("X-PATCH-TYPE:spec", "X-PATCH-TITRE:" + txt(x.titre), "X-PATCH-DEBUT:" + x.debut,
+                    "X-PATCH-FIN:" + fin, "X-PATCH-SEANCES:" + txt(x.seances || h),
+                    ...(x.relache ? ["X-PATCH-RELACHE:" + x.relache] : []), ...(x.duree ? ["X-PATCH-DUREE:" + txt(x.duree)] : []),
+                    ...(x.tiers ? ["X-PATCH-TIERS:" + txt(x.tiers)] : []));
+      L.push("END:VEVENT");
+      n++;
+    });
+  };
   logVivants().filter(x => x.debut).forEach(x => {
+    if(x.type === "spec") return specIcs(x);
     const fin = x.fin && x.fin >= x.debut ? x.fin : x.debut;
     const titre = x.type === "pret" ? "Prêt : " + logTitre(x) + " (" + (x.sens || "Prêté à").toLowerCase() + " " + (x.tiers || "?") + ")"
                 : x.type === "stag" ? "Stagiaire : " + x.titre
@@ -720,6 +908,7 @@ function typeLu(v){
   const s = plat(v);
   if(/^(pret|emprunt|materiel)/.test(s)) return "pret";
   if(/^stag/.test(s)) return "stag";
+  if(/^(spec|repres)/.test(s)) return "spec";
   return "ev";
 }
 
@@ -732,6 +921,7 @@ function ficheLue(o){
     if(["id", "type", "maj"].includes(k) || o[k] == null || o[k] === "") return;
     x[k] = k === "debut" || k === "fin" ? dateLue(o[k])
          : k === "hdebut" || k === "hfin" ? heureLue(o[k])
+         : k === "relache" ? String(o[k]).replace(/[^1-7]/g, "")
          : k === "fait" ? (o[k] === true || /^(oui|vrai|true|1|x|yes)$/i.test(String(o[k]).trim()))
          : String(o[k]);
   });
@@ -832,6 +1022,12 @@ function lireIcs(t){
     else if(N === "UID") o.uid = v;
     else if(N === "X-PATCH-TYPE") o.type = v;
     else if(N === "X-PATCH-TITRE") o.brut = brut(v);
+    else if(N === "X-PATCH-DEBUT") o.xdebut = v.trim();
+    else if(N === "X-PATCH-FIN") o.xfin = v.trim();
+    else if(N === "X-PATCH-SEANCES") o.seances = brut(v);
+    else if(N === "X-PATCH-RELACHE") o.relache = v.trim();
+    else if(N === "X-PATCH-DUREE") o.duree = brut(v);
+    else if(N === "X-PATCH-TIERS") o.tiers = brut(v);
     else if(N === "LAST-MODIFIED") { const q = quand([], v); o.majIcs = q.j; }
     else if(N === "DTSTART"){ const q = quand(params, v); o.debut = q.j; if(q.h) o.hdebut = q.h; o.jour = q.jour; }
     else if(N === "DTEND"){ const q = quand(params, v); o.fin = q.jour ? plusJours(q.j, -1) : q.j; if(q.h) o.hfin = q.h; }
@@ -841,6 +1037,7 @@ function lireIcs(t){
     /* Nos propres exports reviennent avec leur identifiant, leur type et le
        titre d'origine, sans le préfixe « Prêt : » mis pour l'agenda. */
     const nous = /@patch$/.test(o.uid || "");
+    if(nous && o.uid.includes("~")) return null;   // les autres séries d'un spectacle
     const type = LOG_TYPES[o.type] ? o.type : "ev";
     if(nous){
       const loc = logTout().find(y => y.id === o.uid.replace(/@patch$/, ""));
@@ -849,6 +1046,11 @@ function lireIcs(t){
     const x = { id:nous ? o.uid.replace(/@patch$/, "") : o.uid ? "ics-" + o.uid : "", type,
                 titre:o.brut || o.titre || "", debut:o.debut, fin:o.fin !== o.debut ? o.fin : "",
                 hdebut:o.hdebut, hfin:o.hfin, lieu:o.lieu, note:o.note, maj:1 };
+    if(type === "spec"){
+      Object.assign(x, { debut:o.xdebut || o.debut, fin:o.xfin && o.xfin !== (o.xdebut || o.debut) ? o.xfin : "",
+                         seances:o.seances, relache:o.relache, duree:o.duree, tiers:o.tiers, hfin:"" });
+      x.note = "";                    // la description répète les champs
+    }
     return x;
   }).filter(Boolean) };
 }
@@ -882,7 +1084,7 @@ function vLogFiche(){
 
   const listes = {
     spectacles: () => [...new Set([...(typeof PATCHS !== "undefined" ? PATCHS.map(p => p.nom) : []),
-                                   ...logVivants().map(x => x.spectacle)].filter(Boolean))],
+                                   ...logVivants().map(x => x.type === "spec" ? x.titre : x.spectacle)].filter(Boolean))],
     materiel: () => [...new Set([...PROJECTEURS.map(p => p.marque + " " + p.nom), ...MACHINERIE.map(m => m.nom),
                                  ...HAUTEURS.map(h => h.nom)])]
   };
@@ -894,16 +1096,28 @@ function vLogFiche(){
       <span>${esc(f.l)}</span></label>`;
     if(f.sel) return `<div class="f"><label for="${id}">${esc(f.l)}</label><select id="${id}">${
       (v && !f.sel.includes(v) ? [v, ...f.sel] : f.sel).map(o => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></div>`;
+    /* Les jours de la semaine, un bouton chacun ; la valeur est la suite des
+       jours cochés, 1 pour lundi. */
+    if(f.jours) return `<div class="f"><label>${esc(f.l)}</label><div class="lg-jours" id="${id}" data-v="${esc(v || "")}">${
+      JOURS_ABR.map((n, i) => `<button type="button" data-d="${i + 1}" aria-pressed="${String(v || "").includes(String(i + 1))}">${
+        n.replace(/^./, x => x.toUpperCase())}</button>`).join("")}</div></div>`;
     if(f.zone) return `<div class="f"><label for="${id}">${esc(f.l)}</label>
       <textarea id="${id}" rows="3" placeholder="${esc(f.ph || "")}">${esc(v || "")}</textarea></div>`;
     return `<div class="f"><label for="${id}">${esc(f.l)}${f.req ? " *" : ""}</label>
       <input id="${id}" type="${f.type || "text"}" value="${esc(v || "")}" placeholder="${esc(f.ph || "")}"
         autocomplete="off"${f.mode ? ` inputmode="${f.mode}"` : ""}${f.liste ? ` list="dl-${id}"` : ""}>${
       f.liste ? `<datalist id="dl-${id}">${listes[f.liste]().slice(0, 300).map(o =>
-        `<option value="${esc(o)}"></option>`).join("")}</datalist>` : ""}</div>`;
+        `<option value="${esc(o)}"></option>`).join("")}</datalist>` : ""}${
+      f.aide ? `<p class="lg-aide">${esc(f.aide)}</p>` : ""}</div>`;
   };
   LOG_CHAMPS[type].forEach(f => c.insertAdjacentHTML("beforeend",
     f.rang ? `<div class="ff">${f.rang.map(champ).join("")}</div>` : champ(f)));
+  c.querySelectorAll(".lg-jours button").forEach(b => b.onclick = () => {
+    toucher();
+    b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
+    const g = b.parentNode;
+    g.dataset.v = [...g.querySelectorAll('button[aria-pressed="true"]')].map(n => n.dataset.d).join("");
+  });
   const err = el("p", "err");
   err.hidden = true;
   c.append(err);
@@ -918,9 +1132,15 @@ function vLogFiche(){
     champsPlats(type).forEach(f => {
       const n = c.querySelector("#lg-" + f.c);
       if(f.coche){ if(n.checked) o.fait = true; return; }
-      const v = n.value.trim();
+      const v = (f.jours ? n.dataset.v : n.value).trim();
       if(v) o[f.c] = v; else if(f.req) manque.push(f.l);
     });
+    /* L'heure de la première séance sert au tri et à l'accueil. */
+    if(type === "spec" && o.seances){
+      const r = seancesLues(o.seances);
+      o.hdebut = r.defaut[0] || Object.values(r.jours).flat().sort()[0] || "";
+      if(!o.hdebut){ delete o.hdebut; manque.push("Heures de jeu, comme 20:30"); }
+    }
     if(o.fin && o.debut && o.fin < o.debut) manque.push(def.fin + " après " + def.debut.toLowerCase());
     if(manque.length){
       err.textContent = "À remplir : " + manque.join(", ") + ".";
@@ -943,11 +1163,17 @@ function vLogFiche(){
     if(NET.natif && src.debut){
       const ag = el("button", "lg-agenda", ic("agenda") + "<span>Ajouter à l'agenda du téléphone</span>");
       ag.onclick = () => {
-        const [a, m, j] = src.debut.split("-").map(Number);
-        const fj = (src.fin || src.debut).split("-").map(Number);
-        const journee = !(type === "ev" && src.hdebut);
+        /* Un spectacle part avec sa prochaine représentation. */
+        const pro = type === "spec" ? prochaineDe(src, logAuj()) || prochaineDe(src, src.debut) : null;
+        const dj = pro ? pro.j : src.debut;
+        const [a, m, j] = dj.split("-").map(Number);
+        const fj = (pro ? pro.j : src.fin || src.debut).split("-").map(Number);
+        const hd = pro ? pro.s[0] : src.hdebut;
+        const dur = heureLue(src.duree);
+        const hf = pro ? (dur ? ajouterHeure(hd, dur) : ajouterHeure(hd, "02:00")) : src.hfin;
+        const journee = !((type === "ev" || type === "spec") && hd);
         const h = (s, def) => (s || def).split(":").map(Number);
-        const [h1, m1] = h(src.hdebut, "00:00"), [h2, m2] = h(src.hfin, src.hdebut ? String(Math.min(23, h1 + 1)) + ":" + String(m1) : "00:00");
+        const [h1, m1] = h(hd, "00:00"), [h2, m2] = h(hf, hd ? String(Math.min(23, h1 + 1)) + ":" + String(m1) : "00:00");
         const debut = new Date(a, m - 1, j, journee ? 0 : h1, journee ? 0 : m1).getTime();
         const finT = journee ? new Date(fj[0], fj[1] - 1, fj[2] + 1).getTime()
                              : new Date(fj[0], fj[1] - 1, fj[2], h2, m2).getTime();
