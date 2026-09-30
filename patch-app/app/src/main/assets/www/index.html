@@ -171,6 +171,10 @@
               padding:13px 8px;font:600 13.5px/1 var(--body);cursor:pointer;color:var(--ink2);
               min-height:48px}
   .tri button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+  .salle{margin-top:14px}
+  .salle .muted{margin:10px 2px 12px}
+  .salle .tri{margin-bottom:7px}
+  .salle .salle-msg{margin:6px 2px 0}
 
   h2.sec{font:700 11px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--ink2);
          margin:24px 0 10px}
@@ -1382,8 +1386,54 @@ function ligneJour(o){
    « Outils » ouvrait le patch — et n'avaient donc aucun écran où ramener. */
 function vParc(){
   const d = el("div");
-  d.append(bar("Parc", null, false), grille(CATS, false, "var(--proj)"));
+  d.append(bar("Parc", SALLE.nom || null, false), grille(CATS, false, "var(--proj)"), carteSalle());
   return d;
+}
+
+/* Deux touches pour vider ou reprendre le parc, comme pour retirer une
+   fiche : la WebView ne veut pas de boîte de dialogue. */
+function carteSalle(){
+  const c = el("div", "card salle");
+  c.innerHTML = `<h4>Ma salle</h4>
+    <div class="f"><label for="salle-nom">Nom de la salle</label>
+      <input id="salle-nom" data-focus="salle-nom" value="${esc(SALLE.nom)}"
+        placeholder="Grande salle, Studio…" autocomplete="off"></div>
+    <p class="muted">${parcModifie()
+      ? "Le parc affiché est celui de ce téléphone."
+      : "Le parc affiché est celui livré avec l'application. Videz-le ou importez le vôtre pour une autre salle."}</p>`;
+  $("#salle-nom", c).addEventListener("change", e => {
+    SALLE.nom = e.target.value.trim(); ecrireLocal(CLE_SALLE, SALLE); render();
+  });
+  /* Le message survit au rendu qui suit l'import : il est gardé à part. */
+  const msg = el("p", "muted salle-msg", esc(SALLE_MSG));
+  msg.hidden = !SALLE_MSG;
+  const dire = t => { SALLE_MSG = t; render(); };
+  const rang = () => { const r = el("div", "tri"); c.append(r); return r; };
+  const btn = (r, lab, fn) => { const b = el("button", null, esc(lab)); b.onclick = () => { toucher(); fn(b); }; r.append(b); return b; };
+  const nomF = () => "parc-" + (plat(SALLE.nom).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "salle") + ".json";
+
+  const r1 = rang();
+  btn(r1, "Importer un parc", () => NET.fichier.ouvrir(r => {
+    if(r.erreur){ if(r.erreur !== "annulé") dire("Échec : " + r.erreur + "."); return; }
+    const res = importerParc(r.texte || "");
+    if(res.erreur){ dire("Import impossible : " + res.erreur + "."); return; }
+    dire(`Parc importé : ${res.proj} projecteur${res.proj > 1 ? "s" : ""}, ${res.mach} matériel${
+      res.mach > 1 ? "s" : ""}, ${res.haut} niveau${res.haut > 1 ? "x" : ""}.`);
+  }));
+  btn(r1, "Exporter ce parc", () => NET.fichier.enregistrer(nomF(), "application/json", exportParc(),
+    r => dire(r.erreur ? (r.erreur === "annulé" ? "" : "Échec : " + r.erreur + ".")
+                       : "Parc enregistré : envoyez ce fichier à l'autre téléphone.")));
+  const r2 = rang();
+  btn(r2, "Vider le parc", b => {
+    if(b.dataset.sur !== "1"){ b.dataset.sur = "1"; b.textContent = "Confirmer : tout vider"; return; }
+    viderParc(); dire("Parc vidé : ajoutez votre matériel ou importez un parc.");
+  });
+  if(parcModifie()) btn(r2, "Reprendre le parc livré", b => {
+    if(b.dataset.sur !== "1"){ b.dataset.sur = "1"; b.textContent = "Confirmer le retour"; return; }
+    reprendreParcLivre(); dire("Parc livré repris.");
+  });
+  c.append(msg);
+  return c;
 }
 function vOutils(){
   const d = el("div");
@@ -1806,6 +1856,9 @@ const INV = {
   mach:{ liste:MACHINERIE, titre:"Machinerie", un:"matériel" },
   haut:{ liste:HAUTEURS, titre:"Hauteurs", un:"niveau" }
 };
+/* Le parc livré avec l'APK, gardé à part avant que la relecture locale ne
+   remplace les listes : « Reprendre le parc livré » y revient sans relancer. */
+const INV_LIVRE = JSON.parse(JSON.stringify({ proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS }));
 (function chargerInv(){
   const sauv = lireLocal(CLE_INV, null);
   if(!sauv) return;
@@ -1824,6 +1877,52 @@ PROJECTEURS.forEach(p => {
     BIB[cleApp(p)] = p.modes.map(m => ({ nom:m.mode, ch:m.ch, demo:!!p.modesDemo }));
 });
 const sauverBib = () => ecrireLocal(CLE_BIB, BIB);
+
+/* ------------------------- le parc d'une salle --------------------------- */
+/* L'APK arrive avec le parc d'une salle précise. Pour qu'une autre équipe
+   s'en serve avec son propre matériel, le parc se vide, s'exporte en un
+   fichier et s'importe sur un autre téléphone ; le nom de la salle le suit.
+   Les patchs, la logistique et les réglages restent où ils sont. */
+const CLE_SALLE = "salle.v1";
+let SALLE = lireLocal(CLE_SALLE, { nom:"" });
+let SALLE_MSG = "";
+const parcModifie = () => lireLocal(CLE_INV, null) != null;
+
+function remplacerParc(src){
+  Object.keys(INV).forEach(k =>
+    INV[k].liste.splice(0, INV[k].liste.length, ...(Array.isArray(src[k]) ? src[k] : [])));
+}
+function exportParc(){
+  const modes = {};
+  PROJECTEURS.forEach(p => { const c = cleApp(p); if(BIB[c] && BIB[c].length) modes[c] = BIB[c]; });
+  return JSON.stringify({ format:"patch-parc", version:1, salle:SALLE.nom || "",
+                          exporte:new Date().toISOString(),
+                          proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS, modes }, null, 1);
+}
+/* Un parc importé remplace celui du téléphone : c'est le matériel d'une
+   salle, pas une liste qu'on additionne. Les modes DMX s'ajoutent, eux, à la
+   bibliothèque : ceux d'un appareil déjà connu ne sont pas écrasés. */
+function importerParc(texte){
+  let o;
+  try { o = JSON.parse(texte); } catch(e){ return { erreur:"ce n'est pas un fichier JSON" }; }
+  if(!o || o.format !== "patch-parc") return { erreur:"ce fichier n'est pas un parc de Patch" };
+  const ok = x => Array.isArray(x) ? x.filter(f => f && typeof f === "object" && f.nom) : [];
+  const src = { proj:ok(o.proj).filter(p => p.marque), mach:ok(o.mach), haut:ok(o.haut) };
+  remplacerParc(src);
+  sauverInv();
+  if(o.modes && typeof o.modes === "object")
+    Object.keys(o.modes).forEach(c => { if(!BIB[c] && Array.isArray(o.modes[c])) BIB[c] = o.modes[c]; });
+  sauverBib();
+  if(typeof o.salle === "string" && o.salle.trim()){
+    SALLE.nom = o.salle.trim(); ecrireLocal(CLE_SALLE, SALLE);
+  }
+  return { proj:src.proj.length, mach:src.mach.length, haut:src.haut.length };
+}
+function viderParc(){ remplacerParc({}); sauverInv(); }
+function reprendreParcLivre(){
+  remplacerParc(JSON.parse(JSON.stringify(INV_LIVRE)));
+  try { localStorage.removeItem(CLE_INV); } catch(e){ }
+}
 
 /* Recalculés à la demande : `MARQUES` et `FAMILLES` de common.js ont été figés
    au chargement, avant que l'inventaire local ne soit relu. */
@@ -5593,7 +5692,7 @@ function render(){
 const tbAgenda = document.querySelector('.tb[data-t="agenda"]');
 if(tbAgenda && VIEWS.log) tbAgenda.hidden = false;
 document.querySelectorAll(".tb").forEach(b => b.onclick = () => {
-  S.q = "";
+  S.q = ""; SALLE_MSG = "";
   toucher();
   const v = { home:"home", parc:"parc", agenda:"log" }[b.dataset.t] || "outils";
   go({ v });
