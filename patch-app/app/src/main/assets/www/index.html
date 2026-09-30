@@ -18,7 +18,7 @@
     --ink:#0F1116; --ink2:#5A6070; --ink3:#666D7D;
     /* Tous à 4,5:1 au moins sous du texte blanc : l'orange du Patch, l'outil
        qu'on ouvre le plus, tombait à 3,1:1. */
-    --proj:#2F4BFF; --mach:#008379; --haut:#D92085; --mdg:#7A3FF2;
+    --proj:#2F4BFF; --mach:#008379; --haut:#D92085; --mdg:#7A3FF2; --div:#6B6300;
     --dmx:#B45E16; --gel:#C2185B; --ndi:#0E7BC4; --net:#118542; --art:#5B3FD6;
     --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757; --cab:#A34E1D; --rig:#3C5A73;
     --bil:#8A1F2B; --led:#3A8400; --elec:#243B6B; --sub:#0A6E7C;
@@ -34,7 +34,7 @@
     :root:not([data-theme="light"]){
       --bg:#0B0C10; --sur:#15171E; --sur2:#1E212B; --line:#2A2E3A;
       --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
-      --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
+      --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF; --div:#D6C84E;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
       --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8;
       --ok:#45C47B; --ko:#FF6B63;
@@ -43,7 +43,7 @@
   :root[data-theme="dark"]{
     --bg:#0B0C10; --sur:#15171E; --sur2:#1E212B; --line:#2A2E3A;
     --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
-    --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF;
+    --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF; --div:#D6C84E;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
     --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8;
     --ok:#45C47B; --ko:#FF6B63;
@@ -752,6 +752,17 @@
        border:1.5px dashed var(--line);background:none;border-radius:14px;padding:13px;
        margin-top:12px;color:var(--ink2);font:700 13.5px/1 var(--body);cursor:pointer}
   .ajout .ic{width:17px;height:17px}
+  .bar .bk.plus{background:var(--ink);color:var(--bg)}
+  .bar .bk.plus .ic{width:20px;height:20px}
+  .ajouts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .ajouts .aj{display:flex;align-items:center;gap:8px;min-height:52px;padding:10px 12px;
+       border:1.5px dashed var(--line);background:none;border-radius:14px;cursor:pointer;
+       color:var(--ink);font:700 13.5px/1.15 var(--body);text-align:left}
+  .ajouts .aj .ic{width:20px;height:20px;flex:none;color:var(--c)}
+  .ajouts .aj .pl{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:99px;
+       background:var(--c);color:var(--bg)}
+  .ajouts .aj .pl .ic{width:14px;height:14px;color:var(--bg)}
+  .ajouts .aj:active{transform:scale(.98)}
   .ajout:active{transform:scale(.99)}
   .vide{color:var(--ink3);font-size:13.5px;padding:14px 2px;margin:0}
   .fin{display:flex;gap:10px;margin:16px 0 4px}
@@ -914,6 +925,7 @@
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12l7.5 7.5"/></symbol>
   <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M15.7 4.3l4 4L8.4 19.6H4.4v-4z"/><path d="M13.2 6.8l4 4"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
+  <symbol id="i-caisse" viewBox="0 0 24 24"><rect x="2.5" y="7" width="19" height="13" rx="1.6"/><path d="M9 7V4.5h6V7"/><path d="M2.5 12.5h19"/><path d="M10.5 12.5v2h3v-2"/></symbol>
   <symbol id="i-cable" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="8.4" r="2.4"/><circle cx="8.9" cy="13.9" r="2.4"/><circle cx="15.1" cy="13.9" r="2.4"/></symbol>
   <symbol id="i-rig" viewBox="0 0 24 24"><path d="M12 2.5v6"/><path d="M8.3 8.5h7.4l-1.1 4.5h-5.2z"/><path d="M9.6 13v1.8a2.4 2.4 0 0 0 4.8 0V13"/><circle cx="12" cy="19.3" r="2.2"/></symbol>
   <symbol id="i-bil" viewBox="0 0 24 24"><path d="M3 2.5v19M3 20.5h18"/><rect x="6" y="13" width="3.6" height="7.5" rx="1"/><rect x="10.8" y="8.5" width="3.6" height="12" rx="1"/><rect x="15.6" y="15" width="3.6" height="5.5" rx="1"/></symbol>
@@ -949,7 +961,7 @@ const el = (t, c, h) => { const n = document.createElement(t); if(c) n.className
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const vg = n => String(n).replace(".", ",");
 const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, typeMach:null,
-            qs:{ proj:"", mach:"", haut:"", gel:"", outils:"" },
+            qs:{ proj:"", mach:"", haut:"", div:"", gel:"", outils:"" }, typeDiv:null,
             gel:GEL_PAR_REF.L201 || GELS[0], gelMode:null, gelMarque:"L" };
 
 const ic = (n, cls="ic") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
@@ -974,6 +986,7 @@ const CATS = [
   { k:"proj", t:"Projecteurs", s:"Parc lumière", c:"var(--proj)", n:() => PROJECTEURS.length, i:"lyre" },
   { k:"mach", t:"Machinerie", s:"Structure & textile", c:"var(--mach)", n:() => MACHINERIE.length, i:"structure" },
   { k:"haut", t:"Hauteurs", s:"Passerelles & PEMP", c:"var(--haut)", n:() => HAUTEURS.length, i:"passerelle" },
+  { k:"div", t:"Autre matériel", s:"Son, vidéo, câbles, réseau", c:"var(--div)", n:() => DIVERS.length, i:"caisse" },
   /* La bibliothèque garde la clé et la couleur de l'ancien écran MDG, qui en
      est devenu la première fiche. */
   { k:"mdg", t:"Manuels", s:"Notes de fonctionnement", c:"var(--mdg)", n:() => MANUELS.length, i:"manuel" }
@@ -1022,6 +1035,7 @@ const MOTS = {
   rdm:"dmx adresse node noeud rdmnet llrp",
   proj:"lumiere lyre decoupe pc wash", mach:"structure accroche moteur pendrillon frise",
   haut:"nacelle pemp passerelle", mdg:"notice manuel fiche",
+  div:"materiel son video cable reseau console micro enceinte ajouter",
   maj:"version theme sombre clair mise a jour apk"
 };
 /* Tout ce que l'accueil sait ouvrir, y compris les outils : taper « réseau »
@@ -1384,9 +1398,28 @@ function ligneJour(o){
 
 /* Les deux onglets du bas tombaient sur le premier élément de leur famille —
    « Outils » ouvrait le patch — et n'avaient donc aucun écran où ramener. */
+/* L'ajout vivait en pied de chaque liste, sous cent projecteurs : on ne le
+   trouvait pas. Il est posé ici, à l'entrée du parc, avec les quatre sortes. */
+const AJOUTS_PARC = [
+  { k:"proj", t:"Projecteur", i:"lyre", c:"var(--proj)" },
+  { k:"mach", t:"Machinerie", i:"structure", c:"var(--mach)" },
+  { k:"haut", t:"Hauteur", i:"passerelle", c:"var(--haut)" },
+  { k:"div", t:"Autre matériel", i:"caisse", c:"var(--div)" }
+];
 function vParc(){
   const d = el("div");
-  d.append(bar("Parc", SALLE.nom || null, false), grille(CATS, false, "var(--proj)"), carteSalle());
+  d.append(bar("Parc", SALLE.nom || null, false), grille(CATS, false, "var(--proj)"));
+  const t = el("h3", "sous", "Ajouter au parc");
+  t.style.marginTop = "20px";
+  d.append(t);
+  const g = el("div", "ajouts");
+  AJOUTS_PARC.forEach(a => {
+    const b = el("button", "aj", `<span class="pl">${ic("plus")}</span>${ic(a.i)}<span>${esc(a.t)}</span>`);
+    b.style.setProperty("--c", a.c);
+    b.onclick = () => { toucher(); go({ v:"edit", k:a.k, i:null }); };
+    g.append(b);
+  });
+  d.append(g, carteSalle());
   return d;
 }
 
@@ -1454,6 +1487,7 @@ function resultats(){
   const proj = PROJECTEURS.filter(p => plat(p.nom + " " + p.marque + " " + p.fam).includes(q));
   const mach = MACHINERIE.filter(m => plat(m.nom + " " + m.type).includes(q));
   const haut = HAUTEURS.filter(h => plat(h.nom).includes(q));
+  const div = DIVERS.filter(x => plat(x.nom + " " + (x.marque || "") + " " + x.type).includes(q));
   const gel = GELS.filter(g => plat(g.ref + " " + g.nom).includes(q));
   const man = MANUELS.filter(m => texteCherche(m).includes(q));
   /* Le titre annonçait le compte complet et la liste n'en posait que huit,
@@ -1476,12 +1510,13 @@ function resultats(){
   bloc("Projecteurs", proj, p => rowProj(p), () => { S.qs.proj = S.q; go({ v:"proj" }); });
   bloc("Machinerie", mach, m => rowMach(m), () => { S.qs.mach = S.q; go({ v:"mach" }); });
   bloc("Hauteurs", haut, h => rowHaut(h), () => { S.qs.haut = S.q; go({ v:"haut" }); });
+  bloc("Autre matériel", div, x => rowDiv(x), () => { S.qs.div = S.q; go({ v:"div" }); });
   bloc("Gélatines", gel, g => { const r = rowSimple(g.ref, g.nom, "", MARQUES_GEL[g.m],
       g.hex || "var(--ink3)", "gel");
     r.onclick = () => { S.gel = g; go({ v:"gel" }); }; return r; },
     () => { S.qs.gel = S.q; S.gelMarque = null; go({ v:"gel" }); });
   bloc("Manuels", man, m => rowManuel(m), () => { S.qs.man = S.q; go({ v:"mdg" }); });
-  if(!ecr.length && !proj.length && !mach.length && !haut.length && !gel.length && !man.length)
+  if(!ecr.length && !proj.length && !mach.length && !haut.length && !div.length && !gel.length && !man.length)
     d.insertAdjacentHTML("beforeend", `<p class="muted" style="margin-top:20px">Rien pour « ${esc(S.q)} ».</p>`);
   return d;
 }
@@ -1508,6 +1543,11 @@ function rowMach(m){
     [m.l && "L " + m.l, m.h && "H " + m.h, m.vit, m.trust].filter(Boolean).join(" · ") || "—",
     m.nb ? "×" + m.nb : "", m.charge || "", "var(--mach)", ICO_MACH[m.type] || "structure");
 }
+const ICO_DIV = { "Électricité":"elec", "Réseau":"reseau", "Pupitre":"fader", "Vidéo":"projo", "Câblage":"cable" };
+function rowDiv(x){
+  return rowSimple(x.nom, [x.marque, x.note].filter(Boolean).join(" · ") || x.type || "—",
+    x.nb ? "×" + x.nb : "", "", "var(--div)", ICO_DIV[x.type] || "caisse");
+}
 function rowHaut(h){
   return rowSimple(h.nom, [h.type, h.pos].filter(Boolean).join(" · ") || "—",
     metres(h.h) + " m", h.charge ? h.charge + " kg" : "",
@@ -1530,7 +1570,7 @@ function bar(titre, cnt, back){
 
 function vProj(){
   const d = el("div");
-  d.append(bar("Projecteurs", PROJECTEURS.length + " réf."));
+  d.append(barAjout("Projecteurs", PROJECTEURS.length + " réf.", "proj"));
   d.append(recherche("proj", "Ghibli, Robe, découpe, 1000 W…"));
   d.append(bandeau(marques(), S.marque, v => { S.marque = v; render(); }));
   const liste = filtrer("proj", x => !S.marque || x.marque === S.marque);
@@ -1635,7 +1675,7 @@ function carteModes(p){
 
 function vMach(){
   const d = el("div");
-  d.append(bar("Machinerie", MACHINERIE.length + " réf."));
+  d.append(barAjout("Machinerie", MACHINERIE.length + " réf.", "mach"));
   d.append(recherche("mach", "moteur, pendrillon, collier, 2 m…"));
   d.append(bandeau(typesMach(), S.typeMach, v => { S.typeMach = v; render(); }));
   const liste = filtrer("mach", x => !S.typeMach || x.type === S.typeMach);
@@ -1657,7 +1697,7 @@ function vMach(){
 
 function vHaut(){
   const d = el("div");
-  d.append(bar("Hauteurs", HAUTEURS.length + " niveaux"));
+  d.append(barAjout("Hauteurs", HAUTEURS.length + " niveaux", "haut"));
   /* Les chiffres du bandeau se lisent dans la liste : elle se modifie. */
   const tri = HAUTEURS.map((x, i) => ({ x, i })).sort((a, b) => Number(a.x.h) - Number(b.x.h));
   const hs = HAUTEURS.map(x => Number(x.h)).filter(v => isFinite(v));
@@ -1687,6 +1727,32 @@ function vHaut(){
   tri.forEach(({ x, i }) => l.append(avecCrayon(rowHaut(x), "haut", i)));
   d.append(l);
   d.append(boutonAjout("haut", "Ajouter un niveau"));
+  return d;
+}
+
+function vDiv(){
+  const d = el("div");
+  d.append(barAjout("Autre matériel", DIVERS.length + " réf.", "div"));
+  if(!DIVERS.length){
+    d.append(el("p", "vide", "Rien encore. C'est ici que va ce qui n'est ni projecteur, ni machinerie, ni hauteur : micros, enceintes, écrans, câbles, switchs…"));
+    d.append(boutonAjout("div", "Ajouter du matériel"));
+    return d;
+  }
+  d.append(recherche("div", "micro, HDMI, switch, Shure…"));
+  const types = [...new Set(DIVERS.map(x => x.type))];
+  if(types.length > 1) d.append(bandeau(types, S.typeDiv, v => { S.typeDiv = v; render(); }));
+  const liste = filtrer("div", x => !S.typeDiv || x.type === S.typeDiv);
+  const vus = [];
+  liste.forEach(({ x }) => { if(!vus.includes(x.type)) vus.push(x.type); });
+  vus.forEach(t => {
+    d.insertAdjacentHTML("beforeend", `<h2 class="sec">${esc(t)}</h2>`);
+    const l = el("div", "rowlist");
+    liste.filter(({ x }) => x.type === t).forEach(({ x, i }) =>
+      l.append(avecCrayon(rowDiv(x), "div", i)));
+    d.append(l);
+  });
+  if(!liste.length) d.append(el("p", "vide", "Aucun matériel ne correspond."));
+  d.append(boutonAjout("div", "Ajouter du matériel"));
   return d;
 }
 
@@ -1851,14 +1917,18 @@ const cleApp = p => p.marque + " " + p.nom;
    Les tableaux sont modifiés sur place — tout le reste du code les lit par
    leur nom, sans avoir à savoir d'où ils viennent. */
 const CLE_INV = "inventaire.v1";
+/* Tout ce qui n'est ni projecteur, ni machinerie, ni hauteur : le son, la
+   vidéo, les câbles, le réseau. Aucune liste livrée, tout vient du plateau. */
+const DIVERS = [];
 const INV = {
   proj:{ liste:PROJECTEURS, titre:"Projecteurs", un:"projecteur" },
   mach:{ liste:MACHINERIE, titre:"Machinerie", un:"matériel" },
-  haut:{ liste:HAUTEURS, titre:"Hauteurs", un:"niveau" }
+  haut:{ liste:HAUTEURS, titre:"Hauteurs", un:"niveau" },
+  div:{ liste:DIVERS, titre:"Autre matériel", un:"matériel" }
 };
 /* Le parc livré avec l'APK, gardé à part avant que la relecture locale ne
    remplace les listes : « Reprendre le parc livré » y revient sans relancer. */
-const INV_LIVRE = JSON.parse(JSON.stringify({ proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS }));
+const INV_LIVRE = JSON.parse(JSON.stringify({ proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS, div:DIVERS }));
 (function chargerInv(){
   const sauv = lireLocal(CLE_INV, null);
   if(!sauv) return;
@@ -1867,7 +1937,7 @@ const INV_LIVRE = JSON.parse(JSON.stringify({ proj:PROJECTEURS, mach:MACHINERIE,
   });
 })();
 const sauverInv = () => ecrireLocal(CLE_INV,
-  { proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS });
+  { proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS, div:DIVERS });
 /* Le parc livré avec l'APK va devenir vide. Un téléphone qui n'a jamais
    touché à son parc le lisait directement dans l'APK : on l'inscrit une fois
    dans le téléphone, pour qu'il y reste quand la version suivante arrivera
@@ -1902,7 +1972,7 @@ function exportParc(){
   PROJECTEURS.forEach(p => { const c = cleApp(p); if(BIB[c] && BIB[c].length) modes[c] = BIB[c]; });
   return JSON.stringify({ format:"patch-parc", version:1, salle:SALLE.nom || "",
                           exporte:new Date().toISOString(),
-                          proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS, modes }, null, 1);
+                          proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS, div:DIVERS, modes }, null, 1);
 }
 /* Un parc importé remplace celui du téléphone : c'est le matériel d'une
    salle, pas une liste qu'on additionne. Les modes DMX s'ajoutent, eux, à la
@@ -1912,7 +1982,7 @@ function importerParc(texte){
   try { o = JSON.parse(texte); } catch(e){ return { erreur:"ce n'est pas un fichier JSON" }; }
   if(!o || o.format !== "patch-parc") return { erreur:"ce fichier n'est pas un parc de Patch" };
   const ok = x => Array.isArray(x) ? x.filter(f => f && typeof f === "object" && f.nom) : [];
-  const src = { proj:ok(o.proj).filter(p => p.marque), mach:ok(o.mach), haut:ok(o.haut) };
+  const src = { proj:ok(o.proj).filter(p => p.marque), mach:ok(o.mach), haut:ok(o.haut), div:ok(o.div) };
   remplacerParc(src);
   sauverInv();
   if(o.modes && typeof o.modes === "object")
@@ -1921,7 +1991,7 @@ function importerParc(texte){
   if(typeof o.salle === "string" && o.salle.trim()){
     SALLE.nom = o.salle.trim(); ecrireLocal(CLE_SALLE, SALLE);
   }
-  return { proj:src.proj.length, mach:src.mach.length, haut:src.haut.length };
+  return { proj:src.proj.length, mach:src.mach.length + src.div.length, haut:src.haut.length };
 }
 function viderParc(){ remplacerParc({}); sauverInv(); }
 function reprendreParcLivre(){
@@ -1935,6 +2005,8 @@ const marques = () => [...new Set(PROJECTEURS.map(p => p.marque))].sort();
 const familles = () => [...new Set(PROJECTEURS.map(p => p.fam))].sort();
 const typesMach = () => [...new Set(MACHINERIE.map(m => m.type))];
 const typesHaut = () => [...new Set(HAUTEURS.map(h => h.type))];
+const TYPES_DIV = ["Son", "Vidéo", "Câblage", "Réseau", "Pupitre", "Électricité", "Consommable"];
+const typesDiv = () => [...new Set([...TYPES_DIV, ...DIVERS.map(x => x.type)])];
 const metres = v => vg(Number(v || 0).toFixed(2));
 
 /* Renommer un projecteur déplace ce qui le désignait : ses modes DMX et les
@@ -1980,6 +2052,13 @@ const CHAMPS = {
     { c:"h", l:"Hauteur (m)", ph:"17", t:"decimal", req:true },
     { c:"charge", l:"Charge (kg)", ph:"136", t:"entier" },
     { c:"note", l:"Note", ph:"Hauteur réglage tour" }
+  ],
+  div:[
+    { c:"nom", l:"Nom", ph:"SM58", req:true },
+    { c:"type", l:"Type", ph:"Son", req:true, liste:typesDiv },
+    { c:"marque", l:"Marque", ph:"Shure" },
+    { c:"nb", l:"Quantité", ph:"6", t:"entier" },
+    { c:"note", l:"Note", ph:"Caisse micros, étagère B" }
   ]
 };
 
@@ -2020,6 +2099,16 @@ function avecCrayon(rangee, k, i){
   b.onclick = () => go({ v:"edit", k, i });
   w.append(rangee, b);
   return w;
+}
+/* Le même ajout, en haut de la liste : il reste sous le pouce sans avoir à
+   descendre jusqu'au bout. */
+function barAjout(titre, cnt, k){
+  const b = bar(titre, cnt);
+  const p = el("button", "bk plus", ic("plus"));
+  p.setAttribute("aria-label", "Ajouter");
+  p.onclick = () => { toucher(); go({ v:"edit", k, i:null }); };
+  b.append(p);
+  return b;
 }
 function boutonAjout(k, lab){
   const b = el("button", "ajout", ic("plus") + "<span>" + esc(lab) + "</span>");
@@ -4853,6 +4942,20 @@ function vNdi(){
   return d;
 }
 
+/* Un réseau de régie n'a pas de DNS : sans nom annoncé (Art-Net, sACN, NDI)
+   ou répondu par l'appareil (NetBIOS, mDNS, page web), il ne reste que
+   l'adresse. Le nom donné à la main passe avant tout et reste sur le
+   téléphone, rangé par adresse IP. */
+const CLE_NOMS_IP = "reseau.noms.v1";
+const NOMS_IP = lireLocal(CLE_NOMS_IP, {});
+const nomIp = ip => NOMS_IP[ip] || "";
+function nommerIp(ip, nom){
+  nom = String(nom || "").trim();
+  if(nom) NOMS_IP[ip] = nom; else delete NOMS_IP[ip];
+  ecrireLocal(CLE_NOMS_IP, NOMS_IP);
+}
+const ORDRE_IP = ip => String(ip).split(".").reduce((a, x) => a * 256 + (+x || 0), 0);
+
 function vNet(){
   const w = NET.wifi();
   const d = el("div");
@@ -4863,28 +4966,67 @@ function vNet(){
   const info = el("p");
   info.style.margin = "0 0 12px";
   d.append(info);
+  /* La fiche de renommage vit hors de la liste, que chaque relevé redessine :
+     sinon le champ se viderait sous les doigts. */
+  const fiche = el("div");
+  d.append(fiche);
   const l = el("div", "rowlist");
   d.append(l);
-  poser(NET.scan(e => {
-    const hs = e.hotes || [], ok = hs.filter(x => x.ok !== false);
+  let dernier = { hotes:[] };
+
+  const ouvrir = r => {
+    toucher();
+    const annonce = r.nom && r.nom !== r.ip ? r.nom : "";
+    const c = el("div", "card nomip");
+    c.innerHTML = `<h4>Nommer ${esc(r.ip)}</h4>
+      <p class="muted">${annonce ? `L'appareil s'annonce « ${esc(annonce)} »${r.origine ? " (" + esc(r.origine) + ")" : ""}.`
+        : "L'appareil ne donne pas de nom."} Le nom choisi ici passe avant et reste sur ce téléphone.</p>
+      <div class="f"><label for="nomip">Nom</label>
+        <input id="nomip" value="${esc(nomIp(r.ip))}" placeholder="${esc(annonce || "ex. Node jardin")}" autocomplete="off"></div>`;
+    const fin = el("div", "fin");
+    const ann = el("button", "ann", nomIp(r.ip) ? "Effacer" : "Annuler");
+    ann.onclick = () => { if(nomIp(r.ip)) nommerIp(r.ip, ""); fiche.replaceChildren(); peindre(); };
+    const ok = el("button", "val", "Enregistrer");
+    ok.onclick = () => { nommerIp(r.ip, $("#nomip", c).value); fiche.replaceChildren(); peindre(); };
+    fin.append(ann, ok);
+    c.append(fin);
+    fiche.replaceChildren(c);
+    const i = $("#nomip", c);
+    i.addEventListener("keydown", e => { if(e.key === "Enter") ok.click(); });
+    c.scrollIntoView({ block:"nearest" });
+    i.focus({ preventScroll:true });
+  };
+
+  const peindre = () => {
+    const e = dernier;
+    const hs = (e.hotes || []).slice().sort((a, b) => ORDRE_IP(a.ip) - ORDRE_IP(b.ip));
+    const ok = hs.filter(x => x.ok !== false);
     const moy = ok.length ? (ok.reduce((a, x) => a + (x.ms || 0), 0) / ok.length) : 0;
+    const nommes = hs.filter(r => nomIp(r.ip) || (r.nom && r.nom !== r.ip)).length;
     h.innerHTML = `<div class="kick">${esc(w ? (w.ssid || "réseau local") : "hors réseau")}</div>
       <h3>${ok.length} hôte${ok.length > 1 ? "s" : ""}</h3>
       <p>${w ? esc(w.base) + ".0/24 · ce téléphone en " + esc(w.ip) : "Wi-Fi non associé"}</p>
       <div class="stats">
         <div><b>${moy ? vg(moy.toFixed(1)) + " ms" : "—"}</b><span>latence moy.</span></div>
         <div><b>${e.faits ?? 0}/${e.total ?? 254}</b><span>adresses vues</span></div>
+        <div><b>${nommes}/${hs.length}</b><span>nommés</span></div>
       </div>`;
-    info.innerHTML = `${marque(e.demo)} <span class="muted"> ${e.encours ? "balayage en cours…" : "balayage terminé"}</span>`;
+    info.innerHTML = `${marque(e.demo)} <span class="muted"> ${e.encours ? "balayage en cours…" : "balayage terminé"} · toucher un appareil pour le nommer</span>`;
     l.replaceChildren(...hs.map(r => {
       const b = el("button", "row");
+      const perso = nomIp(r.ip), annonce = r.nom && r.nom !== r.ip ? r.nom : "";
+      const nom = perso || annonce;
+      const sous = [r.ip, perso ? (annonce && annonce !== perso ? "annoncé « " + annonce + " »" : "nommé à la main")
+                             : r.origine || r.role].filter(Boolean).join(" · ");
       b.style.setProperty("--c", r.ok === false ? "var(--ko)" : "var(--net)");
       b.innerHTML = `<span class="av">${ic("reseau")}</span>
-        <span class="g"><b>${esc(r.nom || r.ip)}</b><span>${esc(r.ip)}${r.role ? " · " + esc(r.role) : ""}</span></span>
+        <span class="g"><b>${esc(nom || r.ip)}</b><span>${esc(nom ? sous : "sans nom · toucher pour nommer")}</span></span>
         <span class="r">${r.ok === false ? "sans réponse" : vg((r.ms || 0).toFixed(1)) + " ms"}</span>`;
+      b.onclick = () => ouvrir(r);
       return b;
     }));
-  }));
+  };
+  poser(NET.scan(e => { dernier = e; peindre(); }));
   return d;
 }
 
@@ -5007,7 +5149,7 @@ function vArt(){
         ? `color-mix(in srgb, var(--art) ${14 + n[i] / 255 * 86}%, var(--sur2))` : "var(--sur2)");
       const actifs = n.filter(v => v > 0).length;
       $("#u-info", grille).innerHTML = `
-        <div class="kv"><span>Source</span><b>${esc(e.nom || e.src || "—")}</b></div>
+        <div class="kv"><span>Source</span><b>${esc(nomIp(e.src) || e.nom || e.src || "—")}</b></div>
         <div class="kv"><span>Protocole</span><b>${esc(e.proto)}${e.prio ? " · prio " + e.prio : ""}</b></div>
         <div class="kv"><span>Rafraîchissement</span><b>${e.hz ?? "—"} Hz</b></div>
         <div class="kv"><span>Canaux actifs</span><b>${actifs}</b></div>`;
@@ -5042,7 +5184,7 @@ function vArt(){
     if(!ns.length){ noeuds.append(el("p", "muted", "Aucune réponse à l'ArtPoll.")); return; }
     ns.forEach(n => {
       const c = el("div");
-      c.innerHTML = `<div class="kv"><span>${esc(n.long || n.court)}</span><b>${esc(n.ip)}</b></div>
+      c.innerHTML = `<div class="kv"><span>${esc(nomIp(n.ip) || n.long || n.court)}</span><b>${esc(n.ip)}</b></div>
         <div class="kv"><span class="muted">${esc(n.mac || "")}</span>
           <b>${(n.ports || []).map(p => "U" + p.univers).join(" · ") || "—"}</b></div>`;
       noeuds.append(c);
@@ -5631,7 +5773,7 @@ function vMaj(){
 
 /* -------------------------------- moteur -------------------------------- */
 const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps, dist:vDist,
-                proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
+                proj:vProj, mach:vMach, haut:vHaut, div:vDiv, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 tcd:vPatch, gel:vGel, led:vLed, cab:vCable, bil:vBil, elec:vElec, rig:vRig, ndi:vNdi,
                 net:vNet, sub:vSub, art:vArt, rdm:vRdm, maj:vMaj,
                 log:vLog, logf:vLogFiche, logr:vLogReglages, favoris:vFavoris };
@@ -5683,7 +5825,7 @@ function render(){
     q.addEventListener("input", e => { S.q = e.target.value; const pos = e.target.selectionStart; render();
       const n = $("#q"); if(n){ n.focus({ preventScroll:true }); n.setSelectionRange(pos, pos); } });
   }
-  const t = ["parc", "proj", "mach", "haut", "mdg", "manuel", "fiche", "edit"].includes(r.v) ? "parc"
+  const t = ["parc", "proj", "mach", "haut", "div", "mdg", "manuel", "fiche", "edit"].includes(r.v) ? "parc"
           : ["log", "logf", "logr"].includes(r.v) ? "agenda"
           : ["home", "favoris"].includes(r.v) ? "home" : "tools";
   document.querySelectorAll(".tb").forEach(b => b.setAttribute("aria-current", b.dataset.t === t ? "true" : "false"));

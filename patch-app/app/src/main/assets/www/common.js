@@ -190,14 +190,14 @@ const DEMO_NDI = [
 ];
 
 const DEMO_RESEAU = [
-  { ip:"192.168.0.1", nom:"switch-regie", role:"Switch PoE 24p", ms:0.6, ok:true },
-  { ip:"192.168.0.10", nom:"console-lumiere", role:"Pupitre", ms:0.9, ok:true },
-  { ip:"192.168.0.21", nom:"node-plateau-1", role:"Node Art-Net 4p", ms:1.2, ok:true },
-  { ip:"192.168.0.22", nom:"node-passerelle", role:"Node Art-Net 4p", ms:1.4, ok:true },
-  { ip:"192.168.0.31", nom:"media-01", role:"Serveur vidéo", ms:0.8, ok:true },
-  { ip:"192.168.0.32", nom:"media-02", role:"Serveur vidéo", ms:2.1, ok:true },
-  { ip:"192.168.0.44", nom:"wifi-plateau", role:"Borne Wi-Fi", ms:4.7, ok:true },
-  { ip:"192.168.0.51", nom:"node-salle", role:"Node Art-Net 2p", ms:null, ok:false }
+  { ip:"192.168.0.1", nom:"", role:"", ms:0.6, ok:true },
+  { ip:"192.168.0.10", nom:"ETC-EOS-GIO", origine:"NetBIOS", role:"", ms:0.9, ok:true },
+  { ip:"192.168.0.21", nom:"Net3 Plateau jardin", origine:"nœud Art-Net", role:"nœud Art-Net", ms:1.2, ok:true },
+  { ip:"192.168.0.22", nom:"GN10 passerelle", origine:"nœud Art-Net", role:"nœud Art-Net", ms:1.4, ok:true },
+  { ip:"192.168.0.31", nom:"media-01", origine:"mDNS", role:"", ms:0.8, ok:true },
+  { ip:"192.168.0.32", nom:"", role:"", ms:2.1, ok:true },
+  { ip:"192.168.0.44", nom:"UniFi AP", origine:"page web", role:"", ms:4.7, ok:true },
+  { ip:"192.168.0.51", nom:"node-salle", origine:"nœud Art-Net", role:"nœud Art-Net", ms:null, ok:false }
 ];
 
 const DEMO_SOURCES_DMX = [
