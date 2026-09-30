@@ -20,7 +20,7 @@ const NET = {
   /* Balayage du sous-réseau. cb reçoit { encours, faits, total, hotes[] }. */
   scan(cb){
     if(!PONT) return simuler(cb, DEMO_RESEAU.map(r => ({
-      ip:r.ip, nom:r.nom, role:r.role, ms:r.ms, ok:r.ok })), "hotes", 254);
+      ip:r.ip, nom:r.nom, origine:r.origine, role:r.role, ms:r.ms, ok:r.ok })), "hotes", 254);
     PONT.scanStart();
     return sonder(() => JSON.parse(PONT.scanState()), cb, 400);
   },
