@@ -646,7 +646,20 @@ function voletJour(tous, etats){
 /* ------------------------------ les réglages ---------------------------- */
 function vLogReglages(){
   const d = el("div", "lg");
-  d.append(bar("Synchroniser", null, () => retour({ v:"log" })), carteAgenda(), carteSortie(), carteEchange());
+  d.append(bar("Synchroniser", null, () => retour({ v:"log" })));
+  /* Trois cartes, une à la fois : la liste des agendas est longue, et ce qui
+     vient après elle ne se trouvait qu'en descendant. */
+  const ongl = [["lire", "Lire", carteAgenda], ["ecrire", "Écrire", carteSortie], ["fichier", "Fichiers", carteEchange]];
+  if(!LOGV.reg || !ongl.some(o => o[0] === LOGV.reg)) LOGV.reg = "lire";
+  const seg = el("div", "lg-seg lg-onglets");
+  seg.style.setProperty("--c", "var(--log)");
+  ongl.forEach(([k, lab]) => {
+    const b = el("button", null, esc(lab));
+    b.setAttribute("aria-pressed", LOGV.reg === k ? "true" : "false");
+    b.onclick = () => { toucher(); LOGV.reg = k; render(); };
+    seg.append(b);
+  });
+  d.append(seg, ongl.find(o => o[0] === LOGV.reg)[2]());
   return d;
 }
 
@@ -947,8 +960,17 @@ function carteSortie(){
     return c;
   }
   if(!NET.agendaTel.autorise() || !NET.agendaTel.ecritAutorise()){
-    c.insertAdjacentHTML("beforeend", `<p class="muted">Reliez d'abord l'agenda ci-dessus : Android demande
-      l'autorisation de lire et d'écrire une seule fois.</p>`);
+    c.insertAdjacentHTML("beforeend", `<p class="muted">Patch a besoin d'une autorisation pour écrire dans
+      l'agenda du téléphone. Android ne la demande qu'une fois.</p>`);
+    const g = el("div", "lg-btns"), m = el("p", "lg-msg");
+    m.hidden = true;
+    const b = el("button", "prim", "Autoriser l'écriture");
+    b.onclick = () => { toucher(); NET.agendaTel.demander(ok => {
+      if(ok) render();
+      else { m.textContent = "Autorisation refusée. Elle se rétablit dans les réglages d'Android : Applications, Patch, Autorisations."; m.hidden = false; }
+    }); };
+    g.append(b);
+    c.append(g, m);
     return c;
   }
   const liste = (NET.agendaTel.liste() || []).filter(a => a.ecrivable !== false);
