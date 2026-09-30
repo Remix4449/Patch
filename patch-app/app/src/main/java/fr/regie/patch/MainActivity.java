@@ -188,12 +188,20 @@ public class MainActivity extends Activity {
                 == android.content.pm.PackageManager.PERMISSION_GRANTED;
     }
 
+    public boolean agendaEcritAutorise() {
+        return checkSelfPermission(android.Manifest.permission.WRITE_CALENDAR)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    }
+
+    /* Lecture et écriture sont demandées ensemble : Android ne montre que
+       celles qui manquent, et Patch écrit dans l'agenda choisi par Rémi. */
     public void demanderAgenda() {
-        if (agendaAutorise()) { agendaPerm = "oui"; return; }
+        if (agendaAutorise() && agendaEcritAutorise()) { agendaPerm = "oui"; return; }
         agendaPerm = "attente";
         runOnUiThread(new Runnable() {
             public void run() {
-                requestPermissions(new String[] { android.Manifest.permission.READ_CALENDAR }, CODE_AGENDA);
+                requestPermissions(new String[] { android.Manifest.permission.READ_CALENDAR,
+                        android.Manifest.permission.WRITE_CALENDAR }, CODE_AGENDA);
             }
         });
     }
@@ -201,7 +209,7 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requete, String[] perms, int[] res) {
         super.onRequestPermissionsResult(requete, perms, res);
-        if (requete == CODE_AGENDA) agendaPerm = agendaAutorise() ? "oui" : "non";
+        if (requete == CODE_AGENDA) agendaPerm = agendaAutorise() && agendaEcritAutorise() ? "oui" : "non";
     }
 
     private static String erreurJson(String m) {

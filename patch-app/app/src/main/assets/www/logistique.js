@@ -646,7 +646,7 @@ function voletJour(tous, etats){
 /* ------------------------------ les réglages ---------------------------- */
 function vLogReglages(){
   const d = el("div", "lg");
-  d.append(bar("Synchroniser", null, () => retour({ v:"log" })), carteAgenda(), carteEchange());
+  d.append(bar("Synchroniser", null, () => retour({ v:"log" })), carteAgenda(), carteSortie(), carteEchange());
   return d;
 }
 
@@ -745,6 +745,63 @@ const sauverCal = () => ecrireLocal(CLE_LOG_CAL, logCal());
 const CAL_AVANT = 30, CAL_APRES = 180;         // jours lus de part et d'autre d'aujourd'hui
 
 
+/* Le rendez-vous que vaut une fiche dans l'agenda du téléphone. Un spectacle
+   part avec sa prochaine représentation ; un prêt ou un stagiaire tient la
+   journée entière, qu'Android attend posée à minuit UTC, fin exclue. */
+function momentTel(x){
+  const type = x.type;
+  const pro = type === "spec" ? prochaineDe(x, logAuj()) || prochaineDe(x, x.debut) : null;
+  const dj = pro ? pro.j : x.debut;
+  if(!dj) return null;
+  const [a, m, j] = dj.split("-").map(Number);
+  const fj = (pro ? pro.j : x.fin || x.debut).split("-").map(Number);
+  const hd = pro ? pro.s[0] : x.hdebut;
+  const dur = heureLue(x.duree);
+  const hf = pro ? (dur ? ajouterHeure(hd, dur) : ajouterHeure(hd, "02:00")) : x.hfin;
+  const journee = !((type === "ev" || type === "spec") && hd);
+  const h = (s, def) => (s || def).split(":").map(Number);
+  const [h1, m1] = h(hd, "00:00");
+  const [h2, m2] = h(hf, hd ? String(Math.min(23, h1 + 1)) + ":" + String(m1) : "00:00");
+  const debut = journee ? Date.UTC(a, m - 1, j) : new Date(a, m - 1, j, h1, m1).getTime();
+  const fin = journee ? Date.UTC(fj[0], fj[1] - 1, fj[2] + 1)
+                      : new Date(fj[0], fj[1] - 1, fj[2], h2, m2).getTime();
+  const titre = type === "pret" ? "Prêt : " + logTitre(x)
+              : type === "stag" ? "Stagiaire : " + x.titre : x.titre;
+  return { titre, lieu:x.lieu || "", note:[logSous(x), x.contact, x.note].filter(Boolean).join("\n"),
+           debut, fin, journee };
+}
+
+/* ------------------ écriture dans l'agenda du téléphone ------------------ */
+/* Chaque genre de fiche peut aller dans un agenda du téléphone, choisi dans
+   Synchroniser. La fiche garde l'identifiant du rendez-vous écrit (`tel`),
+   pour le remplacer au lieu d'en faire un deuxième, et le retirer avec elle.
+   Une fiche venue de l'agenda ne repart jamais : elle y est déjà. */
+const sortieDe = x => (!x || /^cal-/.test(x.id) ? "" : (logCal().sortie || {})[x.type === "spec" ? "ev" : x.type] || "");
+
+function pousserTel(x){
+  const cal = sortieDe(x);
+  if(!cal || !NET.agendaTel.dispo || !NET.agendaTel.ecritAutorise()) return;
+  const r = momentTel(x);
+  if(!r) return;
+  /* L'agenda de sortie a changé : l'ancien rendez-vous s'en va. */
+  if(x.tel && x.telCal && String(x.telCal) !== String(cal)){ NET.agendaTel.retirer(x.tel); x.tel = 0; }
+  const ev = NET.agendaTel.ecrire(cal, x.tel, r);
+  if(ev){ x.tel = ev; x.telCal = String(cal); } else { delete x.tel; delete x.telCal; }
+}
+
+function retirerTel(x){
+  if(!x || !x.tel || !NET.agendaTel.dispo || !NET.agendaTel.ecritAutorise()) return;
+  NET.agendaTel.retirer(x.tel);
+}
+
+/* Les rendez-vous que Patch a écrits lui-même : on ne les relit pas comme des
+   fiches, sinon chaque fiche apparaîtrait deux fois. */
+function evenementsEcrits(){
+  const s = new Set();
+  logTout().forEach(x => { if(x.tel && !x.supprime) s.add(String(x.tel)); });
+  return s;
+}
+
 function syncAgenda(){
   if(!NET.agendaTel.dispo || !NET.agendaTel.autorise()) return { erreur:"autorisation refusée" };
   const cal = logCal(), ids = cal.ids.map(String);
@@ -754,8 +811,8 @@ function syncAgenda(){
   const agendas = NET.agendaTel.liste();
   if(Array.isArray(agendas)) cal.couleurs = Object.fromEntries(agendas.map(x => [String(x.id), x.couleur]));
   if(!Array.isArray(lus)) return { erreur:(lus && lus.erreur) || "agenda illisible" };
-  const vus = new Set();
-  const fiches = lus.filter(o => o.titre && o.debut).map(o => {
+  const vus = new Set(), miens = evenementsEcrits();
+  const fiches = lus.filter(o => o.titre && o.debut && !miens.has(String(o.id))).map(o => {
     const id = "cal-" + o.id + "-" + o.debut;
     vus.add(id);
     const x = { id, type:"ev", titre:o.titre, debut:o.debut, cat:o.nomAgenda || "Agenda",
@@ -873,6 +930,70 @@ function carteAgenda(){
   }, true);
   if(cal.ids.length) btn("Annuler", () => { LOGV.calChoix = false; render(); });
   c.append(g, msg);
+  return c;
+}
+
+/* ------------------- ce que Patch écrit dans le téléphone ---------------- */
+/* Un agenda du téléphone par genre de fiche : ce qu'on ajoute, modifie ou
+   retire dans Patch suit tout seul, et se retrouve dans les autres agendas
+   reliés au même compte. */
+function carteSortie(){
+  const cal = logCal();
+  const c = el("div", "card lg-cal");
+  c.innerHTML = `<h4>Écrire dans l'agenda du téléphone</h4>`;
+  if(!NET.agendaTel.dispo){
+    c.insertAdjacentHTML("beforeend", `<p class="muted">Dans l'application Android, chaque genre de fiche
+      peut aller dans un agenda du téléphone, d'où les autres calendriers le reprennent.</p>`);
+    return c;
+  }
+  if(!NET.agendaTel.autorise() || !NET.agendaTel.ecritAutorise()){
+    c.insertAdjacentHTML("beforeend", `<p class="muted">Reliez d'abord l'agenda ci-dessus : Android demande
+      l'autorisation de lire et d'écrire une seule fois.</p>`);
+    return c;
+  }
+  const liste = (NET.agendaTel.liste() || []).filter(a => a.ecrivable !== false);
+  if(!Array.isArray(liste) || !liste.length){
+    c.insertAdjacentHTML("beforeend", `<p class="muted">Aucun agenda de ce téléphone n'accepte d'écriture.</p>`);
+    return c;
+  }
+  c.insertAdjacentHTML("beforeend", `<p class="muted">Ce que vous ajoutez, modifiez ou retirez dans Patch part
+    aussitôt dans l'agenda choisi. Laissez « Nulle part » pour qu'un genre reste dans Patch seul.</p>`);
+  const sortie = Object.assign({}, cal.sortie || {});
+  const g = el("div", "lg-sorties");
+  ["ev", "pret", "stag"].forEach(t => {
+    const l = el("label", "lg-sortie");
+    l.innerHTML = `<span>${esc(LOG_TYPES[t].pl)}</span><select data-t="${t}"><option value="">Nulle part</option>${
+      liste.map(a => `<option value="${esc(a.id)}"${String(sortie[t] || "") === String(a.id) ? " selected" : ""}>${
+        esc(a.nom || "Sans nom")}</option>`).join("")}</select>`;
+    g.append(l);
+  });
+  c.append(g);
+  const msg = el("p", "lg-msg");
+  msg.hidden = true;
+  const dire = t => { msg.textContent = t; msg.hidden = !t; };
+  const bs = el("div", "lg-btns");
+  const btn = (lab, fn, prim) => {
+    const b = el("button", prim ? "prim" : "", esc(lab));
+    b.onclick = () => { toucher(); fn(); };
+    bs.append(b);
+  };
+  const relever = () => Object.fromEntries([...g.querySelectorAll("select")].map(s => [s.dataset.t, s.value]));
+  btn("Enregistrer", () => {
+    cal.sortie = relever();
+    sauverCal();
+    dire("Enregistré. Les prochaines fiches partiront dans ces agendas.");
+  }, true);
+  /* Les fiches déjà là ne sont jamais parties : ce bouton les rattrape. */
+  btn("Envoyer les fiches d'ici", () => {
+    cal.sortie = relever();
+    sauverCal();
+    let n = 0;
+    logVivants().forEach(x => { const av = x.tel; pousserTel(x); if(x.tel && x.tel !== av) n++; });
+    sauverLog();
+    dire(n ? n + " fiche" + (n > 1 ? "s envoyées" : " envoyée") + " dans l'agenda."
+           : "Rien de neuf à envoyer.");
+  });
+  c.append(bs, msg);
   return c;
 }
 
@@ -1304,6 +1425,8 @@ function vLogFiche(){
     }
     const tout = logTout();
     const i = tout.findIndex(x => x.id === o.id);
+    if(i >= 0 && tout[i].tel){ o.tel = tout[i].tel; o.telCal = tout[i].telCal; }
+    pousserTel(o);                               // l'agenda du téléphone, si un genre y est relié
     if(i < 0) tout.push(o); else tout[i] = o;
     sauverLog();
     toucher();
@@ -1318,25 +1441,8 @@ function vLogFiche(){
     if(NET.natif && src.debut){
       const ag = el("button", "lg-agenda", ic("agenda") + "<span>Ajouter à l'agenda du téléphone</span>");
       ag.onclick = () => {
-        /* Un spectacle part avec sa prochaine représentation. */
-        const pro = type === "spec" ? prochaineDe(src, logAuj()) || prochaineDe(src, src.debut) : null;
-        const dj = pro ? pro.j : src.debut;
-        const [a, m, j] = dj.split("-").map(Number);
-        const fj = (pro ? pro.j : src.fin || src.debut).split("-").map(Number);
-        const hd = pro ? pro.s[0] : src.hdebut;
-        const dur = heureLue(src.duree);
-        const hf = pro ? (dur ? ajouterHeure(hd, dur) : ajouterHeure(hd, "02:00")) : src.hfin;
-        const journee = !((type === "ev" || type === "spec") && hd);
-        const h = (s, def) => (s || def).split(":").map(Number);
-        const [h1, m1] = h(hd, "00:00"), [h2, m2] = h(hf, hd ? String(Math.min(23, h1 + 1)) + ":" + String(m1) : "00:00");
-        const debut = new Date(a, m - 1, j, journee ? 0 : h1, journee ? 0 : m1).getTime();
-        const finT = journee ? new Date(fj[0], fj[1] - 1, fj[2] + 1).getTime()
-                             : new Date(fj[0], fj[1] - 1, fj[2], h2, m2).getTime();
-        const titre = type === "pret" ? "Prêt : " + logTitre(src) : type === "stag" ? "Stagiaire : " + src.titre : src.titre;
-        if(!NET.agenda({ titre, lieu:src.lieu, note:[logSous(src), src.contact, src.note].filter(Boolean).join("\n"),
-                         debut, fin:finT, journee })){
-          ag.querySelector("span").textContent = "Aucune application d'agenda trouvée";
-        }
+        const r = momentTel(src);
+        if(!r || !NET.agenda(r)) ag.querySelector("span").textContent = "Aucune application d'agenda trouvée";
       };
       d.append(ag);
     }
@@ -1349,6 +1455,7 @@ function vLogFiche(){
       }
       const tout = logTout();
       const i = tout.findIndex(x => x.id === src.id);
+      retirerTel(i >= 0 ? tout[i] : src);
       if(i >= 0) tout[i] = { id:src.id, type, supprime:true, maj:Date.now() };
       sauverLog();
       retour({ v:"log" });
