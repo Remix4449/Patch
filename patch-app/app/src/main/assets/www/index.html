@@ -171,7 +171,9 @@
               padding:13px 8px;font:600 13.5px/1 var(--body);cursor:pointer;color:var(--ink2);
               min-height:48px}
   .tri button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
-  .salle{margin-top:14px}
+  .salle{margin-bottom:14px}
+  .salle .sup-tot{margin-top:0}
+  .bar .appli.on{background:var(--ink);color:var(--bg)}
   .salle .muted{margin:10px 2px 12px}
   .salle .tri{margin-bottom:7px}
   .salle .salle-msg{margin:6px 2px 0}
@@ -1408,7 +1410,19 @@ const AJOUTS_PARC = [
 ];
 function vParc(){
   const d = el("div");
-  d.append(bar("Parc", SALLE.nom || null, false), grille(CATS, false, "var(--proj)"));
+  /* Import, export et nom de la salle ne servent qu'à l'installation : ils
+     restent repliés derrière l'icône du bandeau, sauf sur un parc vide. */
+  const b = bar("Parc", SALLE.nom || null, false);
+  const ouvert = S.salle != null ? S.salle : parcVide();
+  const bs = el("button", "appli" + (ouvert ? " on" : ""), ic("sync"));
+  bs.setAttribute("aria-label", "Ma salle : importer, exporter, vider");
+  bs.setAttribute("aria-expanded", String(ouvert));
+  bs.title = "Ma salle";
+  bs.onclick = () => { toucher(); S.salle = !ouvert; SALLE_MSG = ""; render(); };
+  b.append(bs);
+  d.append(b);
+  if(ouvert) d.append(carteSalle());
+  d.append(grille(CATS, false, "var(--proj)"));
   const t = el("h3", "sous", "Ajouter au parc");
   t.style.marginTop = "20px";
   d.append(t);
@@ -1419,28 +1433,28 @@ function vParc(){
     b.onclick = () => { toucher(); go({ v:"edit", k:a.k, i:null }); };
     g.append(b);
   });
-  d.append(g, carteSalle());
+  d.append(g);
   return d;
 }
 
-/* Deux touches pour vider ou reprendre le parc, comme pour retirer une
-   fiche : la WebView ne veut pas de boîte de dialogue. */
+/* Deux touches pour vider le parc, comme pour retirer une fiche : la WebView
+   ne veut pas de boîte de dialogue. */
 function carteSalle(){
   const c = el("div", "card salle");
   c.innerHTML = `<h4>Ma salle</h4>
     <div class="f"><label for="salle-nom">Nom de la salle</label>
       <input id="salle-nom" data-focus="salle-nom" value="${esc(SALLE.nom)}"
         placeholder="Grande salle, Studio…" autocomplete="off"></div>
-    <p class="muted">${parcModifie()
-      ? "Le parc affiché est celui de ce téléphone."
-      : "Le parc affiché est celui livré avec l'application. Videz-le ou importez le vôtre pour une autre salle."}</p>`;
+    <p class="muted">${parcVide()
+      ? "Le parc est vide. Ajoutez votre matériel, ou importez le fichier exporté d'un autre téléphone."
+      : "Le parc reste dans ce téléphone. Exportez-le pour équiper un autre téléphone de la salle."}</p>`;
   $("#salle-nom", c).addEventListener("change", e => {
     SALLE.nom = e.target.value.trim(); ecrireLocal(CLE_SALLE, SALLE); render();
   });
   /* Le message survit au rendu qui suit l'import : il est gardé à part. */
   const msg = el("p", "muted salle-msg", esc(SALLE_MSG));
   msg.hidden = !SALLE_MSG;
-  const dire = t => { SALLE_MSG = t; render(); };
+  const dire = t => { SALLE_MSG = t; S.salle = true; render(); };
   const rang = () => { const r = el("div", "tri"); c.append(r); return r; };
   const btn = (r, lab, fn) => { const b = el("button", null, esc(lab)); b.onclick = () => { toucher(); fn(b); }; r.append(b); return b; };
   const nomF = () => "parc-" + (plat(SALLE.nom).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "salle") + ".json";
@@ -1456,15 +1470,15 @@ function carteSalle(){
   btn(r1, "Exporter ce parc", () => NET.fichier.enregistrer(nomF(), "application/json", exportParc(),
     r => dire(r.erreur ? (r.erreur === "annulé" ? "" : "Échec : " + r.erreur + ".")
                        : "Parc enregistré : envoyez ce fichier à l'autre téléphone.")));
-  const r2 = rang();
-  btn(r2, "Vider le parc", b => {
-    if(b.dataset.sur !== "1"){ b.dataset.sur = "1"; b.textContent = "Confirmer : tout vider"; return; }
-    viderParc(); dire("Parc vidé : ajoutez votre matériel ou importez un parc.");
-  });
-  if(parcModifie()) btn(r2, "Reprendre le parc livré", b => {
-    if(b.dataset.sur !== "1"){ b.dataset.sur = "1"; b.textContent = "Confirmer le retour"; return; }
-    reprendreParcLivre(); dire("Parc livré repris.");
-  });
+  if(!parcVide()){
+    const sup = el("button", "sup-tot", "Vider le parc");
+    sup.onclick = () => {
+      toucher();
+      if(sup.dataset.sur !== "1"){ sup.dataset.sur = "1"; sup.textContent = "Confirmer : tout vider"; return; }
+      viderParc(); dire("Parc vidé.");
+    };
+    c.append(sup);
+  }
   c.append(msg);
   return c;
 }
@@ -1926,9 +1940,6 @@ const INV = {
   haut:{ liste:HAUTEURS, titre:"Hauteurs", un:"niveau" },
   div:{ liste:DIVERS, titre:"Autre matériel", un:"matériel" }
 };
-/* Le parc livré avec l'APK, gardé à part avant que la relecture locale ne
-   remplace les listes : « Reprendre le parc livré » y revient sans relancer. */
-const INV_LIVRE = JSON.parse(JSON.stringify({ proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS, div:DIVERS }));
 (function chargerInv(){
   const sauv = lireLocal(CLE_INV, null);
   if(!sauv) return;
@@ -1938,11 +1949,6 @@ const INV_LIVRE = JSON.parse(JSON.stringify({ proj:PROJECTEURS, mach:MACHINERIE,
 })();
 const sauverInv = () => ecrireLocal(CLE_INV,
   { proj:PROJECTEURS, mach:MACHINERIE, haut:HAUTEURS, div:DIVERS });
-/* Le parc livré avec l'APK va devenir vide. Un téléphone qui n'a jamais
-   touché à son parc le lisait directement dans l'APK : on l'inscrit une fois
-   dans le téléphone, pour qu'il y reste quand la version suivante arrivera
-   sans lui. */
-if(lireLocal(CLE_INV, null) == null && PROJECTEURS.length) sauverInv();
 
 /* La bibliothèque de modes se garnit après : elle suit l'inventaire en place,
    pas celui livré avec l'APK. */
@@ -1954,14 +1960,13 @@ PROJECTEURS.forEach(p => {
 const sauverBib = () => ecrireLocal(CLE_BIB, BIB);
 
 /* ------------------------- le parc d'une salle --------------------------- */
-/* L'APK arrive avec le parc d'une salle précise. Pour qu'une autre équipe
-   s'en serve avec son propre matériel, le parc se vide, s'exporte en un
-   fichier et s'importe sur un autre téléphone ; le nom de la salle le suit.
+/* L'APK arrive avec un parc vide : chaque salle saisit le sien, ou importe
+   le fichier exporté d'un autre téléphone ; le nom de la salle le suit.
    Les patchs, la logistique et les réglages restent où ils sont. */
 const CLE_SALLE = "salle.v1";
 let SALLE = lireLocal(CLE_SALLE, { nom:"" });
 let SALLE_MSG = "";
-const parcModifie = () => lireLocal(CLE_INV, null) != null;
+const parcVide = () => Object.keys(INV).every(k => !INV[k].liste.length);
 
 function remplacerParc(src){
   Object.keys(INV).forEach(k =>
@@ -1994,10 +1999,6 @@ function importerParc(texte){
   return { proj:src.proj.length, mach:src.mach.length + src.div.length, haut:src.haut.length };
 }
 function viderParc(){ remplacerParc({}); sauverInv(); }
-function reprendreParcLivre(){
-  remplacerParc(JSON.parse(JSON.stringify(INV_LIVRE)));
-  try { localStorage.removeItem(CLE_INV); } catch(e){ }
-}
 
 /* Recalculés à la demande : `MARQUES` et `FAMILLES` de common.js ont été figés
    au chargement, avant que l'inventaire local ne soit relu. */
@@ -5839,7 +5840,7 @@ function render(){
 const tbAgenda = document.querySelector('.tb[data-t="agenda"]');
 if(tbAgenda && VIEWS.log) tbAgenda.hidden = false;
 document.querySelectorAll(".tb").forEach(b => b.onclick = () => {
-  S.q = ""; SALLE_MSG = "";
+  S.q = ""; SALLE_MSG = ""; S.salle = null;
   toucher();
   const v = { home:"home", parc:"parc", agenda:"log" }[b.dataset.t] || "outils";
   go({ v });
