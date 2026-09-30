@@ -197,6 +197,14 @@
   .ep:active{transform:scale(.98)}
   .ep i{width:11px;height:11px;border-radius:3px;background:var(--c);flex:none}
   .ep span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ep.vide{grid-column:1/-1;background:none;border:1.5px dashed var(--line);color:var(--ink2);font-weight:600}
+  .ep.vide i{background:var(--ink3)}
+  /* Titre de section avec son lien à droite (« Favoris · Modifier »). */
+  .sec-l{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .sec-l .lien{border:0;background:none;color:var(--ink2);font:600 13px/1 var(--body);cursor:pointer;
+       padding:14px 2px 10px;min-height:44px}
+  .row.fav .etoile{flex:none;font-size:22px;line-height:1;color:var(--ink3);width:30px;text-align:center}
+  .row.fav.on .etoile{color:var(--c)}
 
   .signal{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;
        transform:translate(-50%,12px);opacity:0;pointer-events:none;transition:.18s;
@@ -992,28 +1000,23 @@ const COULEUR_GROUPE = {
   "Éclairage & vidéo":"var(--dmx)", "Électricité & structure":"var(--elec)", "Réseau":"var(--net)"
 };
 
-/* Accueil : les outils épinglés d'abord, puis les derniers ouverts. */
-const CLE_EPINGLES = "epingles.v1", CLE_RECENTS = "recents.v1";
-let EPINGLES = [], RECENTS = [];
-try { EPINGLES = JSON.parse(localStorage.getItem(CLE_EPINGLES)) || []; } catch(e){ }
-try { RECENTS = JSON.parse(localStorage.getItem(CLE_RECENTS)) || []; } catch(e){ }
-function basculerEpingle(k){
-  EPINGLES = EPINGLES.includes(k) ? EPINGLES.filter(x => x !== k) : [...EPINGLES, k];
+/* Accueil : les favoris, et eux seuls. Les « derniers ouverts » changeaient
+   de place d'un jour à l'autre ; Rémi préfère une liste qu'il choisit et qui
+   reste. La clé garde son ancien nom : les outils déjà épinglés deviennent
+   des favoris. Jamais réglée, elle part de quatre outils courants. */
+const CLE_EPINGLES = "epingles.v1";
+const FAVORIS_DEPART = ["tel", "gel", "elec", "net"];
+let EPINGLES = FAVORIS_DEPART.slice();
+try { const v = JSON.parse(localStorage.getItem(CLE_EPINGLES)); if(Array.isArray(v)) EPINGLES = v; } catch(e){ }
+const estFavori = k => EPINGLES.includes(k);
+function basculerEpingle(k, discret){
+  EPINGLES = estFavori(k) ? EPINGLES.filter(x => x !== k) : [...EPINGLES, k];
   try { localStorage.setItem(CLE_EPINGLES, JSON.stringify(EPINGLES)); } catch(e){ }
   const o = TOOLS.find(x => x.k === k);
   render();
-  signaler(o ? o.t + (EPINGLES.includes(k) ? " épinglé à l'accueil" : " retiré de l'accueil") : "");
+  if(!discret) signaler(o ? o.t + (estFavori(k) ? " ajouté aux favoris" : " retiré des favoris") : "");
 }
-function noterRecent(k){
-  if(!TOOLS.some(o => o.k === k)) return;
-  RECENTS = [k, ...RECENTS.filter(x => x !== k)].slice(0, 8);
-  try { localStorage.setItem(CLE_RECENTS, JSON.stringify(RECENTS)); } catch(e){ }
-}
-function raccourcis(n){
-  const cles = [...EPINGLES, ...RECENTS, "tel", "gel", "elec", "net", "rig", "cab"];
-  return [...new Set(cles)].filter(k => k !== "dmx")
-    .map(k => TOOLS.find(o => o.k === k)).filter(Boolean).slice(0, n);
-}
+const favoris = () => EPINGLES.map(k => TOOLS.find(o => o.k === k)).filter(Boolean);
 /* Une ligne qui passe en bas de l'écran et s'en va. */
 function signaler(txt){
   if(!txt) return;
@@ -1048,7 +1051,6 @@ const go = r => {
   if(!peutQuitterPatch(r.v)) return;
   PILE.push({ r:S.route, y:window.scrollY });
   try { history.pushState({ n:PILE.length }, ""); } catch(e){ }
-  noterRecent(r.v);
   S.route = r; window.scrollTo(0, 0); render();
 };
 
@@ -1081,7 +1083,7 @@ function tuile(c, petite, couleur){
   b.style.setProperty("--c", couleur || c.c);
   const coin = c.n ? `<span class="n">${c.n()}</span>`
              : c.mot ? `<span class="n mot">${esc(c.mot)}</span>`
-             : EPINGLES.includes(c.k) ? `<span class="epingle" title="Épinglé à l'accueil"></span>` : "";
+             : estFavori(c.k) ? `<span class="epingle" title="Favori"></span>` : "";
   b.innerHTML = `${coin}${ic(c.i)}<span class="tx"><b>${esc(c.t)}</b><span>${esc(c.s)}</span></span>`;
   /* Un appui long épingle l'outil à l'accueil (ou l'en retire) ; le toucher
      qui suit ne doit pas l'ouvrir en plus. */
@@ -1186,14 +1188,12 @@ function home(){
   d.append(cur);
 
   /* La journée : ce que la logistique a pour aujourd'hui, retards d'abord. */
-  let charge = false;
   if(VIEWS.log && typeof logDuJour === "function"){
     d.insertAdjacentHTML("beforeend", `<h2 class="sec">Aujourd'hui</h2>`);
     let jour = [];
     try { jour = logDuJour(); } catch(e){ jour = []; }
     const l = el("div", "jour");
     if(jour.length){
-      charge = true;
       jour.slice(0, 4).forEach(o => l.append(ligneJour(o)));
     } else l.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0 2px">Rien de prévu aujourd'hui.</p>`);
     const tout = el("button", "voir", jour.length > 4 ? `Voir les ${jour.length} du jour dans l'agenda` : "Ouvrir l'agenda");
@@ -1202,10 +1202,14 @@ function home(){
     d.append(l);
   }
 
-  d.insertAdjacentHTML("beforeend", `<h2 class="sec">${EPINGLES.length ? "Épinglés" : "Récents"}</h2>`);
+  const tf = el("div", "sec-l", `<h2 class="sec">Favoris</h2>`);
+  const mod = el("button", "lien", "Modifier");
+  mod.onclick = () => { toucher(); go({ v:"favoris" }); };
+  tf.append(mod);
+  d.append(tf);
   const g = el("div", "epgl");
-  /* Quatre quand la journée est chargée, pour que l'accueil tienne encore. */
-  raccourcis(charge ? 4 : 6).forEach(c => {
+  const favs = favoris();
+  favs.forEach(c => {
     /* La couleur propre de l'outil, pas celle du groupe : quatre pastilles
        orange côte à côte ne se distinguaient plus. */
     const b = el("button", "ep", `<i></i><span>${esc(c.t)}</span>`);
@@ -1214,10 +1218,41 @@ function home(){
     b.onclick = () => { toucher(); go({ v:c.k }); };
     g.append(b);
   });
+  if(!favs.length){
+    const v = el("button", "ep vide", `<i></i><span>Choisir mes favoris</span>`);
+    v.onclick = () => { toucher(); go({ v:"favoris" }); };
+    g.append(v);
+  }
   d.append(g);
-  d.insertAdjacentHTML("beforeend", `<p class="muted astuce">${EPINGLES.length
-    ? "Les outils épinglés d'abord, puis les derniers ouverts."
-    : "Les derniers outils ouverts. Un appui long sur un outil, dans Outils, l'épingle ici."}</p>`);
+  return d;
+}
+
+/* Choisir ses favoris : tous les outils, rangés comme dans l'onglet Outils,
+   une étoile à toucher. L'ordre des favoris est celui où on les ajoute. */
+function vFavoris(){
+  const d = el("div");
+  d.append(bar("Favoris", EPINGLES.length ? EPINGLES.length + " choisi" + (EPINGLES.length > 1 ? "s" : "") : ""));
+  d.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0 2px 14px">Les outils étoilés
+    s'affichent sur l'accueil. Un appui long sur une tuile, dans Outils, fait la même chose.</p>`);
+  TOOL_GROUPES.forEach(gr => {
+    const items = gr.cles.map(k => TOOLS.find(o => o.k === k)).filter(Boolean);
+    if(!items.length) return;
+    d.append(el("h3", "sous", esc(gr.t)));
+    const l = el("div", "rowlist");
+    items.forEach(c => {
+      const on = estFavori(c.k);
+      const b = el("button", "row fav" + (on ? " on" : ""));
+      b.style.setProperty("--c", c.c);
+      b.setAttribute("aria-pressed", String(on));
+      b.innerHTML = `<span class="av">${ic(c.i)}</span>
+        <span class="g"><b>${esc(c.t)}</b><span>${esc(c.s)}</span></span>
+        <span class="etoile" aria-hidden="true">${on ? "★" : "☆"}</span>`;
+      b.setAttribute("aria-label", (on ? "Retirer " : "Ajouter ") + c.t + (on ? " des favoris" : " aux favoris"));
+      b.onclick = () => { toucher(); basculerEpingle(c.k, true); };
+      l.append(b);
+    });
+    d.append(l);
+  });
   return d;
 }
 
@@ -5379,7 +5414,7 @@ const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps, dist:vDist,
                 proj:vProj, mach:vMach, haut:vHaut, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 tcd:vPatch, gel:vGel, led:vLed, cab:vCable, bil:vBil, elec:vElec, rig:vRig, ndi:vNdi,
                 net:vNet, sub:vSub, art:vArt, rdm:vRdm, maj:vMaj,
-                log:vLog, logf:vLogFiche, logr:vLogReglages };
+                log:vLog, logf:vLogFiche, logr:vLogReglages, favoris:vFavoris };
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
   if(STOP){ STOP(); STOP = null; }
@@ -5430,7 +5465,7 @@ function render(){
   }
   const t = ["parc", "proj", "mach", "haut", "mdg", "manuel", "fiche", "edit"].includes(r.v) ? "parc"
           : ["log", "logf", "logr"].includes(r.v) ? "agenda"
-          : r.v === "home" ? "home" : "tools";
+          : ["home", "favoris"].includes(r.v) ? "home" : "tools";
   document.querySelectorAll(".tb").forEach(b => b.setAttribute("aria-current", b.dataset.t === t ? "true" : "false"));
   peindreMaj();          // le rendu a jeté le bandeau : on le repose s'il a lieu d'être
   peindreReseau();
