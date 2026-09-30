@@ -1,101 +1,18 @@
 /* ---------------------------------------------------------------------------
    Régie — socle commun aux 3 canevas
-   Données : extraites des bases Notion (Projecteurs, Machinerie,
-   Hauteurs de Passerelles & Plateformes Élévatrices). La procédure MDG
-   est devenue une fiche de la bibliothèque : voir `manuels/`.
+   Le parc (projecteurs, machinerie, hauteurs) est livré vide : chaque
+   salle saisit ou importe le sien depuis l'écran Parc, et il reste dans le
+   téléphone. La procédure MDG est une fiche de la bibliothèque : voir
+   `manuels/`.
    Les blocs marqués DEMO sont des jeux de démonstration : réseau, NDI,
    Art-Net/sACN ne peuvent pas être lus depuis une page web seule.
 --------------------------------------------------------------------------- */
 
-const PROJECTEURS = [
-  { nom:"Titan tube", marque:"Astera", w:"48 W", kg:"1,35 kg", nb:null, fam:"Tube LED" },
-  { nom:"POWERBOX", marque:"Astera", w:"690 W", kg:"3,8 kg", nb:null, fam:"Accessoire" },
-  { nom:"Hyperion", marque:"Astera", w:"144 W", kg:"4,80 kg", nb:null, fam:"Tube LED" },
-  { nom:"Ghibli", marque:"Ayrton", w:"800 W", kg:"35,6 kg", nb:null, fam:"Lyre découpe" },
-  { nom:"Khamsin", marque:"Ayrton", w:"1150 W", kg:"39,8 kg", nb:null, fam:"Lyre découpe" },
-  { nom:"Diablo", marque:"Ayrton", w:"550 W", kg:"22 kg", nb:null, fam:"Lyre découpe" },
-  { nom:"Evo W3", marque:"Caméo", w:"325 W", kg:"8 kg", nb:null, fam:"Wash LED" },
-  { nom:"Instant Hazer 1500T Pro", marque:"Caméo", w:"1,5 kW", kg:"18 kg", nb:null, fam:"Machine à brume" },
-  { nom:"Zenit Z180 G2", marque:"Caméo", w:"220 W", kg:"8 kg", nb:null, fam:"Wash LED IP" },
-  { nom:"PIXBAR 600 Short", marque:"Caméo", w:"92 W", kg:"7,5 kg", nb:null, fam:"Barre LED" },
-  { nom:"F2 FC", marque:"Caméo", w:"250 W", kg:"9 kg", nb:null, fam:"Fresnel LED" },
-  { nom:"F4 FC", marque:"Caméo", w:"355 W", kg:"17 kg", nb:null, fam:"Fresnel LED" },
-  { nom:"Ovation E-2FC", marque:"Chauvet", w:"220 W", kg:"6 kg", nb:null, fam:"Découpe LED" },
-  { nom:"Epix Strip IP", marque:"Chauvet", w:"44 W", kg:"3 kg", nb:null, fam:"Barre LED" },
-  { nom:"K20 HCR", marque:"Claypaky", w:"650 W", kg:"22,5 kg", nb:null, fam:"Lyre wash" },
-  { nom:"Lustr 2", marque:"ETC", w:"167 W", kg:"8,3 kg", nb:null, fam:"Découpe LED" },
-  { nom:"Lustr 3", marque:"ETC", w:"305 W", kg:"8,9 kg", nb:null, fam:"Découpe LED" },
-  { nom:"SolaFrame 750", marque:"ETC", w:"600 W", kg:"28 kg", nb:null, fam:"Lyre découpe" },
-  { nom:"ColorSource CYC", marque:"ETC", w:"133 W", kg:"11 kg", nb:null, fam:"Cyclo LED" },
-  { nom:"SolaFrame 3000", marque:"ETC", w:"1500 W", kg:"49 kg", nb:"3", fam:"Lyre découpe" },
-  { nom:"Lonestar", marque:"ETC", w:"615 W", kg:"25 kg", nb:null, fam:"Lyre découpe" },
-  { nom:"Spectra", marque:"LDDE", w:"160 W", kg:"8,6 kg", nb:null, fam:"Wash LED" },
-  { nom:"Viper", marque:"Martin", w:"1040 W", kg:"37 kg", nb:null, fam:"Lyre découpe" },
-  { nom:"MAC Quantum Profile", marque:"Martin", w:"750 W", kg:"23,2 kg", nb:null, fam:"Lyre découpe" },
-  { nom:"MAC Aura", marque:"Martin", w:"340 W", kg:"9 kg", nb:null, fam:"Lyre wash" },
-  { nom:"Glaciator", marque:"Martin", w:"3500 W", kg:"110 kg", nb:null, fam:"Machine à fumée lourde" },
-  { nom:"Spiider", marque:"Robe", w:"660 W", kg:"13,3 kg", nb:null, fam:"Lyre wash" },
-  { nom:"LEDBeam 350", marque:"Robe", w:"450 W", kg:"9,9 kg", nb:null, fam:"Lyre beam" },
-  { nom:"Esprite", marque:"Robe", w:"950 W", kg:"28,2 kg", nb:null, fam:"Lyre découpe" },
-  { nom:"LEDBeam 150", marque:"Robe", w:"200 W", kg:"6 kg", nb:"10", fam:"Lyre beam", modes:[
-      { mode:"Mode 1 (standard)", ch:20 }, { mode:"Mode 2 (réduit)", ch:13 }, { mode:"Mode 3 (étendu)", ch:25 }
-    ], modesDemo:true },
-  { nom:"Tarantula", marque:"Robe", w:"1000 W", kg:"21 kg", nb:null, fam:"Lyre hybride" },
-  { nom:"Sully 4C", marque:"Robert Juliat", w:"250 W", kg:"14 kg", nb:null, fam:"Découpe LED" },
-  { nom:"2,5 HMI", marque:"Robert Juliat", w:"2500 W", kg:"45 kg", nb:null, fam:"Poursuite" },
-  { nom:"614 SX", marque:"Robert Juliat", w:"1000 W", kg:"13 kg", nb:"12", fam:"Découpe" },
-  { nom:"713 SX", marque:"Robert Juliat", w:"2000 W", kg:"24 kg", nb:"4", fam:"Découpe" },
-  { nom:"614 S", marque:"Robert Juliat", w:"1000 W", kg:"13 kg", nb:"24", fam:"Découpe" },
-  { nom:"714 S", marque:"Robert Juliat", w:"2000 W", kg:"24 kg", nb:"16", fam:"Découpe" },
-  { nom:"613 SX", marque:"Robert Juliat", w:"1000 W", kg:"11 kg", nb:"10", fam:"Découpe" },
-  { nom:"329 HPC", marque:"Robert Juliat", w:"2000 W", kg:"14 kg", nb:"48", fam:"PC" },
-  { nom:"310 HPC", marque:"Robert Juliat", w:"1000 W", kg:"9 kg", nb:"86", fam:"PC" },
-  { nom:"CYC Q6", marque:"Showtec", w:"180 W", kg:"6 kg", nb:null, fam:"Cyclo LED" }
-];
+const PROJECTEURS = [];
 
-const MACHINERIE = [
-  { nom:"Cyclorama", type:"Cyclorama", nb:1, h:"8,5 m", l:"12 m" },
-  { nom:"Fond", type:"Fond", nb:1, h:"7,50 m", l:"13 m" },
-  { nom:"Demi fond", type:"Demi fond", nb:1, h:"8,50 m", l:"9 m" },
-  { nom:"Inter", type:"Inter", nb:null, h:"8 m", l:"12,5 m" },
-  { nom:"Pendrillon", type:"Pendrillon", nb:5, h:"8 m", l:"4 m" },
-  { nom:"Frises 2 m", type:"Frises", nb:2, h:"2 m", l:"17 m" },
-  { nom:"Frises 3 m", type:"Frises", nb:4, h:"3 m", l:"17 m" },
-  { nom:"Frises 4 m", type:"Frises", nb:1, h:"4 m", l:"17 m" },
-  { nom:"Tapis de danse", type:"Tapis de danse", nb:9, h:"1,5 m", l:"15 m" },
-  { nom:"Moteur 1 t — 4 m/min", type:"Moteurs", nb:2, charge:"1000 kg", vit:"4 m/min" },
-  { nom:"Moteur 1 t — 8 m/min", type:"Moteurs", nb:4, charge:"1000 kg", vit:"8 m/min" },
-  { nom:"Palan case décor", type:"Moteurs", nb:null, charge:"500 kg" },
-  { nom:"ASD 0,5 m", type:"Structure", nb:4, l:"0,5 m", trust:"Carrée" },
-  { nom:"ASD 1 m", type:"Structure", nb:4, l:"1 m", trust:"Carrée" },
-  { nom:"ASD 2 m", type:"Structure", nb:19, l:"2 m", trust:"Carrée" },
-  { nom:"ASD 3 m", type:"Structure", nb:2, l:"3 m", trust:"Carrée" },
-  { nom:"Angle modulable", type:"Structure", nb:4, trust:"Angle modulable" },
-  { nom:"Angle 3D", type:"Structure", nb:2, trust:"Angle 3D" },
-  { nom:"Embase", type:"Structure", nb:4, trust:"Embase" },
-  { nom:"Collier simple anneau Doughty", type:"Accroche", nb:19 },
-  { nom:"Collier double Doughty fixe", type:"Accroche", nb:23, charge:"750 kg" },
-  { nom:"Collier double Doughty rotatif", type:"Accroche", nb:12, charge:"750 kg" },
-  { nom:"Mono tube 0,20 m", type:"Mono tube", nb:2 },
-  { nom:"Mono tube 45 cm", type:"Mono tube", nb:8, l:"0,45 m" },
-  { nom:"Mono tube 0,50 m", type:"Mono tube", nb:2, l:"0,50 m" },
-  { nom:"Mono tube 2 m", type:"Mono tube", nb:4, l:"2 m" },
-  { nom:"Mono tube 3 m", type:"Mono tube", nb:2, l:"3 m" },
-  { nom:"Angle 2D", type:"Mono tube", nb:6 }
-];
+const MACHINERIE = [];
 
-const HAUTEURS = [
-  { nom:"Lisse passerelle élec", type:"Passerelle", pos:"Plateau", h:7.75 },
-  { nom:"Bas passerelle élec", type:"Passerelle", pos:"Plateau", h:7.75, note:"Hauteur réglage tour" },
-  { nom:"Bas passerelle commande", type:"Passerelle", pos:"Plateau", h:10.8 },
-  { nom:"Lisse passerelle commande", type:"Passerelle", pos:"Plateau", h:11.8 },
-  { nom:"Bas passerelle charge", type:"Passerelle", pos:"Plateau", h:14.8 },
-  { nom:"Lisse passerelle charge", type:"Passerelle", pos:"Plateau", h:15.8 },
-  { nom:"Grill rail", type:"Passerelle", pos:"Plateau", h:16.5 },
-  { nom:"Grill IPN", type:"Passerelle", pos:"Plateau", h:16.8 },
-  { nom:"Grill", type:"Passerelle", pos:"Plateau", h:17 },
-  { nom:"Genie + FT", type:"Plateforme élévatrice", pos:"Plateau", h:8.24, charge:136 }
-];
+const HAUTEURS = [];
 
 
 /* ---------------------------- Calculs DMX ------------------------------- */

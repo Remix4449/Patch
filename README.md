@@ -42,15 +42,15 @@ en suivant les trois étapes ci-dessus, et reçoit ensuite les mêmes mises à j
 Toutes les données restent sur le téléphone ; rien n'est partagé entre deux
 utilisateurs.
 
-L'application arrive avec le parc d'une salle précise. Pour une autre salle,
-dans l'onglet **Parc**, carte **Ma salle** :
+L'application arrive avec un parc vide. Chaque salle y met le sien depuis
+l'onglet **Parc** : les boutons « Ajouter au parc », ou l'icône en haut à droite
+(**Ma salle**) :
 
 - **Nom de la salle** : il s'affiche en tête du Parc et nomme le fichier exporté ;
-- **Vider le parc**, puis ajouter son matériel fiche par fiche ;
 - **Exporter ce parc** / **Importer un parc** : un fichier JSON (format
-  `patch-parc`) qui porte les projecteurs, la machinerie, les hauteurs et les
-  modes DMX, pour équiper un autre téléphone de la même salle ;
-- **Reprendre le parc livré** revient au parc d'origine de l'APK.
+  `patch-parc`) qui porte les projecteurs, la machinerie, les hauteurs, l'autre
+  matériel et les modes DMX, pour équiper les autres téléphones de la salle ;
+- **Vider le parc**, en deux touches.
 
 L'agenda lit les agendas du téléphone de chacun (Réglages de l'écran Agenda) et
 les patchs appartiennent au téléphone qui les a créés.
