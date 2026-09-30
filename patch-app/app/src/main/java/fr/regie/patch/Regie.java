@@ -81,7 +81,12 @@ public class Regie {
     }
 
     @JavascriptInterface
-    public void scanStart() { scan.lancer(reseau.base); }
+    public void scanStart() {
+        /* Un ArtPoll neuf à chaque balayage : les nœuds rallumés depuis le
+           lancement de l'application répondent avec leur nom. */
+        art.interroger();
+        scan.lancer(reseau.base);
+    }
 
     @JavascriptInterface
     public String scanState() {
@@ -94,8 +99,18 @@ public class Regie {
             for (Scanner.Hote h : scan.hotes) {
                 JSONObject j = new JSONObject();
                 j.put("ip", h.ip);
-                j.put("nom", nomConnu(h.ip));
-                j.put("role", roleConnu(h.ip));
+                /* L'annonce du protocole passe avant ce que l'appareil
+                   répond de lui-même : c'est le nom donné en régie. */
+                String annonce = nomAnnonce(h.ip);
+                String role = roleConnu(h.ip);
+                if (!annonce.isEmpty()) {
+                    j.put("nom", annonce);
+                    j.put("origine", role);
+                } else {
+                    j.put("nom", h.nom);
+                    j.put("origine", h.origine);
+                }
+                j.put("role", role);
                 j.put("ms", Math.round(h.ms * 10) / 10.0);
                 j.put("ok", h.ok);
                 a.put(j);
@@ -107,11 +122,20 @@ public class Regie {
 
     /** Nom déduit des annonces Art-Net ou mDNS, à défaut l'adresse. */
     private String nomConnu(String ip) {
+        String n = nomAnnonce(ip);
+        return n.isEmpty() ? ip : n;
+    }
+
+    /** Nom annoncé en Art-Net (ArtPollReply), NDI ou sACN ; vide sinon. */
+    private String nomAnnonce(String ip) {
         ArtNet.Noeud n = art.noeuds.get(ip);
-        if (n != null) return n.longNom.isEmpty() ? n.court : n.longNom;
+        if (n != null) {
+            String x = n.longNom.trim().isEmpty() ? n.court.trim() : n.longNom.trim();
+            if (!x.isEmpty()) return x;
+        }
         for (Ndi.Source s : ndi.sources) if (ip.equals(s.ip)) return s.machine.isEmpty() ? s.nom : s.machine;
         for (Sacn.Uni u : sacn.univers.values()) if (ip.equals(u.src) && !u.nom.isEmpty()) return u.nom;
-        return ip;
+        return "";
     }
 
     private String roleConnu(String ip) {

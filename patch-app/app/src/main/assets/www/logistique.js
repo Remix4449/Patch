@@ -258,7 +258,9 @@ function materielLu(texte){
   const parc = [
     ...PROJECTEURS.map(p => ({ nom:p.marque + " " + p.nom, court:p.nom, cles:[p.nom, p.marque + p.nom], nb:p.nb })),
     ...MACHINERIE.map(m => ({ nom:m.nom, court:m.nom, cles:[m.nom], nb:m.nb })),
-    ...HAUTEURS.map(h => ({ nom:h.nom, court:h.nom, cles:[h.nom], nb:h.nb }))
+    ...HAUTEURS.map(h => ({ nom:h.nom, court:h.nom, cles:[h.nom], nb:h.nb })),
+    ...(typeof DIVERS !== "undefined" ? DIVERS : []).map(x => ({ nom:x.nom, court:x.nom,
+        cles:[x.nom, (x.marque || "") + x.nom], nb:x.nb }))
   ].sort((a, b) => b.cles[0].length - a.cles[0].length);    // « 614 SX » avant « 614 S »
   const trouver = q => {
     const c = compact(q);
@@ -1149,7 +1151,8 @@ function vLogFiche(){
     spectacles: () => [...new Set([...(typeof PATCHS !== "undefined" ? PATCHS.map(p => p.nom) : []),
                                    ...logVivants().map(x => x.type === "spec" ? x.titre : x.spectacle)].filter(Boolean))],
     materiel: () => [...new Set([...PROJECTEURS.map(p => p.marque + " " + p.nom), ...MACHINERIE.map(m => m.nom),
-                                 ...HAUTEURS.map(h => h.nom)])]
+                                 ...HAUTEURS.map(h => h.nom),
+                                 ...(typeof DIVERS !== "undefined" ? DIVERS : []).map(x => x.nom)])]
   };
   const c = el("div", "card");
   const champ = f => {
