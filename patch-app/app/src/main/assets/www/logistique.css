@@ -202,10 +202,10 @@
 .lg-fiche .fin{padding:8px 16px;margin-top:6px}
 .lg-fiche .fin button{padding:12px}
 
-/* Le changement de mois : la grille entre du côté d'où l'on vient. */
-@keyframes cal-d{from{opacity:.35;transform:translateX(7%)}to{opacity:1;transform:none}}
-@keyframes cal-g{from{opacity:.35;transform:translateX(-7%)}to{opacity:1;transform:none}}
-.cal-corps.vient-d{animation:cal-d .26s cubic-bezier(.22,.7,.3,1)}
-.cal-corps.vient-g{animation:cal-g .26s cubic-bezier(.22,.7,.3,1)}
-.cal-tete h2{transition:opacity .2s}
-@media (prefers-reduced-motion:reduce){ .cal-corps.vient-d,.cal-corps.vient-g{animation:none} }
+
+/* Les trois mois de la piste : chacun prend toute la largeur, la piste les
+   fait défiler d'un bloc. */
+.cal-corps{overflow:hidden}
+.cal-piste{display:flex;width:300%;will-change:transform;touch-action:pan-y}
+.cal-vue{width:33.3333%;flex:none}
+@media (prefers-reduced-motion:reduce){ .cal-piste{transition:none !important} }
