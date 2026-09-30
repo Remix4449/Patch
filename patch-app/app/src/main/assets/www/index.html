@@ -5392,7 +5392,10 @@ const MAJ = { e:null };
 /* Le bandeau ne garde que les phases qui demandent un geste : « disponible » et
    « téléchargement » poussaient la grille d'une rangée entière pour ne rien
    faire faire. Elles se disent maintenant sur la ligne Application. */
-const PHASES_BANDEAU = ["pret", "autorisation"];
+/* Le bandeau montre tout ce qui attend quelque chose, y compris un échec :
+   sans lui, une mise à jour tombée pendant une publication ne laissait aucune
+   trace sur l'accueil, et l'application semblait ne plus se mettre à jour. */
+const PHASES_BANDEAU = ["pret", "autorisation", "telechargement", "disponible", "erreur"];
 
 function ko(o){ return o >= 1048576 ? (o / 1048576).toFixed(1).replace(".", ",") + " Mo"
                                     : Math.round(o / 1024) + " ko"; }
@@ -5417,6 +5420,10 @@ function bandeauMaj(e){
     return `<div class="maj"><div class="g"><b>Une autorisation à donner</b>
       <span>Autoriser Patch à installer des applications, puis revenir ici.</span></div>
       <button data-maj="installer">Reprendre</button></div>`;
+  if(e.phase === "erreur")
+    return `<div class="maj"><div class="g"><b>Mise à jour interrompue</b>
+      <span>${esc(e.erreur || "la vérification a échoué")}. Patch réessaie tout seul.</span></div>
+      <button data-maj="telecharger">Réessayer</button></div>`;
   return `<div class="maj"><div class="g"><b>${esc(nomVer(e))} disponible</b>
     <span>Téléchargement en attente.${branche(e)}</span></div>
     <button data-maj="telecharger">Télécharger</button></div>`;
@@ -5472,7 +5479,11 @@ function peindreMaj(){
   const e = MAJ.e;
   const zone = $("#maj-zone");
   if(zone){
-    const montre = e && PHASES_BANDEAU.includes(e.phase);
+    /* Un échec ne se montre que s'il empêche une version connue d'arriver :
+       sans accès à internet sur le Wi-Fi du plateau, le bandeau n'aurait rien
+       à dire. */
+    const montre = e && PHASES_BANDEAU.includes(e.phase)
+      && (e.phase !== "erreur" || e.publie > e.installe);
     zone.innerHTML = montre ? bandeauMaj(e) : "";
     if(montre) cablerMaj(zone);
   }

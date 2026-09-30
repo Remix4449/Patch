@@ -119,11 +119,24 @@ public class Maj {
      * déjà remplacée.
      */
     public void reprendre() {
-        if ("pret".equals(phase)) verifier();
+        if ("pret".equals(phase) || "erreur".equals(phase) || "repos".equals(phase)) verifier();
     }
 
-    /** Reprend le seul téléchargement, après un échec réseau par exemple. */
-    public void telecharger() { lancer(false, true); }
+    /**
+     * Reprend après un échec réseau. On revérifie d'abord : l'échec vient
+     * souvent d'une publication en cours, et le numéro publié a pu changer.
+     */
+    public void telecharger() { lancer(true, true); }
+
+    /**
+     * Une fusion remplace l'APK puis sa fiche : la vérification ou le
+     * téléchargement qui tombe pendant ces quelques secondes échoue. Personne
+     * n'est là pour appuyer sur « Vérifier », alors on reprend tout seul, deux
+     * fois, à une demi-minute d'intervalle. Une main sur le bouton reprend à
+     * zéro.
+     */
+    private static final int REPRISES = 2;
+    private static final long ATTENTE = 30000;
 
     private void lancer(final boolean verif, final boolean tele) {
         if (occupe) return;
@@ -131,8 +144,12 @@ public class Maj {
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    if (verif) verifierIci();
-                    if (tele && "disponible".equals(phase)) telechargerIci();
+                    for (int essai = 0; ; essai++) {
+                        if (verif) verifierIci();
+                        if (tele && "disponible".equals(phase)) telechargerIci();
+                        if (!"erreur".equals(phase) || essai >= REPRISES) return;
+                        try { Thread.sleep(ATTENTE); } catch (InterruptedException e) { return; }
+                    }
                 } finally {
                     occupe = false;
                 }
