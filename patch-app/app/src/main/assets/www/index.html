@@ -109,8 +109,7 @@
   }
   :root[data-theme="dark"] .tile.plein{--t-fond:var(--sur); --t-ink:var(--ink);
     --t-ink2:var(--ink2); --t-n:var(--ink3); --t-filet:var(--c); --t-ico:var(--c)}
-  .tile .epingle{position:absolute;right:11px;top:10px;width:8px;height:8px;border-radius:99px;
-        background:var(--t-ico)}
+  .tile .etoile-fav{position:absolute;right:11px;top:8px;font-size:13px;line-height:1;color:var(--t-ico)}
 
   .tile{border:0;border-radius:18px;padding:16px;cursor:pointer;text-align:left;
         color:var(--t-ink);box-shadow:inset 3px 0 0 var(--t-filet);
@@ -127,16 +126,36 @@
   .tile.sm b{font-size:16px}
   .tile.sm.wide{min-height:78px}
 
-  /* La mise à jour n'est pas un outil de plateau : une ligne sous la grille,
-     avec une pastille quand une version attend, plutôt qu'une tuile pleine. */
-  .appli{display:flex;align-items:center;gap:11px;background:var(--sur);border:0;width:100%;
-         border-radius:14px;padding:13px 15px;margin-top:10px;cursor:pointer;text-align:left;
-         min-height:52px;color:inherit}
-  .appli .ic{width:20px;height:20px;color:var(--maj);flex:none}
-  .appli .g{flex:1;min-width:0}
-  .appli b{display:block;font:700 14px/1.25 var(--body)}
-  .appli span{font-size:12.5px;color:var(--ink2)}
-  .appli .pt{width:9px;height:9px;border-radius:99px;background:var(--dmx);flex:none}
+  /* La mise à jour n'est pas un outil de plateau : une icône dans l'en-tête
+     de l'onglet, avec une pastille quand une version attend. */
+  .appli{position:relative;display:grid;place-items:center;width:44px;height:44px;flex:none;
+         background:var(--sur);border:0;border-radius:12px;cursor:pointer;color:var(--ink2)}
+  .appli .ic{width:21px;height:21px}
+  .appli .pt{position:absolute;right:7px;top:7px;width:9px;height:9px;border-radius:99px;
+         background:var(--dmx);box-shadow:0 0 0 2px var(--sur)}
+
+  /* L'onglet Outils : des tuiles d'une ligne, deux par rangée, et le Patch en
+     carte pleine avec ses deux raccourcis. Tout tient sur un écran. */
+  .sbar.outils-q{margin:0 0 12px;padding:0 14px;min-height:48px}
+  .outils{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .to{position:relative;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 12px;
+      background:var(--sur);border:0;border-radius:14px;cursor:pointer;text-align:left;color:var(--ink);min-width:0}
+  .to:active{transform:scale(.985)}
+  .to .ic{width:20px;height:20px;color:var(--c);stroke-width:1.8}
+  .to b{font:700 14.5px/1.15 var(--body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .to .etoile-fav{margin-left:auto;font-size:12px;color:var(--c)}
+  .pc{background:var(--dmx);color:#fff;border-radius:18px;padding:6px;margin-bottom:8px}
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .pc{background:#A9581A} }
+  :root[data-theme="dark"] .pc{background:#A9581A}
+  .pc-m{display:flex;flex-direction:column;gap:4px;width:100%;border:0;background:none;color:inherit;
+      text-align:left;cursor:pointer;padding:10px 10px 8px;position:relative}
+  .pc-m b{font:800 19px/1.1 var(--disp);letter-spacing:-.02em}
+  .pc-m span{font:500 13px/1.3 var(--body);opacity:.92}
+  .pc-m .etoile-fav{position:absolute;right:10px;top:10px;opacity:1;font-size:13px}
+  .pc-ch{display:flex;gap:6px;padding:0 4px 4px}
+  .pc-ch button{flex:1;min-height:44px;border:0;border-radius:99px;background:rgba(0,0,0,.2);color:#fff;
+      font:700 13.5px/1 var(--body);cursor:pointer}
+  .pc-ch button:active{background:rgba(0,0,0,.3)}
 
   /* Une recherche qui n'affiche que les huit premiers doit dire où sont les
      autres, et y emmener avec le même mot. */
@@ -239,7 +258,8 @@
   .row .r i{display:block;font-style:normal;font-size:11px;color:var(--ink3)}
 
   .pills{display:flex;gap:7px;overflow-x:auto;padding-bottom:12px;margin:0 -16px 6px;padding-inline:16px}
-  .pill{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;padding:7px 13px;
+  /* 44 px de haut, comme toutes les cibles : on touche ces pastilles au gant. */
+  .pill{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;padding:0 15px;min-height:44px;
         font:600 13px/1 var(--body);white-space:nowrap;cursor:pointer;color:var(--ink2)}
   .pill[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 
@@ -252,6 +272,17 @@
   .hero .stats div span{font-size:11px;opacity:.8;letter-spacing:.08em;text-transform:uppercase}
 
   .card{background:var(--sur);border-radius:16px;padding:16px;margin-bottom:10px}
+  /* « Formules » avait trois présentations (carte ouverte, « ▶ Formules »,
+     petites capitales) et se dépliait sur 11 à 23 px. Une seule forme partout :
+     une ligne de 48 px, repliée, avec un chevron. */
+  .card.formules{padding:0}
+  .formules summary{list-style:none;display:flex;align-items:center;justify-content:space-between;
+       min-height:48px;padding:0 16px;cursor:pointer;font:700 14px/1 var(--body);color:var(--ink2)}
+  .formules summary::-webkit-details-marker{display:none}
+  .formules summary::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;
+       border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg)}
+  .formules[open] summary::after{transform:translateY(2px) rotate(-135deg)}
+  .formules .formule{padding:0 16px 16px}
   .card h4{font:700 11px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin:0 0 12px}
   .kv{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
   .kv:last-child{border-bottom:0}
@@ -347,12 +378,9 @@
   .dpj .tri{margin:0}
   .dpj .tri button{padding-left:4px;padding-right:4px}
   .dpj .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px}
-  .dpj .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+  .dpj .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:0 4px;min-height:44px;cursor:pointer;
        font:700 13.5px/1 var(--body);color:var(--ink2)}
   .dpj .onglets button[aria-selected="true"]{background:var(--dpj);color:var(--bg)}
-  .dpj .formules summary{font:700 11px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
-       color:var(--ink3);cursor:pointer}
-  .dpj .formules[open] summary{margin-bottom:12px}
   .dpj .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
 
   /* ------------------------------ mise à jour -------------------------- */
@@ -390,11 +418,14 @@
     backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:center;
     padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));z-index:10}
   .tabbar .in{display:flex;gap:4px;width:100%;max-width:560px;padding:0 16px}
-  .tb{flex:1;border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;
-      gap:4px;padding:6px 0;color:var(--ink2);font:600 10.5px/1 var(--body);letter-spacing:.04em}
+  /* Le texte seul, comme sur la maquette de l'audit que Rémi a préférée :
+     quatre mots se lisent plus vite que quatre pictogrammes à deviner, et
+     l'onglet actif ressort par l'encre et la graisse. La barre garde sa
+     hauteur (66 px) : le volet du patch se cale dessus. */
+  .tb{flex:1;border:0;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      min-height:50px;padding:0;color:var(--ink3);font:700 13.5px/1 var(--body);letter-spacing:.01em}
   .tb[aria-current="true"]{color:var(--ink)}
-  .tb .ic{width:23px;height:23px;opacity:.55}
-  .tb[aria-current="true"] .ic{opacity:1}
+  .tb .ic{display:none}
 
   /* ------------------------------ pictogrammes ------------------------- */
   .sprite{position:absolute;width:0;height:0;overflow:hidden}
@@ -425,7 +456,7 @@
   .pecr .p-entete .bk{width:44px;height:44px;font-size:16px}
   .pecr .p-entete .bk .ic{width:18px;height:18px}
   .pecr .p-titre{display:flex;align-items:center;gap:8px;flex:1;min-width:0;border:0;
-       background:none;padding:4px 2px;text-align:left;color:inherit;cursor:pointer}
+       background:none;padding:4px 2px;min-height:44px;text-align:left;color:inherit;cursor:pointer}
   .pecr .p-titre b{font:800 17px/1.15 var(--disp);letter-spacing:-.02em;overflow:hidden;
        text-overflow:ellipsis;white-space:nowrap}
   .pecr .p-titre .ch{font:600 11px/1 var(--mono);color:var(--ink3)}
@@ -434,7 +465,7 @@
   /* Bandeau d'onglets sur une seule ligne : le compte passe en pastille. */
   .pecr .ongl{display:flex;background:var(--sur2);border-radius:10px;padding:2px;gap:2px;
        margin-bottom:8px}
-  .pecr .ongl button{flex:1;border:0;background:none;border-radius:8px;padding:6px 4px;
+  .pecr .ongl button{flex:1;border:0;background:none;border-radius:8px;padding:0 4px;min-height:44px;
        font:700 12px/1.2 var(--body);color:var(--ink2);cursor:pointer;
        display:flex;align-items:center;justify-content:center;gap:5px;min-width:0}
   .pecr .ongl button[aria-pressed="true"]{background:var(--bg);color:var(--ink);
@@ -452,26 +483,33 @@
   .tl .ap b{font:600 20px/1 var(--mono);color:var(--tel);font-variant-numeric:tabular-nums}
   .tl .ap span{font:500 11.5px/1.2 var(--body);color:var(--ink3)}
   .tl .niv{font:600 15px/1 var(--mono);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
-  .tl button{border:1.5px solid var(--line);background:var(--bg);border-radius:9px;padding:6px 8px;
-      font:600 11.5px/1 var(--body);color:var(--ink2);min-width:34px;cursor:pointer}
+  /* Toutes les commandes à 44 px (audit de l'onglet Outils : elles en
+     faisaient 26, trop peu pour un doigt ganté dans le noir). Dépliée, la
+     barre passe sur deux lignes : l'appareil, le curseur et le niveau en haut,
+     les cinq boutons en dessous, qui se partagent la largeur. */
+  .tl button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:0 10px;
+      font:700 13px/1 var(--body);color:var(--ink2);min-width:44px;min-height:44px;cursor:pointer}
+  .tl:not(.mini) button[data-a="noir"], .tl:not(.mini) button[data-a="full"],
+  .tl:not(.mini) button[data-a="prec"], .tl:not(.mini) button[data-a="suiv"],
+  .tl:not(.mini) button[data-a="zero"]{flex:1}
+  .tl:not(.mini) .coupe{flex-basis:100%;height:0}
   .tl button.on{background:var(--tel);border-color:var(--tel);color:#fff}
-  .tl .chev{min-width:30px;padding:6px 7px;border-style:dashed}
+  .tl .chev{padding:0 10px;border-style:dashed}
   .tl .hl{border-color:var(--dmx);color:var(--dmx);font:600 11px/1 var(--mono);white-space:nowrap}
-  .tl input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;min-width:84px;height:26px;
+  .tl input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;min-width:84px;height:44px;
       background:none;margin:0}
-  .tl input[type="range"]::-webkit-slider-runnable-track{height:26px;border-radius:9px;background:var(--sur2)}
-  .tl input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:26px;
+  .tl input[type="range"]::-webkit-slider-runnable-track{height:34px;border-radius:10px;background:var(--sur2)}
+  .tl input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:34px;
       border-radius:8px;background:var(--tel);border:0}
   .tl.mini{flex-wrap:nowrap;padding:5px 10px;gap:8px}
   .tl.mini .ap{flex:1;min-width:0}
   .tl.mini .ap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* Le logo télécommande, en tête de la barre : il ouvre la télécommande DMX,
      celle qui parle en canaux là où la barre parle en gradateurs. */
-  .tl .lgo{flex:none;min-width:30px;padding:5px 6px;display:grid;place-items:center;
+  .tl .lgo{flex:none;padding:0;display:grid;place-items:center;
       border-color:var(--tel);color:var(--tel);background:var(--bg)}
   .tl .lgo .ic{width:17px;height:17px}
   .tl .lgo.on{background:var(--tel);color:#fff}
-  .tl.mini .lgo{padding:4px 6px}
 
   /* Les rangées : un appareil et un gradateur se lisent pareil. */
   .pile{background:var(--sur);border-radius:16px;overflow:hidden;margin-bottom:10px}
@@ -479,8 +517,9 @@
        letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
        display:flex;justify-content:space-between;align-items:center;gap:10px}
   .pile>h4 span{font:500 11px/1 var(--mono);text-transform:none;letter-spacing:0}
+  .pile>h4:has(button){padding:4px 4px 4px 14px}
   .pile>h4 button{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;
-       padding:4px 9px;font:600 10px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;
+       padding:0 12px;min-height:44px;font:600 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;
        color:var(--ink2);cursor:pointer}
   .pile .rien{padding:14px;font-size:13px;color:var(--ink3);margin:0}
   .rg{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:10px;align-items:center;
@@ -509,17 +548,17 @@
       background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);
       border-top:1.5px solid var(--line);padding:7px 16px}
   .pecr .p-bas .in{max-width:560px;margin:0 auto;display:flex;gap:7px}
-  .pecr .p-bas button{flex:1;border:0;border-radius:11px;padding:9px 10px;
+  .pecr .p-bas button{flex:1;border:0;border-radius:11px;padding:0 10px;min-height:44px;
       font:700 12.5px/1.2 var(--body);background:var(--tel);color:#fff;cursor:pointer;
       display:flex;align-items:center;justify-content:center;gap:7px;min-width:0}
   .pecr .p-bas button .et{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pecr .p-bas button.dmx{background:var(--dmx)}
-  .pecr .p-bas button.pdf{flex:none;background:var(--sur2);color:var(--ink2);padding:9px 12px}
+  .pecr .p-bas button.pdf{flex:none;background:var(--sur2);color:var(--ink2);padding:0 14px}
   .pecr .p-bas button .cpt{font:600 10.5px/1 var(--mono);background:rgba(255,255,255,.22);
       border-radius:99px;padding:3px 6px}
   .pecr .p-bas button[aria-expanded="true"]{box-shadow:inset 0 0 0 2px rgba(255,255,255,.45)}
   /* La place que prend la barre du bas, rendue à la liste. */
-  .pecr{padding-bottom:52px}
+  .pecr{padding-bottom:62px}
 
   /* ------------------------------ volets -------------------------------- */
   /* À mi-écran : la liste reste visible au-dessus et se met à jour pendant
@@ -754,7 +793,7 @@
   .rig .tri{margin:0}
   .rig .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px;
        overflow-x:auto}
-  .rig .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+  .rig .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:0 4px;min-height:44px;cursor:pointer;
        font:700 12.5px/1 var(--body);color:var(--ink2);white-space:nowrap}
   .rig .onglets button[aria-selected="true"]{background:var(--rig);color:var(--bg)}
   .rig .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
@@ -792,7 +831,7 @@
   .led .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
   .led .f input:focus{border-color:var(--led)}
   .led .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px}
-  .led .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+  .led .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:0 4px;min-height:44px;cursor:pointer;
        font:700 13.5px/1 var(--body);color:var(--ink2)}
   .led .onglets button[aria-selected="true"]{background:var(--led);color:var(--bg)}
   .led .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
@@ -813,7 +852,7 @@
   .elec .tri{margin:0}
   .elec .onglets{display:flex;gap:4px;background:var(--sur);border-radius:14px;padding:4px;margin:0 0 10px;
        overflow-x:auto}
-  .elec .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:11px 4px;cursor:pointer;
+  .elec .onglets button{flex:1;border:0;background:none;border-radius:10px;padding:0 4px;min-height:44px;cursor:pointer;
        font:700 12.5px/1 var(--body);color:var(--ink2);white-space:nowrap}
   .elec .onglets button[aria-selected="true"]{background:var(--elec);color:var(--bg)}
   .elec .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
@@ -866,6 +905,7 @@
   <symbol id="i-parc" viewBox="0 0 24 24"><rect x="2.5" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="13" y="12.5" width="8.5" height="8" rx="1.4"/><rect x="7.8" y="3.5" width="8.5" height="8" rx="1.4"/></symbol>
   <symbol id="i-outils" viewBox="0 0 24 24"><path d="M6 3v18M12 3v18M18 3v18"/><rect x="3.8" y="7" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="9.8" y="13" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/><rect x="15.8" y="5.5" width="4.4" height="3" rx="1.2" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-maj" viewBox="0 0 24 24"><path d="M12 2.5v11.5"/><path d="M7.5 9.5L12 14l4.5-4.5"/><path d="M4 15.5v3.5a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5v-3.5"/></symbol>
+  <symbol id="i-reglages" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4L21 21"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12l7.5 7.5"/></symbol>
   <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M15.7 4.3l4 4L8.4 19.6H4.4v-4z"/><path d="M13.2 6.8l4 4"/></symbol>
@@ -905,7 +945,7 @@ const el = (t, c, h) => { const n = document.createElement(t); if(c) n.className
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const vg = n => String(n).replace(".", ",");
 const S = { tab:"home", route:{ v:"home" }, q:"", marque:null, typeMach:null,
-            qs:{ proj:"", mach:"", haut:"", gel:"" },
+            qs:{ proj:"", mach:"", haut:"", gel:"", outils:"" },
             gel:GEL_PAR_REF.L201 || GELS[0], gelMode:null, gelMarque:"L" };
 
 const ic = (n, cls="ic") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
@@ -985,22 +1025,17 @@ const MOTS = {
 const DESTINATIONS = () => [...CATS, ...TOOLS,
   { k:"maj", t:"Application", s:"Version & thème", c:"var(--maj)", i:"maj" }];
 
-/* La grille des outils avait grossi tuile après tuile jusqu'à seize, toutes
-   à plat : plus rien n'aidait à trouver la bonne d'un coup d'œil. Elle est
-   rangée ici par métier, sans toucher TOOLS ni la recherche qui s'appuie
-   dessus. */
+/* La grille des outils, rangée par tâche (audit de l'onglet Outils) : Art-Net
+   et RDM parlent au même DMX que le Patch et vivaient pourtant dans
+   « Réseau », Flux NDI cherche des sources IP et vivait avec la lumière.
+   Relevé et Pupitre ouvrent l'écran du patch : ils sont dans la carte Patch
+   et non en tuiles. Logistique a son onglet, Agenda, et n'est plus ici. */
 const TOOL_GROUPES = [
-  { t:"Éclairage & vidéo", cles:["dmx", "tel", "tcd", "gel", "led", "dist", "ndi"] },
-  { t:"Électricité & structure", cles:["ups", "cab", "bil", "elec", "rig"] },
-  { t:"Réseau", cles:["net", "sub", "art", "rdm"] },
-  { t:"Organisation", cles:["log"] }
+  { t:"DMX", cles:["dmx", "tel", "tcd", "art", "rdm"] },
+  { t:"Lumière & image", cles:["gel", "led", "dist"] },
+  { t:"Électricité & levage", cles:["elec", "bil", "cab", "ups", "rig"] },
+  { t:"Réseau IP", cles:["net", "sub", "ndi"] }
 ];
-
-/* Une couleur par métier, sur les tuiles : elle dit à quel groupe on touche.
-   Un groupe absent d'ici garde la couleur propre de ses outils. */
-const COULEUR_GROUPE = {
-  "Éclairage & vidéo":"var(--dmx)", "Électricité & structure":"var(--elec)", "Réseau":"var(--net)"
-};
 
 /* Accueil : les favoris, et eux seuls. Les « derniers ouverts » changeaient
    de place d'un jour à l'autre ; Rémi préfère une liste qu'il choisit et qui
@@ -1085,20 +1120,25 @@ function tuile(c, petite, couleur){
   b.style.setProperty("--c", couleur || c.c);
   const coin = c.n ? `<span class="n">${c.n()}</span>`
              : c.mot ? `<span class="n mot">${esc(c.mot)}</span>`
-             : estFavori(c.k) ? `<span class="epingle" title="Favori"></span>` : "";
+             : estFavori(c.k) ? ETOILE : "";
   b.innerHTML = `${coin}${ic(c.i)}<span class="tx"><b>${esc(c.t)}</b><span>${esc(c.s)}</span></span>`;
-  /* Un appui long épingle l'outil à l'accueil (ou l'en retire) ; le toucher
-     qui suit ne doit pas l'ouvrir en plus. */
+  ouvrirOuEpingler(b, c.k, () => go({ v:c.k }));
+  return b;
+}
+/* Un point de couleur, en coin de tuile, ne disait pas qu'il marquait un favori. */
+const ETOILE = `<span class="etoile-fav" title="Favori" aria-label="Favori">★</span>`;
+/* Un appui long épingle l'outil à l'accueil (ou l'en retire) ; le toucher
+   qui suit ne doit pas l'ouvrir en plus. */
+function ouvrirOuEpingler(b, k, ouvrir){
   let tenu = null, long = false;
-  if(TOOLS.some(o => o.k === c.k)){
+  if(TOOLS.some(o => o.k === k)){
     const lacher = () => { clearTimeout(tenu); tenu = null; };
     b.addEventListener("pointerdown", () => { long = false;
-      tenu = setTimeout(() => { long = true; toucher(); basculerEpingle(c.k); }, 550); });
+      tenu = setTimeout(() => { long = true; toucher(); basculerEpingle(k); }, 550); });
     ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, lacher));
     b.addEventListener("contextmenu", e => e.preventDefault());
   }
-  b.onclick = () => { if(long){ long = false; return; } toucher(); go({ v:c.k }); };
-  return b;
+  b.onclick = () => { if(long){ long = false; return; } toucher(); ouvrir(); };
 }
 function grille(liste, petite, couleur){
   const g = el("div", "tiles");
@@ -1109,15 +1149,75 @@ function grille(liste, petite, couleur){
   if(petite && seules.length % 2) seules[seules.length - 1].classList.add("wide");
   return g;
 }
-/* Une grille par groupe de TOOL_GROUPES, chacune sous son propre sous-titre. */
+/* L'onglet Outils, comme sur la maquette de l'audit : des tuiles d'une ligne,
+   la couleur propre de l'outil sur son pictogramme, et le tout tient sur un
+   écran. Le filtre lit les mêmes mots-clés que la recherche de l'accueil. */
+const VUES_CARTE_PATCH = ["dmx", "tel", "tcd"];
+const trouveOutil = (o, q) => !q || plat(o.t + " " + o.s + " " + (MOTS[o.k] || "")).includes(q);
 function grilleOutils(){
+  const q = plat((S.qs.outils || "").trim());
   const f = document.createDocumentFragment();
+  let vus = 0;
   TOOL_GROUPES.forEach(g => {
     const items = g.cles.map(k => TOOLS.find(o => o.k === k)).filter(Boolean);
-    if(!items.length) return;
-    f.append(el("h3", "sous", g.t), grille(items, true, COULEUR_GROUPE[g.t]));
+    const carte = items.filter(o => VUES_CARTE_PATCH.includes(o.k));
+    const tuiles = items.filter(o => !VUES_CARTE_PATCH.includes(o.k) && trouveOutil(o, q));
+    const avecCarte = carte.length && carte.some(o => trouveOutil(o, q));
+    if(!avecCarte && !tuiles.length) return;
+    vus += tuiles.length + (avecCarte ? 1 : 0);
+    f.append(el("h3", "sous", esc(g.t)));
+    if(avecCarte) f.append(cartePatch());
+    if(tuiles.length){
+      const gr = el("div", "outils");
+      tuiles.forEach(o => gr.append(tuileOutil(o)));
+      f.append(gr);
+    }
   });
+  if(!vus) f.append(el("p", "vide", `Aucun outil pour « ${esc(S.qs.outils)} ».`));
   return f;
+}
+function tuileOutil(o){
+  const b = el("button", "to");
+  b.style.setProperty("--c", o.c);
+  b.innerHTML = `${ic(o.i)}<b>${esc(o.t)}</b>${estFavori(o.k) ? ETOILE : ""}`;
+  b.setAttribute("aria-label", o.t + ", " + o.s);
+  ouvrirOuEpingler(b, o.k, () => go({ v:o.k }));
+  return b;
+}
+/* Patch, Relevé et Pupitre ouvrent le même écran : une carte, deux raccourcis. */
+function cartePatch(){
+  const c = el("div", "pc");
+  const m = el("button", "pc-m",
+    `<b>Patch</b><span>Adresses, gradateurs & feuille PDF</span>${estFavori("dmx") ? ETOILE : ""}`);
+  ouvrirOuEpingler(m, "dmx", () => go({ v:"dmx" }));
+  const ch = el("div", "pc-ch");
+  ["tel", "tcd"].forEach(k => {
+    const o = TOOLS.find(x => x.k === k);
+    const b = el("button", null, esc(o.t) + (estFavori(k) ? " ★" : ""));
+    b.setAttribute("aria-label", "Ouvrir le patch sur " + o.t);
+    ouvrirOuEpingler(b, k, () => go({ v:k }));
+    ch.append(b);
+  });
+  c.append(m, ch);
+  return c;
+}
+function filtreOutils(){
+  const lab = el("label", "sbar outils-q");
+  lab.innerHTML = `${ic("search")}<input data-focus="q-outils" value="${esc(S.qs.outils || "")}"
+      placeholder="Filtrer : dmx, ampère, palan…" autocomplete="off" enterkeyhint="go"
+      aria-label="Filtrer les outils">`;
+  const i = lab.querySelector("input");
+  i.addEventListener("input", e => { S.qs.outils = e.target.value; render(); });
+  /* Entrée ouvre l'outil quand il n'en reste qu'un. */
+  i.addEventListener("keydown", e => {
+    if(e.key !== "Enter") return;
+    const q = plat(S.qs.outils.trim());
+    const r = TOOL_GROUPES.flatMap(g => g.cles).map(k => TOOLS.find(o => o.k === k))
+      .filter(o => o && trouveOutil(o, q));
+    const seul = r.filter(o => !["tel", "tcd"].includes(o.k) || !r.some(x => x.k === "dmx"));
+    if(q && seul.length === 1){ S.qs.outils = ""; go({ v:seul[0].k }); }
+  });
+  return lab;
 }
 
 /* L'état du réseau : lu au plus une fois toutes les deux secondes — chaque
@@ -1140,8 +1240,8 @@ function peindreReseau(){
 }
 setInterval(peindreReseau, 3000);
 
-/* La mise à jour est un réglage, pas un outil de plateau : une ligne sous la
-   grille, avec une pastille quand une version attend. */
+/* La mise à jour est un réglage, pas un outil de plateau : une icône dans
+   l'en-tête de l'onglet, avec une pastille quand une version attend. */
 function ligneAppli(){
   const e = MAJ.e || {};
   const attend = ["disponible", "telechargement", "pret", "autorisation"].includes(e.phase);
@@ -1149,13 +1249,14 @@ function ligneAppli(){
                                   : e.phase === "telechargement" ? " en téléchargement" : " disponible")
                      : e.nomInstalle ? "Version " + e.nomInstalle : "Version & thème";
   const b = el("button", "appli");
-  b.innerHTML = `${ic("maj")}<span class="g"><b>Application</b><span>${esc(dit)}</span></span>
-    ${attend ? `<span class="pt"></span>` : ""}`;
+  b.innerHTML = `${ic("reglages")}${attend ? `<span class="pt"></span>` : ""}`;
+  b.setAttribute("aria-label", "Application : " + dit);
+  b.title = "Application";
   b.onclick = () => { toucher(); go({ v:"maj" }); };
   return b;
 }
 function zoneAppli(){
-  const z = el("div");
+  const z = el("span");
   z.id = "appli-zone";
   z.append(ligneAppli());
   return z;
@@ -1286,7 +1387,9 @@ function vParc(){
 }
 function vOutils(){
   const d = el("div");
-  d.append(bar("Outils", null, false), grilleOutils(), zoneAppli());
+  const b = bar("Outils", null, false);
+  b.append(zoneAppli());
+  d.append(b, filtreOutils(), grilleOutils());
   return d;
 }
 
@@ -2365,7 +2468,7 @@ function barreTele(){
        <span class="ap"><b>${SEL || "—"}</b><span>${etat}</span></span>
        <input type="range" min="0" max="100" value="${lv}" aria-label="Niveau"${
          SEL ? "" : " disabled"}>
-       <span class="niv">${lv} %</span>
+       <span class="niv">${lv} %</span><span class="coupe"></span>
        <button data-a="noir">Noir</button><button data-a="full">Full</button>
        <button data-a="prec" aria-label="Gradateur précédent">◀</button>
        <button data-a="suiv" aria-label="Gradateur suivant">▶</button>
@@ -3930,8 +4033,8 @@ function vCable(){
     davantage, la section conseillée reste donc du côté sûr.</p>`);
   d.append(de);
 
-  const fo = el("div", "card");
-  fo.innerHTML = `<h4>Formules</h4><p class="formule">mono · I = P / U<br>S = 2 × ρ × L × I / ΔU<br>
+  const fo = el("details", "card formules");
+  fo.innerHTML = `<summary>Formules</summary><p class="formule">mono · I = P / U<br>S = 2 × ρ × L × I / ΔU<br>
     tri · I = P / (√3 × U × cos φ)<br>S = √3 × ρ × L × I × cos φ / ΔU<br>
     ρ cuivre 0,0178 · alu 0,0291 Ω·mm²/m<br>ΔU sur 230 V en mono, 400 V en tri</p>`;
   d.append(fo);
@@ -4757,8 +4860,8 @@ function vSub(){
   cc.append(champ("Adresse IPv4", "ip", "192.168.1.10"));
   cc.append(champ("Masque", "masque", "24", "En CIDR (24 ou /24) ou en décimal (255.255.255.0)."));
   d.append(cc);
-  const fo = el("div", "card");
-  fo.innerHTML = `<h4>Formules</h4><p class="formule">réseau = IP ET masque<br>
+  const fo = el("details", "card formules");
+  fo.innerHTML = `<summary>Formules</summary><p class="formule">réseau = IP ET masque<br>
     broadcast = réseau OU (NON masque)<br>utilisables = 2^(32 − préfixe) − 2</p>`;
   d.append(fo);
   peindreSub(res);
@@ -4950,8 +5053,8 @@ function vUps(){
     "Le temps de tenir la coupure, ou d'éteindre proprement."));
   d.append(ci);
 
-  const fo = el("div", "card");
-  fo.innerHTML = `<h4>Formules</h4><p class="formule">VA = W / facteur de puissance<br>
+  const fo = el("details", "card formules");
+  fo.innerHTML = `<summary>Formules</summary><p class="formule">VA = W / facteur de puissance<br>
     Onduleur (VA) = VA / (rendement / 100)<br>Batterie (VAh) = onduleur × min / 60</p>`;
   d.append(fo);
 
@@ -5380,7 +5483,7 @@ function peindreMaj(){
   const ligne = $("#appli-zone");
   if(ligne){
     const neuf = ligneAppli();
-    if(ligne.textContent !== neuf.textContent) ligne.replaceChildren(neuf);
+    if(ligne.innerHTML !== neuf.outerHTML) ligne.replaceChildren(neuf);
   }
 }
 
