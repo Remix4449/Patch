@@ -50,7 +50,7 @@ const LOG_CATS = ["Livraison", "Enlèvement", "Montage", "Démontage", "Transpor
 const LOG_CHAMPS = {
   ev: [
     { c:"titre", l:"Quoi", ph:"Livraison des pendrillons", req:true },
-    { c:"cat", l:"Catégorie", sel:LOG_CATS },
+    { c:"cat", l:"Catégorie", sel:LOG_CATS, seg:true },
     { rang:[{ c:"debut", l:"Date", type:"date", req:true }, { c:"hdebut", l:"Heure", type:"time" }] },
     { rang:[{ c:"fin", l:"Jusqu'au", type:"date" }, { c:"hfin", l:"Heure de fin", type:"time" }] },
     { c:"lieu", l:"Lieu", ph:"Quai de déchargement" },
@@ -74,9 +74,10 @@ const LOG_CHAMPS = {
     { c:"note", l:"Note", zone:true, ph:"Service, montage, équipe…" }
   ],
   pret: [
-    { c:"titre", l:"Matériel", ph:"Découpe 614SX", req:true, liste:"materiel" },
-    { rang:[{ c:"qte", l:"Quantité", ph:"1", mode:"numeric" },
-            { c:"sens", l:"Sens", sel:["Prêté à", "Emprunté à"] }] },
+    /* Le matériel s'écrit comme on le dit, quantités comprises : « 2x 613sx
+       4x F1 ». Ce que le parc connaît est reconnu sous le champ. */
+    { c:"titre", l:"Matériel", ph:"2x 613sx, 4x F1", req:true, materiel:true },
+    { c:"sens", l:"Sens", sel:["Prêté à", "Emprunté à"], seg:true },
     { c:"tiers", l:"Qui", ph:"Théâtre, compagnie, personne", req:true },
     { rang:[{ c:"debut", l:"Sortie", type:"date", req:true }, { c:"fin", l:"Retour prévu", type:"date" }] },
     { c:"contact", l:"Contact", ph:"Nom, téléphone" },
@@ -237,7 +238,50 @@ function logSous(x){
     return [x.formation, x.service, x.tuteur && "avec " + x.tuteur].filter(Boolean).join(" · ") || "Stagiaire";
   return [x.cat, x.lieu, x.spectacle].filter(Boolean).join(" · ") || "Événement";
 }
-const logTitre = x => x.type === "pret" && x.qte && x.qte !== "1" ? x.qte + " × " + x.titre : x.titre;
+/* Un prêt se lit comme le parc l'appelle : « 2 × 613 SX · 4 × F1 ». Les
+   fiches d'avant gardent leur champ quantité. */
+function logTitre(x){
+  if(x.type !== "pret") return x.titre;
+  if(x.qte && x.qte !== "1") return x.qte + " × " + x.titre;
+  const l = materielLu(x.titre);
+  if(!l.length || (l.length === 1 && l[0].q === 1)) return l.length && l[0].court ? l[0].court : x.titre;
+  return l.map(o => o.q + " × " + (o.court || o.texte)).join(" · ");
+}
+
+/* --------------------------- le matériel écrit -------------------------- */
+/* « 2x 613sx 4xf1 », « 3 × PC 1 kW, pendrillons » : chaque morceau garde sa
+   quantité (1 sans chiffre) et se cherche dans le parc, sans tenir compte des
+   espaces ni de la casse. Un morceau que le parc ne connaît pas reste tel
+   qu'écrit. */
+const compact = t => plat(t).replace(/[^a-z0-9]/g, "");
+function materielLu(texte){
+  const parc = [
+    ...PROJECTEURS.map(p => ({ nom:p.marque + " " + p.nom, court:p.nom, cles:[p.nom, p.marque + p.nom], nb:p.nb })),
+    ...MACHINERIE.map(m => ({ nom:m.nom, court:m.nom, cles:[m.nom], nb:m.nb })),
+    ...HAUTEURS.map(h => ({ nom:h.nom, court:h.nom, cles:[h.nom], nb:h.nb }))
+  ].sort((a, b) => b.cles[0].length - a.cles[0].length);    // « 614 SX » avant « 614 S »
+  const trouver = q => {
+    const c = compact(q);
+    if(c.length < 2) return null;
+    return parc.find(p => p.cles.some(k => compact(k) === c))
+        || parc.find(p => p.cles.some(k => { const k2 = compact(k); return k2.length > 2 && (k2.includes(c) || c.includes(k2)); }));
+  };
+  const out = [];
+  String(texte || "").split(/[,;+\n]|\s(?:et|avec)\s/i).forEach(bloc => {
+    /* Une quantité en tête de morceau : « 2x », « 2 x », « 2× », « x2 » à la fin. */
+    const morceaux = bloc.split(/(?=(?:^|\s)\d{1,3}\s*[x×*]\s*[^\s\d])/i);
+    morceaux.forEach(m => {
+      let t = m.trim(), q = 1, r;
+      if(!t) return;
+      if((r = t.match(/^(\d{1,3})\s*[x×*]\s*(.+)$/i))){ q = +r[1]; t = r[2]; }
+      else if((r = t.match(/^(.+?)\s*[x×*]\s*(\d{1,3})$/i))){ q = +r[2]; t = r[1]; }
+      else if((r = t.match(/^(\d{1,3})\s+(\D.*)$/))){ q = +r[1]; t = r[2]; }
+      const p = trouver(t);
+      out.push({ q, texte:t.trim(), nom:p ? p.nom : "", court:p ? p.court : "", nb:p && p.nb !== "" && p.nb != null ? +p.nb : null });
+    });
+  });
+  return out.filter(o => o.texte);
+}
 
 /* ------------------------------- la liste ------------------------------- */
 const LOGV = { type:null, fini:false, msg:"", mois:null, jour:null, plus:false };
@@ -1110,6 +1154,10 @@ function vLogFiche(){
     const v = src ? src[f.c] : (f.c === "debut" ? r.p || logAuj() : f.sel ? f.sel[0] : "");
     if(f.coche) return `<label class="lg-coche"><input type="checkbox" id="${id}"${src && src.fait ? " checked" : ""}>
       <span>${esc(f.l)}</span></label>`;
+    /* Peu de choix : des boutons côte à côte plutôt qu'un menu à ouvrir. */
+    if(f.seg) return `<div class="f"><label>${esc(f.l)}</label><div class="lg-seg" id="${id}" data-v="${esc(v || f.sel[0])}">${
+      (v && !f.sel.includes(v) ? [v, ...f.sel] : f.sel).map(o => `<button type="button" data-o="${esc(o)}" aria-pressed="${
+        o === (v || f.sel[0])}">${esc(o)}</button>`).join("")}</div></div>`;
     if(f.sel) return `<div class="f"><label for="${id}">${esc(f.l)}</label><select id="${id}">${
       (v && !f.sel.includes(v) ? [v, ...f.sel] : f.sel).map(o => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></div>`;
     /* Les jours de la semaine, un bouton chacun ; la valeur est la suite des
@@ -1124,10 +1172,31 @@ function vLogFiche(){
         autocomplete="off"${f.mode ? ` inputmode="${f.mode}"` : ""}${f.liste ? ` list="dl-${id}"` : ""}>${
       f.liste ? `<datalist id="dl-${id}">${listes[f.liste]().slice(0, 300).map(o =>
         `<option value="${esc(o)}"></option>`).join("")}</datalist>` : ""}${
-      f.aide ? `<p class="lg-aide">${esc(f.aide)}</p>` : ""}</div>`;
+      f.aide ? `<p class="lg-aide">${esc(f.aide)}</p>` : ""}${
+      f.materiel ? `<div class="lg-reco" id="reco-${id}"></div>` : ""}</div>`;
   };
   LOG_CHAMPS[type].forEach(f => c.insertAdjacentHTML("beforeend",
     f.rang ? `<div class="ff">${f.rang.map(champ).join("")}</div>` : champ(f)));
+  c.querySelectorAll(".lg-seg button").forEach(b => b.onclick = () => {
+    toucher();
+    const g = b.parentNode;
+    g.querySelectorAll("button").forEach(n => n.setAttribute("aria-pressed", String(n === b)));
+    g.dataset.v = b.dataset.o;
+  });
+  /* Ce que le parc reconnaît dans le matériel écrit, à mesure qu'on tape. */
+  const mat = c.querySelector("#lg-titre");
+  const reco = c.querySelector("#reco-lg-titre");
+  if(mat && reco){
+    const montrer = () => {
+      const l = materielLu(mat.value);
+      reco.innerHTML = l.map(o => `<span class="${o.nom ? "ok" : ""}"><b>${o.q} ×</b> ${esc(o.nom || o.texte)}${
+        o.nom ? (o.nb != null ? `<i>${o.q > o.nb ? "plus que les " : ""}${o.nb} au parc</i>` : "")
+              : "<i>pas au parc</i>"}</span>`).join("");
+      reco.hidden = !l.length;
+    };
+    mat.addEventListener("input", montrer);
+    montrer();
+  }
   c.querySelectorAll(".lg-jours button").forEach(b => b.onclick = () => {
     toucher();
     b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
@@ -1148,7 +1217,7 @@ function vLogFiche(){
     champsPlats(type).forEach(f => {
       const n = c.querySelector("#lg-" + f.c);
       if(f.coche){ if(n.checked) o.fait = true; return; }
-      const v = (f.jours ? n.dataset.v : n.value).trim();
+      const v = (f.jours || f.seg ? n.dataset.v : n.value).trim();
       if(v) o[f.c] = v; else if(f.req) manque.push(f.l);
     });
     /* L'heure de la première séance sert au tri et à l'accueil. */
