@@ -71,7 +71,7 @@ Quelques détails qui ont leur importance :
 | --- | --- |
 | Projecteurs, machinerie, hauteurs | Recherche, filtres, et l'inventaire se modifie depuis l'application |
 | Manuels | Bibliothèque de notes de fonctionnement, une fiche par appareil, hors ligne (onglet Outils, groupe Références) |
-| Convertisseur | Distance, température et volume : une valeur, son unité, la réponse dans toutes les autres, et les repères usuels |
+| Convertisseur | Distance, température et volume : une valeur, son unité, la réponse dans toutes les autres, et les repères usuels ; volume d'un cube, pavé, cylindre, sphère, cône ou pyramide à base carrée |
 | Patch | Un seul écran : la feuille du spectacle, la télécommande en barre, le relevé, l'ajout d'appareils et la télécommande DMX en volets, l'impression |
 | Gélatines | 262 Lee (chromaticité publiée par Lee), 165 GAM et 265 Rosco avec leurs équivalents Lee ; recherche, Lee proches, mélange RGBWA, RGBW, RGB ou CMY |
 | LED | Puissance et courant d'un ruban avec règle d'usage sur la réinjection, résistance série d'une LED seule, code couleur d'une résistance (norme E12) |
@@ -85,6 +85,8 @@ Quelques détails qui ont leur importance :
 | Onduleur | Capacité d'UPS (VA) et de batterie (VAh) d'après la puissance, le facteur de puissance, le rendement et l'autonomie voulue |
 | Électricité | Puissance ↔ courant (mono/tri), puissance par phase équilibrée, répartition sur des départs avec calibre de disjoncteur, dimensionnement de groupe électrogène, facteur de puissance (kVA/kVAR) |
 | Rigging | Vérification CMU, élingage 2 brins, facteur d'angle, bridage multi-points, sélection de palan d'après des capacités courantes |
+| Dip-switch DMX | Adresse ↔ position des 9 switchs (1 à 256), switchs basculables à l'écran, mode adresse − 1, adresse précédente ou suivante selon l'intervalle |
+| Faisceau | Diamètre de la tache, distance ou angle d'ouverture d'un projecteur de lumière, à partir des deux autres |
 | Testeur d'adresse | Émission d'une trame Art-Net sur un canal, sans console |
 
 ## L'inventaire se tient depuis l'application

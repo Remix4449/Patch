@@ -22,6 +22,7 @@
     --dmx:#B45E16; --gel:#C2185B; --ndi:#0E7BC4; --net:#118542; --art:#5B3FD6;
     --tel:#0F7C8C; --tcd:#6E6100; --maj:#3D4757; --cab:#A34E1D; --rig:#3C5A73;
     --bil:#8A1F2B; --led:#3A8400; --elec:#243B6B; --sub:#0A6E7C; --conv:#7A4A1E;
+    --dip:#7C3A8F; --fsc:#8C4A00;
     /* Assombris : en petites capitales sur une surface claire, ils passaient
        sous le seuil lisible — ici et partout où ils servent de texte. */
     --ok:#0C6E36; --ko:#B01F1A;
@@ -40,7 +41,7 @@
       --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
       --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF; --div:#D6C84E;
       --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8; --conv:#E0A36B;
+      --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8; --conv:#E0A36B; --dip:#D69AE8; --fsc:#FFB866;
       --ok:#45C47B; --ko:#FF6B63; --on:#0B0C10;
     }
   }
@@ -49,7 +50,7 @@
     --ink:#EDEFF4; --ink2:#A0A7B8; --ink3:#767E90;
     --proj:#7B90FF; --mach:#31C9BA; --haut:#FF6BB5; --mdg:#A987FF; --div:#D6C84E;
     --dmx:#FFA34D; --gel:#FF6E9E; --ndi:#4FB2EC; --net:#45C47B; --art:#9384FF;
-    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8; --conv:#E0A36B;
+    --tel:#3FC7DC; --tcd:#D9C55A; --maj:#9AA6BC; --cab:#F2856B; --rig:#8FC2E8; --bil:#F08A93; --led:#9BE564; --elec:#8FA8E8; --sub:#5FD6E8; --conv:#E0A36B; --dip:#D69AE8; --fsc:#FFB866;
     --ok:#45C47B; --ko:#FF6B63; --on:#0B0C10;
   }
   *{box-sizing:border-box}
@@ -1043,6 +1044,48 @@
   .conv .onglets button[aria-selected="true"]{background:var(--conv);color:var(--bg)}
   .conv .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
   .conv .man-note{margin:4px 16px 16px;border-left-color:var(--conv)}
+  /* ------------------------------ dip-switch ----------------------------- */
+  .dip .res,.fsc .res{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px}
+  .dip .res{box-shadow:inset 3px 0 0 var(--dip)}
+  .fsc .res{box-shadow:inset 3px 0 0 var(--fsc)}
+  .dip .res .kick,.fsc .res .kick{font:700 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;
+       color:var(--ink3)}
+  .dip .res .big,.fsc .res .big{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+  .dip .res .big b{font:600 44px/1 var(--mono);color:var(--dip);font-variant-numeric:tabular-nums}
+  .fsc .res .big b{font:600 44px/1 var(--mono);color:var(--fsc);font-variant-numeric:tabular-nums}
+  .dip .res .big span,.fsc .res .big span{font:600 16px/1 var(--mono);color:var(--ink2)}
+  .dip .res>p,.fsc .res>p{margin:0 0 6px;font-size:13.5px;color:var(--ink2)}
+  .dip .f small,.fsc .f small{font-size:12px;line-height:1.4;color:var(--ink3)}
+  .dip .f input:focus{border-color:var(--dip)}
+  .fsc .f input:focus{border-color:var(--fsc)}
+  .dip .formule,.fsc .formule{font:500 12px/1.6 var(--mono);color:var(--ink3);margin:0}
+  .fsc .tri button{padding-left:4px;padding-right:4px}
+  /* Neuf colonnes à la largeur d'un téléphone : un switch se touche pour le
+     basculer, comme sur l'appareil, et l'adresse suit. */
+  .dipbloc{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;background:var(--bg);
+       border:1.5px solid var(--line);border-radius:14px;padding:10px 4px 8px;margin:10px 0 0}
+  .dipsw{border:0;background:none;padding:0;cursor:pointer;display:flex;flex-direction:column;
+       align-items:center;gap:5px;min-width:0;color:var(--ink2)}
+  .dipsw .n{font:700 13px/1 var(--mono);color:var(--ink)}
+  .dipsw .t{width:26px;height:58px;border-radius:7px;border:1.5px solid var(--line);background:var(--sur2);
+       position:relative}
+  .dipsw .t::after{content:"";position:absolute;left:3px;right:3px;height:24px;bottom:3px;border-radius:4px;
+       background:var(--ink3);transition:bottom .12s}
+  .dipsw[aria-pressed="true"] .t{border-color:var(--dip)}
+  .dipsw[aria-pressed="true"] .t::after{bottom:28px;background:var(--dip)}
+  .dipsw .p{font:500 11px/1 var(--mono);color:var(--ink3)}
+  .dipsw[aria-pressed="true"] .p{color:var(--dip);font-weight:700}
+  .dipon{display:flex;justify-content:space-between;font:700 10px/1 var(--body);letter-spacing:.14em;
+       color:var(--ink3);margin:0 2px}
+  .dip .pas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .dip .pas button{border:1.5px solid var(--line);background:var(--bg);border-radius:12px;min-height:48px;
+       font:700 14px/1 var(--body);cursor:pointer;color:var(--ink)}
+  .dip .pas button.go{background:var(--dip);border-color:var(--dip);color:var(--on)}
+  .dip .kv input[type="checkbox"]{accent-color:var(--dip)}
+  /* -------------------------- volume d'une forme ------------------------- */
+  .conv .formes .tri{margin-bottom:7px}
+  .conv .formes .tri button{padding-left:4px;padding-right:4px}
+  .conv .formes .tri:last-of-type{margin-bottom:12px}
 </style>
 <link rel="stylesheet" href="logistique.css">
 </head>
@@ -1093,6 +1136,8 @@
   <symbol id="i-led" viewBox="0 0 24 24"><path d="M3 12h6"/><path d="M9 6v12l7.5-6z"/><path d="M16.5 6v12"/><path d="M14 5l1.6-2.4M17.3 6.6l1.8-1.8"/></symbol>
   <symbol id="i-elec" viewBox="0 0 24 24"><path d="M13 2.5L5 14h5.5L10 21.5 19 10h-5.5z"/></symbol>
   <symbol id="i-conv" viewBox="0 0 24 24"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></symbol>
+  <symbol id="i-dip" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><rect x="5" y="9" width="3" height="6" rx=".8"/><rect x="10.5" y="9" width="3" height="6" rx=".8"/><rect x="16" y="9" width="3" height="6" rx=".8"/><rect x="5" y="9" width="3" height="3" fill="currentColor" stroke="none"/><rect x="10.5" y="12" width="3" height="3" fill="currentColor" stroke="none"/><rect x="16" y="9" width="3" height="3" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-fsc" viewBox="0 0 24 24"><rect x="2" y="9.5" width="4.5" height="5" rx="1"/><path d="M6.5 10.5L19 4.5M6.5 13.5L19 19.5"/><ellipse cx="19" cy="12" rx="2.5" ry="7.5"/></symbol>
   <symbol id="i-sub" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.4"/><path d="M12 3v18M3 12h18"/></symbol>
   <symbol id="i-log" viewBox="0 0 24 24"><rect x="4.5" y="4" width="15" height="17.5" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8 10.5l1.5 1.5 2.5-2.5M8 16l1.5 1.5 2.5-2.5M14 11h2.5M14 16.5h2.5"/></symbol>
   <symbol id="i-camion" viewBox="0 0 24 24"><path d="M2.5 6h11v10.5h-11z"/><path d="M13.5 9.5h4.2l3.3 3.6v3.4h-7.5"/><circle cx="6.5" cy="17.5" r="1.9"/><circle cx="17" cy="17.5" r="1.9"/></symbol>
@@ -1160,6 +1205,7 @@ const TOOLS = [
   { k:"gel", t:"Gélatines", s:"Lee, GAM, Rosco → LED", c:"var(--gel)", i:"gel" },
   { k:"led", t:"LED", s:"Ruban : alim, résistance", c:"var(--led)", i:"led" },
   { k:"dist", t:"Projection", s:"Distance, optique, lumens", c:"var(--dpj)", i:"projo" },
+  { k:"fsc", t:"Faisceau", s:"Angle, distance, diamètre", c:"var(--fsc)", i:"fsc" },
   { k:"ndi", t:"Flux NDI", s:"Sources vidéo", c:"var(--ndi)", i:"ndi" },
   { k:"ups", t:"Onduleur", s:"Capacité UPS, VA", c:"var(--ups)", i:"ups" },
   { k:"cab", t:"Section câble", s:"Chute de tension, mm²", c:"var(--cab)", i:"cable" },
@@ -1170,6 +1216,7 @@ const TOOLS = [
   { k:"sub", t:"Sous-réseau", s:"Masque, plage, broadcast", c:"var(--sub)", i:"sub" },
   { k:"art", t:"Art-Net / sACN", s:"Univers en direct", c:"var(--art)", i:"artnet" },
   { k:"rdm", t:"RDM", s:"Adresse, mode, nom", c:"var(--rdm)", i:"rdm" },
+  { k:"dip", t:"Dip-switch", s:"Adresse DMX en switchs", c:"var(--dip)", i:"dip" },
   { k:"conv", t:"Convertisseur", s:"Distance, température, volume", c:"var(--conv)", i:"conv" },
   /* La bibliothèque garde la clé et la couleur de l'ancien écran MDG, qui en
      est devenu la première fiche. Elle vivait dans le Parc : ce n'est pas du
@@ -1197,9 +1244,11 @@ const MOTS = {
   sub:"ip masque cidr reseau broadcast plage",
   art:"dmx artnet sacn univers ecoute noeud node",
   rdm:"dmx adresse node noeud rdmnet llrp",
+  dip:"dmx adresse dip switch interrupteur binaire codeur",
+  fsc:"faisceau angle ouverture diametre tache taille projection decoupe pc distance champ",
   proj:"lumiere lyre decoupe pc wash", mach:"structure accroche moteur pendrillon frise",
   haut:"nacelle pemp passerelle", mdg:"notice manuel fiche mode d'emploi",
-  conv:"convertir conversion unite distance longueur metre pouce pied yard temperature celsius fahrenheit kelvin volume litre gallon m3",
+  conv:"convertir conversion unite distance longueur metre pouce pied yard temperature celsius fahrenheit kelvin volume litre gallon m3 cube pave cylindre sphere cone pyramide",
   div:"materiel son video cable reseau console micro enceinte ajouter",
   maj:"version theme sombre clair mise a jour apk"
 };
@@ -1214,8 +1263,8 @@ const DESTINATIONS = () => [...CATS, ...TOOLS,
    Relevé et Pupitre ouvrent l'écran du patch : ils sont dans la carte Patch
    et non en tuiles. Logistique a son onglet, Agenda, et n'est plus ici. */
 const TOOL_GROUPES = [
-  { t:"DMX", cles:["dmx", "tel", "tcd", "art", "rdm"] },
-  { t:"Lumière & image", cles:["gel", "led", "dist"] },
+  { t:"DMX", cles:["dmx", "tel", "tcd", "art", "rdm", "dip"] },
+  { t:"Lumière & image", cles:["gel", "led", "fsc", "dist"] },
   { t:"Électricité & levage", cles:["elec", "bil", "cab", "ups", "rig"] },
   { t:"Réseau IP", cles:["net", "sub", "ndi"] },
   { t:"Références", cles:["conv", "mdg"] }
@@ -6049,6 +6098,224 @@ function vSub(){
   return d;
 }
 
+/* ------------------------------- dip-switch ------------------------------
+   Les appareils sans afficheur prennent leur adresse sur une rangée de
+   switchs : chacun vaut une puissance de deux, l'adresse est la somme de
+   ceux qui sont sur ON. Neuf switchs vont jusqu'à 511. Certains appareils
+   codent l'adresse moins un (tout à OFF = adresse 1) : c'est le mode
+   « adresse − 1 », qui atteint alors 512. On tape l'adresse, ou on bascule
+   les switchs à l'écran et l'adresse suit. */
+const CLE_DIP = "dipswitch.v1";
+const DIP = lireCalcul(CLE_DIP, { a:"1", pas:"1", moins:false });
+const DIP_N = 9;
+const dipMin = () => 1, dipMax = () => DIP.moins ? 512 : 511;
+/* La valeur posée sur les switchs, ou null si l'adresse n'est pas codable. */
+function dipCode(){
+  const a = nombre(DIP.a);
+  if(!Number.isInteger(a) || a < dipMin() || a > dipMax()) return null;
+  return DIP.moins ? a - 1 : a;
+}
+function peindreDip(zone, bloc){
+  const code = dipCode(), a = nombre(DIP.a);
+  const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
+  if(code == null){
+    zone.innerHTML = `<div class="kick">Adresse DMX</div><div class="big"><b>—</b></div>
+      <p>${!isFinite(a) ? "Tapez une adresse, ou basculez les switchs."
+        : a === 512 && !DIP.moins ? "Neuf switchs vont jusqu'à 511 : 512 ne se code qu'en mode adresse − 1."
+        : "Une adresse DMX entière, de 1 à " + dipMax() + "."}</p>`;
+  } else {
+    const on = [];
+    for(let i = 0; i < DIP_N; i++) if(code >> i & 1) on.push(i + 1);
+    zone.innerHTML = `<div class="kick">Adresse DMX${DIP.moins ? " · mode adresse − 1" : ""}</div>
+      <div class="big"><b>${a}</b></div>
+      ${kv("Switchs sur ON", on.length ? on.join(", ") : "aucun")}
+      ${kv("Valeur codée", on.length ? on.map(n => 2 ** (n - 1)).join(" + ") + (on.length > 1 ? " = " + code : "") : "0")}
+      ${kv("Binaire (9 → 1)", code.toString(2).padStart(DIP_N, "0").replace(/(\d)(?=(\d{3})+$)/g, "$1 "))}`;
+  }
+  bloc.querySelectorAll(".dipsw").forEach(b => {
+    const i = +b.dataset.i;
+    b.setAttribute("aria-pressed", String(code != null && !!(code >> i & 1)));
+  });
+}
+function vDip(){
+  const c = DIP;
+  const d = el("div", "dip");
+  d.append(bar("Dip-switch DMX"));
+  const garder = () => ecrireLocal(CLE_DIP, c);
+  const res = el("div", "res");
+  const bloc = el("div");
+  const peindre = () => peindreDip(res, bloc);
+  d.append(res);
+
+  /* Les switchs : un appui bascule, l'adresse se recalcule et le champ suit. */
+  const cs = el("div", "card");
+  cs.innerHTML = `<h4>Switchs</h4><div class="dipon"><span>ON ↑</span><span>OFF ↓</span></div>`;
+  const rang = el("div", "dipbloc");
+  for(let i = 0; i < DIP_N; i++){
+    const b = el("button", "dipsw");
+    b.dataset.i = i;
+    b.setAttribute("aria-label", "Switch " + (i + 1) + ", vaut " + 2 ** i);
+    b.innerHTML = `<span class="n">${i + 1}</span><span class="t"></span><span class="p">${2 ** i}</span>`;
+    b.onclick = () => {
+      toucher();
+      const code = (dipCode() ?? 0) ^ (1 << i);
+      c.a = String(c.moins ? code + 1 : code || "");
+      garder();
+      const ch = d.querySelector("#dip-a");
+      if(ch) ch.value = c.a;
+      peindre();
+    };
+    rang.append(b);
+  }
+  bloc.append(rang);
+  cs.append(bloc);
+  cs.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:10px 0 0">Le chiffre sous chaque
+    switch est sa valeur. Un 10ᵉ switch, quand l'appareil en a un, sert à autre chose qu'à l'adresse :
+    voir sa notice.</p>`);
+
+  const ce = el("div", "card");
+  ce.innerHTML = `<h4>Adresse</h4>`;
+  const champ = (lab, cle, ph, aide) => {
+    const f = el("div", "f");
+    f.innerHTML = `<label for="dip-${cle}">${esc(lab)}</label>
+      <input id="dip-${cle}" data-focus="dip-${cle}" inputmode="numeric" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
+      ${aide ? `<small>${aide}</small>` : ""}`;
+    f.querySelector("input").addEventListener("input", e => { c[cle] = e.target.value; garder(); peindre(); });
+    return f;
+  };
+  const ff = el("div", "ff");
+  ff.append(champ("Adresse DMX", "a", "1"),
+            champ("Intervalle", "pas", "1"));
+  ce.append(ff);
+  ce.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:-4px 0 12px">L'intervalle est le
+    nombre de canaux de l'appareil : « Suivante » donne l'adresse du suivant de la série.</p>`);
+  /* Précédente et suivante sautent de l'intervalle ; elles ne sortent pas de
+     la plage codable. */
+  const sauter = sens => {
+    const a = nombre(c.a), p = Math.max(1, Math.round(nombre(c.pas)) || 1);
+    const n = (isFinite(a) ? Math.round(a) : 1 - sens * p) + sens * p;
+    if(n < dipMin() || n > dipMax()){
+      signaler(n > dipMax() ? "Au-delà de " + dipMax() + " : plus d'adresse codable sur cet univers"
+                            : "Pas d'adresse avant 1");
+      return;
+    }
+    toucher();
+    c.a = String(n); garder();
+    d.querySelector("#dip-a").value = c.a;
+    peindre();
+  };
+  const pas = el("div", "pas");
+  const bp = el("button", null, "◀ Précédente"), bs = el("button", "go", "Suivante ▶");
+  bp.onclick = () => sauter(-1);
+  bs.onclick = () => sauter(1);
+  pas.append(bp, bs);
+  ce.append(pas);
+  const m = el("div", "kv");
+  m.style.marginTop = "8px";
+  m.innerHTML = `<span>Mode adresse − 1</span><input type="checkbox" aria-label="Mode adresse moins un"${c.moins ? " checked" : ""}>`;
+  m.querySelector("input").addEventListener("change", e => { toucher(); c.moins = e.target.checked; garder(); peindre(); });
+  ce.append(m);
+  ce.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:4px 0 0">À cocher pour un appareil
+    qui code l'adresse moins un : tous les switchs sur OFF donnent alors l'adresse 1.</p>`);
+  d.append(cs, ce);
+
+  const fo = el("details", "card formules");
+  fo.innerHTML = `<summary>Formules</summary><p class="formule">switch n vaut 2^(n − 1) : 1, 2, 4… 256<br>
+    adresse = somme des switchs sur ON<br>mode adresse − 1 : adresse = somme + 1<br>
+    suivante = adresse + intervalle</p>`;
+  d.append(fo);
+  peindre();
+  return d;
+}
+
+/* -------------------------------- faisceau -------------------------------
+   La tache d'un projecteur de lumière à une distance donnée, ou l'inverse :
+   deux valeurs connues, la troisième se calcule. Ce n'est pas l'outil
+   Projection, qui parle d'image vidéo et de rapport d'optique. */
+const CLE_FSC = "faisceau.v1";
+const FSC = lireCalcul(CLE_FSC, { sens:"diam", ang:"26", d:"10", diam:"4" });
+const RAD = Math.PI / 180;
+function calculFsc(c){
+  const a = nbDist(c.ang), d = nbDist(c.d), D = nbDist(c.diam);
+  if(c.sens === "diam"){
+    if(!(a > 0 && a < 180)) return { manque:"Renseignez l'angle d'ouverture, entre 0 et 180°." };
+    if(!(d > 0)) return { manque:"Renseignez la distance jusqu'à la surface éclairée." };
+    return { a, d, D: 2 * d * Math.tan(a / 2 * RAD) };
+  }
+  if(c.sens === "dist"){
+    if(!(a > 0 && a < 180)) return { manque:"Renseignez l'angle d'ouverture, entre 0 et 180°." };
+    if(!(D > 0)) return { manque:"Renseignez le diamètre de tache voulu." };
+    return { a, D, d: D / (2 * Math.tan(a / 2 * RAD)) };
+  }
+  if(!(d > 0)) return { manque:"Renseignez la distance jusqu'à la surface éclairée." };
+  if(!(D > 0)) return { manque:"Renseignez le diamètre de tache voulu." };
+  return { d, D, a: 2 * Math.atan(D / (2 * d)) / RAD };
+}
+function peindreFsc(zone){
+  const c = FSC, r = calculFsc(c);
+  const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
+  const [titre, u] = { diam:["Diamètre de la tache", "m"], dist:["Distance", "m"], ang:["Angle d'ouverture", "°"] }[c.sens];
+  if(r.manque){
+    zone.innerHTML = `<div class="kick">${titre}</div><div class="big"><b>—</b><span>${u}</span></div><p>${r.manque}</p>`;
+    return;
+  }
+  const big = c.sens === "ang" ? mDist(r.a, 1) : mDist(c.sens === "diam" ? r.D : r.d);
+  const k = 2 * Math.tan(r.a / 2 * RAD);
+  zone.innerHTML = `<div class="kick">${titre}</div>
+    <div class="big"><b>${big}</b><span>${u}</span></div>
+    ${kv("Angle", mDist(r.a, 1) + "°")}
+    ${kv("Distance", mDist(r.d) + " m")}
+    ${kv("Diamètre", mDist(r.D) + " m")}
+    ${kv("Surface éclairée", mDist(Math.PI * (r.D / 2) ** 2) + " m²")}
+    ${kv("Coefficient", mDist(k, 3) + " × distance")}`;
+}
+function vFsc(){
+  const c = FSC;
+  const d = el("div", "fsc");
+  d.append(bar("Faisceau"));
+  const garder = () => ecrireLocal(CLE_FSC, c);
+  const res = el("div", "res");
+  d.append(res);
+  const peindre = () => peindreFsc(res);
+
+  const cs = el("div", "card");
+  cs.innerHTML = `<h4>Je cherche</h4>`;
+  const t = el("div", "tri");
+  t.style.marginBottom = "0";
+  [["diam", "Le diamètre"], ["dist", "La distance"], ["ang", "L'angle"]].forEach(([v, txt]) => {
+    const b = el("button", null, txt);
+    b.setAttribute("aria-pressed", String(c.sens === v));
+    b.onclick = () => { toucher(); c.sens = v; garder(); render(); };
+    t.append(b);
+  });
+  cs.append(t);
+  d.append(cs);
+
+  const champ = (lab, cle, ph, aide) => {
+    const f = el("div", "f");
+    f.innerHTML = `<label for="fsc-${cle}">${esc(lab)}</label>
+      <input id="fsc-${cle}" data-focus="fsc-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. ${esc(ph)}">
+      ${aide ? `<small>${aide}</small>` : ""}`;
+    f.querySelector("input").addEventListener("input", e => { c[cle] = e.target.value; garder(); peindre(); });
+    return f;
+  };
+  const ce = el("div", "card");
+  ce.innerHTML = `<h4>Connu</h4>`;
+  if(c.sens !== "ang") ce.append(champ("Angle d'ouverture (°)", "ang", "26",
+    "Sur la fiche du projecteur. L'angle de faisceau (50 % de l'intensité au centre) donne la tache nette ; l'angle de champ (10 %), la tache jusqu'à son bord."));
+  if(c.sens !== "dist") ce.append(champ("Distance (m)", "d", "10", "Du projecteur à la surface éclairée, dans l'axe."));
+  if(c.sens !== "diam") ce.append(champ("Diamètre de la tache (m)", "diam", "4"));
+  d.append(ce);
+
+  const fo = el("details", "card formules");
+  fo.innerHTML = `<summary>Formules</summary><p class="formule">diamètre = 2 × distance × tan(angle / 2)<br>
+    distance = diamètre / (2 × tan(angle / 2))<br>angle = 2 × atan(diamètre / (2 × distance))<br><br>
+    Dans l'axe, sur une surface perpendiculaire : de biais, la tache s'allonge en ellipse.</p>`;
+  d.append(fo);
+  peindre();
+  return d;
+}
+
 /* ------------------------------ convertisseur ----------------------------
    Il vivait en trois fiches de la bibliothèque de manuels, rangées dans le
    Parc : on y lisait des tableaux sans pouvoir rien convertir. C'est
@@ -6069,7 +6336,46 @@ const CLE_CONV = "convertisseur.v1";
 const CONV = lireCalcul(CLE_CONV, { onglet:"dist",
   dist:"1", distDe:"ft", distVers:"m",
   temp:"20", tempDe:"°C", tempVers:"°F",
-  vol:"1", volDe:"m³", volVers:"L" });
+  vol:"1", volDe:"m³", volVers:"L",
+  forme:"pave", fu:"cm", fa:"50", fL:"120", fl:"60", fh:"80", fd:"40" });
+
+/* Le volume d'une forme, dans l'onglet Volume : une caisse, une cuve, un
+   fût. Les dimensions se tapent dans une unité de longueur, le résultat
+   sort dans toutes les unités de volume. Cylindre, sphère et cône se
+   mesurent au diamètre, plus simple à prendre au mètre ruban. */
+const FORMES = [["cube", "Cube", ["fa"]], ["pave", "Pavé", ["fL", "fl", "fh"]], ["cyl", "Cylindre", ["fd", "fh"]],
+                ["sph", "Sphère", ["fd"]], ["cone", "Cône", ["fd", "fh"]], ["pyr", "Pyramide", ["fa", "fh"]]];
+const FORME_CHAMPS = { fa:"Côté", fL:"Longueur", fl:"Largeur", fh:"Hauteur", fd:"Diamètre" };
+const FORME_UNITES = ["mm", "cm", "m", "in", "ft"];
+/* En m³, ou null s'il manque une dimension. */
+function volumeForme(c){
+  const f = FORMES.find(x => x[0] === c.forme) || FORMES[1];
+  const k = (CONV_UNITES.dist.find(u => u[0] === c.fu) || [, , 0.01])[2];
+  const v = {};
+  for(const cle of f[2]){
+    const n = nombre(c[cle]);
+    if(!(n > 0)) return null;
+    v[cle] = n * k;
+  }
+  const r = v.fd / 2;
+  return { cube: () => v.fa ** 3, pave: () => v.fL * v.fl * v.fh, cyl: () => Math.PI * r * r * v.fh,
+           sph: () => 4 / 3 * Math.PI * r ** 3, cone: () => Math.PI * r * r * v.fh / 3,
+           pyr: () => v.fa * v.fa * v.fh / 3 }[f[0]]();
+}
+function peindreForme(zone){
+  const c = CONV, v = volumeForme(c);
+  const nom = (FORMES.find(x => x[0] === c.forme) || FORMES[1])[1];
+  if(v == null){
+    zone.innerHTML = `<div class="kick">Volume · ${esc(nom)}</div><div class="big"><b>—</b></div>
+      <p>Renseignez les dimensions.</p>`;
+    return;
+  }
+  const vers = c.volVers;
+  zone.innerHTML = `<div class="kick">Volume · ${esc(nom)}</div>
+    <div class="big"><b>${esc(chiffreConv(convertir("vol", v, "m³", vers)))}</b><span>${esc(vers)}</span></div>
+    ${CONV_UNITES.vol.filter(u => u[0] !== vers).map(u =>
+      `<div class="kv"><span>${esc(u[1])}</span><b>${esc(chiffreConv(convertir("vol", v, "m³", u[0])))} ${esc(u[0])}</b></div>`).join("")}`;
+}
 
 const versCelsius = (v, u) => u === "°F" ? (v - 32) * 5 / 9 : u === "K" ? v - 273.15 : v;
 const deCelsius = (c, u) => u === "°F" ? c * 9 / 5 + 32 : u === "K" ? c + 273.15 : c;
@@ -6132,7 +6438,8 @@ function vConv(){
     const g = el("div", "f");
     g.innerHTML = `<label for="conv-${cle}">${lab}</label><select id="conv-${cle}">${
       CONV_UNITES[o].map(u => `<option value="${esc(u[0])}"${u[0] === c[o + cle] ? " selected" : ""}>${esc(u[1])} (${esc(u[0])})</option>`).join("")}</select>`;
-    g.querySelector("select").addEventListener("change", e => { c[o + cle] = e.target.value; garder(); peindreConv(res); });
+    /* En Volume, « Vers » donne aussi l'unité du volume d'une forme, plus bas. */
+    g.querySelector("select").addEventListener("change", e => { c[o + cle] = e.target.value; garder(); render(); });
     return g;
   };
   deux.append(liste("De", "De"), liste("Vers", "Vers"));
@@ -6143,6 +6450,42 @@ function vConv(){
   inv.append(bi);
   cc.append(inv);
   d.append(cc, res);
+
+  if(o === "vol"){
+    const cf = el("div", "card formes");
+    cf.innerHTML = `<h4>Volume d'une forme</h4>`;
+    [FORMES.slice(0, 3), FORMES.slice(3)].forEach(rang => {
+      const t = el("div", "tri");
+      rang.forEach(([k, nom]) => {
+        const b = el("button", null, nom);
+        b.setAttribute("aria-pressed", String(c.forme === k));
+        b.onclick = () => { toucher(); c.forme = k; garder(); render(); };
+        t.append(b);
+      });
+      cf.append(t);
+    });
+    const fu = el("div", "f");
+    fu.innerHTML = `<label for="conv-fu">Unité des dimensions</label><select id="conv-fu">${
+      FORME_UNITES.map(k => { const u = CONV_UNITES.dist.find(x => x[0] === k);
+        return `<option value="${k}"${k === c.fu ? " selected" : ""}>${esc(u[1])} (${k})</option>`; }).join("")}</select>`;
+    const rf = el("div", "res");
+    fu.querySelector("select").addEventListener("change", e => { c.fu = e.target.value; garder(); render(); });
+    cf.append(fu);
+    const forme = FORMES.find(x => x[0] === c.forme) || FORMES[1];
+    const champs = el("div", forme[2].length > 1 ? "deux" : "");
+    forme[2].forEach(cle => {
+      const g = el("div", "f");
+      g.innerHTML = `<label for="conv-${cle}">${FORME_CHAMPS[cle]}${c.forme === "pyr" && cle === "fa" ? " de la base" : ""} (${esc(c.fu)})</label>
+        <input id="conv-${cle}" data-focus="conv-${cle}" inputmode="decimal" autocomplete="off" value="${esc(c[cle])}" placeholder="ex. 1">`;
+      g.querySelector("input").addEventListener("input", e => { c[cle] = e.target.value; garder(); peindreForme(rf); });
+      champs.append(g);
+    });
+    cf.append(champs);
+    cf.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:0">Le résultat sort dans l'unité
+      « Vers » choisie plus haut.</p>`);
+    d.append(cf, rf);
+    peindreForme(rf);
+  }
 
   const rep = el("details", "card formules");
   rep.innerHTML = o === "dist"
@@ -6157,8 +6500,10 @@ function vConv(){
         <div class="man-note">Une lampe à décharge ou un laser donnent leur température de couleur en kelvins :
         ce n'est pas la chaleur dégagée. Voir l'outil Gélatines pour les équivalences.</div>`
     : `<summary>Repères</summary><p class="formule">1 m³ = 1000 L · 1 L = 1000 mL<br>
-        Pavé (caisse, flight-case) : longueur × largeur × hauteur<br>
-        Cylindre (bouteille, fût) : π × rayon² × hauteur<br>Sphère : 4/3 × π × rayon³</p>
+        Cube : côté³<br>Pavé (caisse, flight-case) : longueur × largeur × hauteur<br>
+        Cylindre (bouteille, fût) : π × rayon² × hauteur<br>Sphère : 4/3 × π × rayon³<br>
+        Cône : 1/3 × π × rayon² × hauteur<br>Pyramide à base carrée : 1/3 × côté² × hauteur<br>
+        rayon = diamètre / 2</p>
         <div class="man-note">Pour une bouteille de brume ou de CO2, le volume utile se lit sur l'étiquette :
         le calcul géométrique donne le contenant, pas la charge.</div>`;
   d.append(rep);
@@ -6827,7 +7172,7 @@ function vMaj(){
 const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps, dist:vDist,
                 proj:vProj, mach:vMach, haut:vHaut, div:vDiv, mdg:vMdg, dmx:vPatch, tel:vPatch,
                 tcd:vPatch, gel:vGel, led:vLed, cab:vCable, bil:vBil, elec:vElec, rig:vRig, ndi:vNdi,
-                net:vNet, sub:vSub, conv:vConv, art:vArt, rdm:vRdm, maj:vMaj,
+                net:vNet, sub:vSub, conv:vConv, dip:vDip, fsc:vFsc, art:vArt, rdm:vRdm, maj:vMaj,
                 log:vLog, logf:vLogFiche, logr:vLogReglages, favoris:vFavoris };
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
