@@ -549,9 +549,6 @@
   .pile>h4 span{font:500 11px/1 var(--mono);text-transform:none;letter-spacing:0}
   .pile>h4 .bts{display:flex;align-items:center;gap:6px;flex:none}
   .pile>h4 button:disabled{opacity:.45;cursor:default}
-  .pile>h4 button.plus{width:44px;padding:0;font:700 24px/1 var(--body);letter-spacing:0;
-       background:var(--tel);border-color:var(--tel);color:var(--on)}
-  .pile>h4 button.plus.dmx{background:var(--dmx);border-color:var(--dmx)}
   .pile>h4 button[aria-expanded="true"]{box-shadow:inset 0 0 0 2px color-mix(in srgb,currentColor 45%,transparent)}
   .conf p{margin:0 0 12px;font-size:15px;line-height:1.4}
   .conf .act{margin-bottom:8px}
@@ -588,12 +585,29 @@
   .rg.pointe{outline:2px solid var(--tel);outline-offset:-2px;border-radius:10px;
       scroll-margin-top:132px}
 
+  /* Les deux actions, au-dessus de la barre d'onglets de l'application. */
   /* La barre d'onglets de l'application est masquée sur le patch : la liste
-     récupère sa place, le retour ramène où l'on était. Plus de barre en bas :
-     l'ajout se fait par le « + » de l'en-tête de chaque liste. */
+     récupère sa place, le retour ramène où l'on était. */
   body.patch-plein nav.tabbar{display:none}
   body.patch-plein .shell{padding-bottom:env(safe-area-inset-bottom,0px)}
-  .pecr{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+  .pecr .p-bas{position:fixed;left:0;right:0;z-index:9;
+      bottom:0;padding-bottom:calc(9px + env(safe-area-inset-bottom,0px))!important;
+      background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);
+      border-top:1.5px solid var(--line);padding:7px 16px}
+  .pecr .p-bas .in{max-width:560px;margin:0 auto;display:flex;gap:7px}
+  .pecr .p-bas button{flex:1;border:0;border-radius:11px;padding:0 10px;min-height:44px;
+      font:700 12.5px/1.2 var(--body);background:var(--tel);color:var(--on);cursor:pointer;
+      display:flex;align-items:center;justify-content:center;gap:7px;min-width:0}
+  .pecr .p-bas button .et{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pecr .p-bas button.dmx{background:var(--dmx)}
+  .pecr .p-bas button{min-height:50px;font-size:13.5px}
+  .pecr .p-bas button.att{background:var(--sur2);color:var(--ink)}
+  .pecr .p-bas button:disabled{opacity:.45;cursor:default}
+  .pecr .p-bas button .cpt{font:600 10.5px/1 var(--mono);background:color-mix(in srgb,currentColor 16%,transparent);
+      border-radius:99px;padding:3px 6px}
+  .pecr .p-bas button[aria-expanded="true"]{box-shadow:inset 0 0 0 2px color-mix(in srgb,currentColor 45%,transparent)}
+  /* La place que prend la barre du bas, rendue à la liste. */
+  .pecr{padding-bottom:78px}
   /* Le bandeau « Annuler » d'une suppression, en haut : le volet tient le bas. */
   .p-annul{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:30;
       max-width:536px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:6px 6px 6px 16px;
@@ -2818,7 +2832,8 @@ let fond = null, volet = null;
 
 function vPatch(){
   const d = el("div", "pecr");
-  d.innerHTML = `<div class="p-haut" id="p-haut"></div><div id="p-liste"></div>`;
+  d.innerHTML = `<div class="p-haut" id="p-haut"></div><div id="p-liste"></div>
+    <div class="p-bas"><div class="in" id="p-bas"></div></div>`;
   /* Quitter l'écran relâche le flux et referme ce qui traîne : on ne laisse
      pas un gradateur allumé derrière soi. */
   poser(() => { fermerVolet(true); NET.emissionArret();
@@ -2872,6 +2887,25 @@ function peindre(){
   $("#p-haut").replaceChildren(h);
 
   majListe();
+
+  /* Trois gestes en bas : relever les gradateurs, attribuer les circuits des
+     appareils, ajouter des appareils. Le compte dit ce qui reste à faire. */
+  const bg = el("button", "rel",
+    `<span class="et">Relever</span><span class="cpt">${restantsG()}</span>`);
+  bg.setAttribute("aria-label", `Relever les gradateurs, ${restantsG()} sans circuit`);
+  bg.setAttribute("aria-expanded", VOLET === "relever");
+  bg.onclick = () => ouvrirVolet("relever");
+  const bt = el("button", "att",
+    `<span class="et">Attribuer</span><span class="cpt">${restantsA()}</span>`);
+  bt.setAttribute("aria-label", `Attribuer les circuits des appareils, ${restantsA()} sans circuit`);
+  bt.setAttribute("aria-expanded", VOLET === "attr");
+  bt.disabled = !liste.length;
+  bt.onclick = () => ouvrirVolet("attr");
+  const ba = el("button", "dmx", `<span class="et">Ajouter</span>`);
+  ba.setAttribute("aria-label", "Ajouter des appareils");
+  ba.setAttribute("aria-expanded", VOLET === "ajouter");
+  ba.onclick = () => ouvrirVolet("ajouter");
+  $("#p-bas").replaceChildren(bg, bt, ba);
 
   if(VOLET === "relever") majVoletRelever();
   if(VOLET === "attr") majVoletAttribuer();
@@ -3010,16 +3044,6 @@ function pile(titre, compte, elements, rien, boutons){
   return d;
 }
 
-/* Le « + » de l'en-tête d'une pile : c'est lui qui ajoute, il n'y a plus de
-   barre en bas. */
-function boutonPlus(classe, etiquette, ouvert, ouvre){
-  const b = el("button", "plus " + classe, "+");
-  b.setAttribute("aria-label", etiquette);
-  b.setAttribute("aria-expanded", ouvert);
-  b.onclick = ouvre;
-  return b;
-}
-
 /* Deux cents gradateurs dans une liste, personne ne les lit : on n'affiche que
    ceux qui portent un circuit — plus celui qu'on relève, pour qu'on le voie
    s'allumer dans la liste. Le bouton de l'en-tête rend les autres visibles le
@@ -3052,8 +3076,8 @@ function rangG(n){
 }
 
 const rienG = () => gradas().length
-  ? "Aucun gradateur dans la liste : touchez + pour en ajouter."
-  : "Pas de gradateurs dans ce patch : touchez + pour en ajouter.";
+  ? "Aucun gradateur relevé : touchez « Relever » en bas."
+  : "Pas de gradateurs dans ce patch.";
 const comptesG = () => `${pl(relevesG(), "relevé")} sur ${gradas().length}`;
 const toutVoirG = () => MASQUE
   ? `tout voir · ${gradas().filter(n => !dansListeG(n)).length}` : "masquer les vides";
@@ -3064,15 +3088,7 @@ function pileGradas(){
 
   const b = el("button", null, toutVoirG());
   b.onclick = () => { MASQUE = !MASQUE; peindre(); };
-  /* « + » ouvre le relevé sur le premier gradateur sans circuit ; s'il n'y en
-     a plus, il en ajoute un. */
-  const plus = boutonPlus("", "Ajouter des gradateurs", VOLET === "relever", () => {
-    let k = prochainVide();
-    if(k == null){ P.reg.nb++; k = gradas().length - 1; }
-    ouvrirVolet("relever", k);
-  });
-  const p = pile("Gradateurs", comptesG(), rangs, rienG(),
-                 [...(tous.length ? [b] : []), plus]);
+  const p = pile("Gradateurs", comptesG(), rangs, rienG(), tous.length ? b : null);
   p.dataset.pile = "g";
   return p;
 }
@@ -3097,7 +3113,7 @@ function majRangG(...ns){
   if(!vide && rien) rien.remove();
   const cpt = pile.querySelector("h4 .ti span");
   if(cpt) cpt.textContent = comptesG();
-  const tv = pile.querySelector(".bts button:not(.plus)");
+  const tv = pile.querySelector(".bts button");
   if(tv) tv.textContent = toutVoirG();
 }
 
@@ -3120,16 +3136,8 @@ function pileApps(){
     if(x.n === vise) r.classList.add("pointe");
     return r;
   });
-  const reste = restantsA();
-  const circ = el("button", null, reste ? `circuits · ${reste}` : "circuits");
-  circ.setAttribute("aria-label", `Attribuer les circuits des appareils, ${pl(reste, "appareil")} sans circuit`);
-  circ.setAttribute("aria-expanded", VOLET === "attr");
-  circ.disabled = !liste.length;
-  circ.onclick = () => ouvrirVolet("attr");
-  const plus = boutonPlus("dmx", "Ajouter des appareils", VOLET === "ajouter",
-                          () => ouvrirVolet("ajouter"));
   return pile("Appareils", `${relevesA()} sur ${liste.length} avec circuit · ${puissanceTotale(liste)}`,
-              rangs, "Aucun appareil : touchez + pour en ajouter.", [circ, plus]);
+              rangs, "Aucun appareil : touchez « Ajouter » en bas.");
 }
 
 /* Mettre un appareil en évidence : le geste des gradateurs, appliqué au patch. */
@@ -3493,7 +3501,7 @@ function majVoletAttribuer(){
   volet.querySelector(".tete .cpt").textContent = `${relevesA()} / ${l.length} attribués`;
   const c = volet.querySelector(".corps");
   if(!x){
-    c.replaceChildren(el("p", "rien", "Aucun appareil dans ce patch : touchez + dans la liste des appareils."));
+    c.replaceChildren(el("p", "rien", "Aucun appareil dans ce patch : touchez « Ajouter » en bas."));
     return;
   }
   const v = circuitApp(x.n);
@@ -4483,6 +4491,9 @@ function majBarre(){
 }
 function majCompteurs(){
   const nG = gradas().length, nA = appareils().length;
+  const r = $("#p-bas .rel .cpt"), a = $("#p-bas .att .cpt");
+  if(r) r.textContent = restantsG();
+  if(a) a.textContent = restantsA();
   const og = $('#p-haut .ongl [data-o="grada"] em'), oa = $('#p-haut .ongl [data-o="app"] em');
   if(og) og.textContent = `${relevesG()}/${nG}`;
   if(oa) oa.textContent = `${relevesA()}/${nA}`;
