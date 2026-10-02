@@ -321,13 +321,6 @@ public class Maj {
     /* ----------------------------- utilitaires -------------------------- */
 
     /**
-     * Ouvre la connexion sur un réseau qui a vraiment internet.
-     *
-     * `Reseau.java` épingle le processus sur le Wi-Fi du plateau, qui n'a
-     * souvent aucun accès extérieur : sans ce détour, la vérification échouerait
-     * là où elle sert le plus, alors que la 4G est disponible à côté.
-     */
-    /**
      * Ouvre un fichier de la release et attend qu'il réponde 200.
      *
      * La chaîne de montage remplace l'APK puis la fiche en retirant l'ancien
@@ -337,7 +330,7 @@ public class Maj {
      */
     private HttpURLConnection ouvrirPublie(String adresse) throws Exception {
         for (int essai = 1; ; essai++) {
-            HttpURLConnection c = ouvrir(adresse);
+            HttpURLConnection c = repondre(adresse);
             int code = c.getResponseCode();
             if (code == 200) return c;
             try { c.disconnect(); } catch (Exception ignore) { }
@@ -347,9 +340,38 @@ public class Maj {
         }
     }
 
-    private HttpURLConnection ouvrir(String adresse) throws Exception {
+    /**
+     * Essaie les réseaux un à un jusqu'à obtenir une réponse.
+     *
+     * Lier une connexion à un réseau précis peut être refusé : avec un VPN
+     * actif, Android interdit de passer à côté du tunnel (« Binding socket to
+     * network … failed: EPERM »). On passe alors au réseau suivant, et en
+     * dernier au réseau par défaut, sans liaison.
+     */
+    private HttpURLConnection repondre(String adresse) throws Exception {
+        Exception derniere = null;
+        for (Network n : reseauxInternet()) {
+            HttpURLConnection c = ouvrir(adresse, n);
+            try {
+                c.getResponseCode();
+                return c;
+            } catch (java.io.IOException e) {
+                derniere = e;
+                try { c.disconnect(); } catch (Exception ignore) { }
+            }
+        }
+        throw derniere;
+    }
+
+    /**
+     * Ouvre la connexion sur un réseau donné, ou sur celui par défaut si null.
+     *
+     * `Reseau.java` épingle le processus sur le Wi-Fi du plateau, qui n'a
+     * souvent aucun accès extérieur : sans ce détour, la vérification échouerait
+     * là où elle sert le plus, alors que la 4G est disponible à côté.
+     */
+    private HttpURLConnection ouvrir(String adresse, Network n) throws Exception {
         URL u = new URL(adresse);
-        Network n = reseauInternet();
         HttpURLConnection c = (HttpURLConnection)
                 (n != null ? n.openConnection(u) : u.openConnection());
         c.setConnectTimeout(20000);
@@ -362,19 +384,33 @@ public class Maj {
         return c;
     }
 
-    private Network reseauInternet() {
+    /**
+     * Les réseaux à essayer, dans l'ordre : un VPN d'abord (c'est le seul
+     * chemin permis quand il est actif), puis le réseau actif, puis les autres
+     * réseaux validés, et enfin null pour le réseau par défaut sans liaison.
+     */
+    private java.util.List<Network> reseauxInternet() {
+        java.util.List<Network> l = new java.util.ArrayList<>();
         try {
             ConnectivityManager cm = (ConnectivityManager)
                     act.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (cm == null) return null;
-            for (Network n : cm.getAllNetworks()) {
-                NetworkCapabilities c = cm.getNetworkCapabilities(n);
-                if (c == null) continue;
-                if (c.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                        && c.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) return n;
+            if (cm != null) {
+                java.util.List<Network> valides = new java.util.ArrayList<>();
+                for (Network n : cm.getAllNetworks()) {
+                    NetworkCapabilities c = cm.getNetworkCapabilities(n);
+                    if (c == null) continue;
+                    if (!c.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                            || !c.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) continue;
+                    if (c.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) l.add(n);
+                    else valides.add(n);
+                }
+                Network actif = cm.getActiveNetwork();
+                if (actif != null && valides.remove(actif)) l.add(actif);
+                l.addAll(valides);
             }
         } catch (Exception ignore) { }
-        return null;
+        l.add(null);
+        return l;
     }
 
     private static String texte(InputStream in) throws Exception {
