@@ -483,6 +483,10 @@
   .pecr .p-titre .ch{font:600 11px/1 var(--mono);color:var(--ink3)}
   .pecr .p-titre small{font:500 12px/1.2 var(--body);color:var(--ink3);overflow:hidden;
        text-overflow:ellipsis;white-space:nowrap}
+  .pecr .p-cor{flex:none;width:44px;height:44px;border:1.5px solid var(--line);background:var(--bg);
+       border-radius:99px;color:var(--ink2);cursor:pointer;display:grid;place-items:center;padding:0}
+  .pecr .p-cor .ic{width:20px;height:20px}
+  .pecr .p-cor.on{background:var(--ko);border-color:var(--ko);color:var(--on)}
   .pecr .p-pdf{flex:none;min-width:52px;min-height:44px;border:1.5px solid var(--line);background:var(--bg);
        border-radius:99px;padding:0 12px;font:700 12px/1 var(--body);color:var(--ink2);cursor:pointer}
 
@@ -1077,6 +1081,7 @@
   <symbol id="i-maj" viewBox="0 0 24 24"><path d="M12 2.5v11.5"/><path d="M7.5 9.5L12 14l4.5-4.5"/><path d="M4 15.5v3.5a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5v-3.5"/></symbol>
   <symbol id="i-reglages" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4L21 21"/></symbol>
+  <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l.9 12.5h9.2L17.5 7M10 11v5M14 11v5"/></symbol>
   <symbol id="i-ampoule" viewBox="0 0 24 24"><path d="M12 2.8a6.2 6.2 0 0 0-3.7 11.2c.8.6 1.2 1.4 1.2 2.3h5c0-.9.4-1.7 1.2-2.3A6.2 6.2 0 0 0 12 2.8z"/><path d="M9.6 18.6h4.8M10.4 21.2h3.2"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12l7.5 7.5"/></symbol>
   <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M15.7 4.3l4 4L8.4 19.6H4.4v-4z"/><path d="M13.2 6.8l4 4"/></symbol>
@@ -2880,7 +2885,12 @@ function peindre(){
   const pdf = el("button", "p-pdf", "PDF");
   pdf.setAttribute("aria-label", "Imprimer la feuille ou l'enregistrer en PDF");
   pdf.onclick = exporterFeuille;
-  rang.append(bk, t, pdf);
+  /* La corbeille ouvre la sélection pour supprimer ; elle la referme aussi. */
+  const cor = el("button", "p-cor" + (SELM ? " on" : ""), ic("corbeille"));
+  cor.setAttribute("aria-label", SELM ? "Quitter la sélection" : "Choisir des gradateurs ou des appareils à supprimer");
+  cor.setAttribute("aria-pressed", SELM ? "true" : "false");
+  cor.onclick = () => SELM ? sortirSel() : entrerSel(null);
+  rang.append(bk, t, cor, pdf);
   h.append(rang);
   h.append(barreTele());
 
@@ -3093,16 +3103,15 @@ function majBarreSel(){
 /* « Tout » dans l'en-tête d'une pile : coche les rangées qu'elle montre, ou les
    décoche si elles le sont déjà toutes. */
 function boutonChoix(attr){
-  const b = el("button", null, "Choisir");
+  if(!SELM) return null;
+  const b = el("button", null, "Tout");
   b.onclick = () => {
-    if(!SELM){ entrerSel(null); return; }
     const rs = [...document.querySelectorAll(`.pile .rg[data-${attr}]`)];
     const cles = rs.map(r => attr + r.dataset[attr]);
     const tous = cles.length && cles.every(k => SELM.has(k));
     rs.forEach((r, i) => { if(SELM.has(cles[i]) === !!tous) basculerSel(cles[i], r); });
     b.textContent = tous ? "Tout" : "Aucun";
   };
-  if(SELM) b.textContent = "Tout";
   return b;
 }
 function supprimerSelection(){
@@ -3133,7 +3142,7 @@ function pile(titre, compte, elements, rien, boutons){
   const d = el("div", "pile");
   d.insertAdjacentHTML("beforeend",
     `<h4><div class="ti">${esc(titre)}<span>${esc(compte || "")}</span></div></h4>`);
-  const bts = [].concat(boutons || []);
+  const bts = [].concat(boutons || []).filter(Boolean);
   if(bts.length){
     const w = el("div", "bts");
     w.append(...bts);
