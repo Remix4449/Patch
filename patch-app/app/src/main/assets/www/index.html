@@ -3313,6 +3313,29 @@ const prochainVide = (depuis = 0) => {
   return null;
 };
 
+/* Les flèches parcourent tous les gradateurs, pas seulement ceux du dernier
+   lot ajouté : au bout de la plage, elles l'élargissent d'un cran (les vides
+   restent cachés de la liste). Les adresses des gradateurs déjà là ne bougent pas. */
+const MAX_GRADA = 9999;
+function elargirG(n){
+  if(n < 1 || n > MAX_GRADA) return false;
+  const fin = P.reg.premier + P.reg.nb - 1;
+  if(n < P.reg.premier){
+    P.reg.adr = Math.max(1, P.reg.adr - (P.reg.premier - n));
+    P.reg.nb += P.reg.premier - n; P.reg.premier = n;
+  } else if(n > fin) P.reg.nb += n - fin;
+  P.exclus = P.exclus.filter(x => x !== n);
+  return true;
+}
+function pasG(sens){
+  const l = gradas();
+  const k = INDICE + sens;
+  if(k >= 0 && k < l.length){ allerA(k); return; }
+  const n = sens < 0 ? (l[0] != null ? l[0] - 1 : P.reg.premier - 1) : (l.length ? l[l.length - 1] + 1 : P.reg.premier);
+  if(!elargirG(n)) return;
+  allerA(gradas().indexOf(n), 100, true);
+}
+
 function allerA(k, niveau = 100, complet = false){
   const l = gradas();
   if(k == null || k < 0 || k >= l.length){ peindre(); return; }
@@ -3386,12 +3409,12 @@ function majVoletRelever(){
   num.onclick = () => { PAVE = ""; majVoletRelever(); };
   ecr.append(num, afficheCircuit(f.circuit, "rel-cir", ecrire, validerRelever));
   ecr.insertAdjacentHTML("beforeend",
-    `<span class="ad">U${a.u} · canal ${a.canal} · ${lv} %</span>`);
+    `<span class="ad">${a ? `U${a.u} · canal ${a.canal}` : "hors plage DMX"} · ${lv} %</span>`);
   d.append(ecr);
   d.append(padCircuit({
     valeur:f.circuit, ecrire, ok:validerRelever,
-    prec:() => allerA(INDICE - 1),
-    suiv:() => allerA(INDICE + 1)
+    prec:() => pasG(-1),
+    suiv:() => pasG(1)
   }));
 
   const note = el("input", "note");
@@ -3455,10 +3478,8 @@ function validerPave(){
   const n = parseInt(PAVE, 10);
   PAVE = null;
   if(!n){ majVoletRelever(); return; }
-  const vise = Math.max(P.reg.premier, n);
-  if(vise > P.reg.premier + P.reg.nb - 1) P.reg.nb = vise - P.reg.premier + 1;
-  P.exclus = P.exclus.filter(x => x !== vise);
-  allerA(gradas().indexOf(vise), 100, true);
+  if(!elargirG(n)){ majVoletRelever(); return; }
+  allerA(gradas().indexOf(n), 100, true);
 }
 
 /* « OK » referme le relevé. Si le gradateur appelé porte un circuit, il est déjà
