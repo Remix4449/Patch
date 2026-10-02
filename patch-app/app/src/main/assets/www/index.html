@@ -2892,24 +2892,18 @@ function peindre(){
 
   majListe();
 
-  /* Trois gestes en bas : relever les gradateurs, attribuer les circuits des
-     appareils, ajouter des appareils. Le compte dit ce qui reste à faire. */
+  /* Deux gestes en bas : relever les gradateurs, ajouter des appareils. Les
+     circuits des appareils se passent depuis leur fiche (◀ ▶). */
   const bg = el("button", "rel",
     `<span class="et">Relever</span><span class="cpt">${restantsG()}</span>`);
   bg.setAttribute("aria-label", `Relever les gradateurs, ${restantsG()} sans circuit`);
   bg.setAttribute("aria-expanded", VOLET === "relever");
   bg.onclick = () => ouvrirVolet("relever");
-  const bt = el("button", "att",
-    `<span class="et">Attribuer</span><span class="cpt">${restantsA()}</span>`);
-  bt.setAttribute("aria-label", `Attribuer les circuits des appareils, ${restantsA()} sans circuit`);
-  bt.setAttribute("aria-expanded", VOLET === "attr");
-  bt.disabled = !liste.length;
-  bt.onclick = () => ouvrirVolet("attr");
   const ba = el("button", "dmx", `<span class="et">Ajouter</span>`);
   ba.setAttribute("aria-label", "Ajouter des appareils");
   ba.setAttribute("aria-expanded", VOLET === "ajouter");
   ba.onclick = () => ouvrirVolet("ajouter");
-  $("#p-bas").replaceChildren(bg, bt, ba);
+  $("#p-bas").replaceChildren(bg, ba);
 
   if(VOLET === "relever") majVoletRelever();
   if(VOLET === "attr") majVoletAttribuer();
@@ -3335,7 +3329,10 @@ function elargirG(n){
 }
 function pasG(sens){
   const l = gradas();
-  const k = INDICE + sens;
+  /* On part du gradateur affiché, pas du rang mémorisé : les deux ne divergent
+     jamais ainsi, quel que soit le chemin pris pour arriver ici. */
+  const ici = l.indexOf(POINTE);
+  const k = (ici >= 0 ? ici : INDICE) + sens;
   if(k >= 0 && k < l.length){ allerA(k); return; }
   const n = sens < 0 ? (l[0] != null ? l[0] - 1 : P.reg.premier - 1) : (l.length ? l[l.length - 1] + 1 : P.reg.premier);
   if(!elargirG(n)) return;
@@ -3946,15 +3943,17 @@ function clavierEos(){
 /* Le champ du circuit s'ouvre sur le pavé chiffres, et « Abc » passe au
    clavier complet : l'inputmode numérique seul interdisait « 12b » ou « face »,
    que la feuille et le Pupitre savent pourtant lire. */
-function champCircuit(valeur, etiquette){
+function champCircuit(valeur, etiquette, fleches){
   const lettres = /\D/.test(valeur || "");
   return `<div class="cirl"><input class="cir" data-focus="fic-cir" inputmode="${lettres ? "text" : "numeric"}"
       value="${esc(valeur || "")}" placeholder="—" autocapitalize="off" enterkeyhint="done"
-      aria-label="${esc(etiquette)}">
+      aria-label="${esc(etiquette)}">${fleches
+        ? `<button type="button" class="abc vois" data-s="-1" aria-label="Appareil précédent">◀</button>`
+          + `<button type="button" class="abc vois" data-s="1" aria-label="Appareil suivant">▶</button>` : ""}
     <button type="button" class="abc" aria-label="Changer de clavier">${lettres ? "123" : "Abc"}</button></div>`;
 }
 function brancherAbc(d){
-  const b = d.querySelector(".abc"), i = d.querySelector(".cirl .cir");
+  const b = d.querySelector(".abc:not(.vois)"), i = d.querySelector(".cirl .cir");
   if(!b || !i) return;
   /* « Suiv. » ne saute plus au type d'appareil : on reste sur le circuit. */
   i.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); i.select(); } };
@@ -4023,7 +4022,7 @@ function majVoletFiche(){
     volet.querySelector(".tete .cpt").textContent = `appareil ${x.n} · U${x.u} · ${x.adr}`;
     const modes = BIB[x.app] || [];
     d.innerHTML = `<div class="f"><label>Circuit</label>
-        ${champCircuit(circuitApp(x.n), "Circuit de l'appareil " + x.n)}</div>
+        ${champCircuit(circuitApp(x.n), "Circuit de l'appareil " + x.n, true)}</div>
       <div class="f"><label>Type d'appareil</label>
         <select class="sa" aria-label="Type de l'appareil ${x.n}">${marques().map(m =>
           `<optgroup label="${esc(m)}">${PROJECTEURS.filter(y => y.marque === m).map(y =>
@@ -4044,6 +4043,29 @@ function majVoletFiche(){
       <div class="kv"><span>Empreinte</span><b>${x.ch} canaux · U${x.u}·${x.adr} → ${x.fin}</b></div>`;
     d.querySelector(".cir").oninput = e => {
       P.fiches[x.n] = e.target.value; majListe(); majCompteurs(); };
+
+    /* ◀ ▶ : l'appareil d'avant ou d'après, pour passer les circuits de proche
+       en proche sans refermer la fiche. Le clavier reste ouvert, et la mise en
+       évidence suit si elle était allumée. */
+    d.querySelectorAll(".vois").forEach(b => {
+      b.onmousedown = e => e.preventDefault();
+      b.onclick = () => {
+        const l = appareils();
+        const y = l[l.findIndex(z => z.n === x.n) + +b.dataset.s];
+        if(!y) return;
+        CIBLE = { t:"a", n:y.n };
+        if(enHl){
+          HL = { n:y.n, u:y.u, adr:y.adr, fin:y.fin, ch:y.ch, nom:courtNom(y.app) };
+          envoyer();
+        }
+        peindre();
+        majVoletFiche();
+        const i = volet && volet.querySelector(".cir");
+        if(i){ i.focus(); i.select(); }
+        const r = $(`.rg[data-a="${y.n}"]`);
+        if(r) r.scrollIntoView({ block:"nearest" });
+      };
+    });
 
     /* L'adresse se choisit ici, appareil par appareil : la ligne se scinde comme
        pour un changement de mode, et les autres exemplaires gardent la leur. */
