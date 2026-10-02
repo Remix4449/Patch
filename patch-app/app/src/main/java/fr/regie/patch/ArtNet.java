@@ -46,6 +46,11 @@ public class ArtNet {
     public volatile String ecouteSrc = "";
     public volatile int ecouteHz = 0;
 
+    /* Les sources de l'univers écouté, par adresse IP. */
+    private final Map<String, byte[]> flux = new java.util.HashMap<String, byte[]>();
+    private final Map<String, Long> vuFlux = new java.util.HashMap<String, Long>();
+    private int ecouteFlux = -1;
+
     private DatagramSocket sock;
     private Thread boucle;
     private volatile boolean actif;
@@ -138,15 +143,42 @@ public class ArtNet {
 
             if (u == ecoute) {
                 int n = Math.min(512, ((b[16] & 255) << 8) | (b[17] & 255));
+                int sources;
                 synchronized (niveaux) {
-                    java.util.Arrays.fill(niveaux, (byte) 0);
-                    for (int i = 0; i < n && 18 + i < len; i++) niveaux[i] = b[18 + i];
+                    if (ecouteFlux != u) { flux.clear(); vuFlux.clear(); ecouteFlux = u; }
+                    byte[] d = flux.get(src);
+                    if (d == null) { d = new byte[512]; flux.put(src, d); }
+                    java.util.Arrays.fill(d, (byte) 0);
+                    for (int i = 0; i < n && 18 + i < len; i++) d[i] = b[18 + i];
+                    vuFlux.put(src, t);
+                    sources = fusionner(t);
                 }
+                // Plusieurs sources : la cadence affichée reste celle d'une seule.
+                if (sources > 1 && !src.equals(ecouteSrc)) return;
                 ecouteSrc = src;
                 trames++;
                 if (t - fenetre >= 1000) { ecouteHz = trames; trames = 0; fenetre = t; }
             }
         }
+    }
+
+    /**
+     * Deux sources sur un univers Art-Net : un nœud les fusionne au plus haut
+     * (HTP), et la grille fait de même. Avant, chaque ArtDmx reçu remplaçait
+     * l'affichage, et la grille clignotait entre la console et le téléphone. Une
+     * source muette depuis 3 s est oubliée. Appelé sous le verrou de niveaux.
+     */
+    private int fusionner(long t) {
+        java.util.Iterator<Map.Entry<String, Long>> it = vuFlux.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Long> e = it.next();
+            if (t - e.getValue() > 3000) { flux.remove(e.getKey()); it.remove(); }
+        }
+        java.util.Arrays.fill(niveaux, (byte) 0);
+        for (byte[] d : flux.values())
+            for (int i = 0; i < 512; i++)
+                if ((d[i] & 255) > (niveaux[i] & 255)) niveaux[i] = d[i];
+        return flux.size();
     }
 
     private void purger() {
@@ -181,13 +213,20 @@ public class ArtNet {
         System.arraycopy(ID, 0, p, 0, 8);
         p[8] = 0x00; p[9] = 0x50;      // OpDmx
         p[10] = 0x00; p[11] = 0x0e;
-        p[12] = sequence++; if (sequence == 0) sequence = 1;
+        p[12] = suivante();
         p[13] = 0x00;
         p[14] = (byte) (portAddress & 0xFF);
         p[15] = (byte) ((portAddress >> 8) & 0x7F);
         p[16] = (byte) 0x02; p[17] = (byte) 0x00;   // longueur 512
         System.arraycopy(data, 0, p, 18, Math.min(512, data.length));
         return envoyerBrut(p, (cible == null || cible.isEmpty()) ? diffusion : cible);
+    }
+
+    /* Le fil d'émission et le testeur peuvent émettre en même temps. */
+    private synchronized byte suivante() {
+        byte s = sequence++;
+        if (sequence == 0) sequence = 1;
+        return s;
     }
 
     /** Adresse de diffusion du sous-réseau Wi-Fi. */

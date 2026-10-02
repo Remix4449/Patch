@@ -29,18 +29,31 @@ public class Emetteur {
     public volatile boolean actif;
     public volatile long envois, echecs;
 
-    private Thread boucle;
+    private volatile Thread boucle;
 
     public Emetteur(ArtNet a, Sacn s) { art = a; sacn = s; }
 
     public synchronized void regler(String protocole, int priorite, String destination) {
-        proto = (protocole != null && protocole.toLowerCase().startsWith("a")) ? "Art-Net" : "sACN";
+        String p = (protocole != null && protocole.toLowerCase().startsWith("a")) ? "Art-Net" : "sACN";
+        String c = destination == null ? "" : destination.trim();
+        // Changer de protocole ou de destination en cours d'émission : l'ancien
+        // flux est clos proprement, sinon le nœud garde deux sources qui se
+        // disputent l'univers jusqu'à ce que la première expire.
+        // On bascule d'abord, pour que le fil d'émission n'intercale plus de
+        // trame sur l'ancienne route entre les trames de fin.
+        String avantProto = proto, avantCible = cible;
+        proto = p;
         prio = Math.max(0, Math.min(200, priorite <= 0 ? 100 : priorite));
-        cible = destination == null ? "" : destination.trim();
+        cible = c;
+        if (actif && (!p.equals(avantProto) || !c.equals(avantCible)))
+            for (Integer u : trames.keySet()) relacher(u, avantProto, avantCible);
     }
 
     public synchronized void demarrer() {
-        if (actif) return;
+        // Un arrêt suivi aussitôt d'un départ laissait l'ancien fil reprendre à
+        // son réveil : deux fils émettaient alors les mêmes univers, avec des
+        // numéros de séquence entremêlés que les nœuds rejettent par paquets.
+        if (actif && boucle != null && boucle.isAlive()) return;
         actif = true;
         boucle = new Thread(new Runnable() { public void run() { tourner(); } }, "emission");
         boucle.setDaemon(true);
@@ -52,9 +65,11 @@ public class Emetteur {
      * relâchés proprement, sinon les projecteurs resteraient allumés sur la
      * dernière valeur reçue.
      */
-    public void poser(Map<Integer, byte[]> nouvelles) {
+    public synchronized void poser(Map<Integer, byte[]> nouvelles) {
+        // Retirer l'univers avant de le relâcher : le fil d'émission ne doit plus
+        // intercaler l'ancienne trame entre les trames à zéro.
         for (Integer u : new HashMap<Integer, byte[]>(trames).keySet())
-            if (!nouvelles.containsKey(u)) { relacher(u); trames.remove(u); }
+            if (!nouvelles.containsKey(u)) { trames.remove(u); relacher(u, proto, cible); }
         for (Map.Entry<Integer, byte[]> e : nouvelles.entrySet())
             trames.put(e.getKey(), e.getValue());
         if (!nouvelles.isEmpty()) demarrer();
@@ -62,13 +77,16 @@ public class Emetteur {
 
     /** Relâche tous les univers et arrête le fil. */
     public synchronized void arreter() {
-        for (Integer u : new HashMap<Integer, byte[]>(trames).keySet()) relacher(u);
-        trames.clear();
         actif = false;
+        Thread b = boucle;
+        if (b != null) b.interrupt();
+        java.util.Set<Integer> us = new java.util.HashSet<Integer>(trames.keySet());
+        trames.clear();
+        for (Integer u : us) relacher(u, proto, cible);
     }
 
     /** Trois trames à zéro, marquées fin de flux en sACN : le plateau s'éteint. */
-    private void relacher(int u) {
+    private void relacher(int u, String proto, String cible) {
         byte[] zero = new byte[512];
         for (int i = 0; i < 3; i++) {
             if ("Art-Net".equals(proto)) art.emettre(u - 1, zero, cible);
@@ -78,7 +96,7 @@ public class Emetteur {
     }
 
     private void tourner() {
-        while (actif) {
+        while (actif && boucle == Thread.currentThread()) {
             long t = System.currentTimeMillis();
             for (Map.Entry<Integer, byte[]> e : trames.entrySet()) {
                 boolean ok = "Art-Net".equals(proto)

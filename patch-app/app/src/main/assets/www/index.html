@@ -2837,7 +2837,7 @@ function allumerSeuls(ns, pct = 100){
 function toutEteindre(){
   NIV = {}; SEL = 0; HL = null;
   Object.keys(DMX).forEach(k => DMX[k] = 0);
-  NET.emission({}, P.reg.proto);
+  NET.emission({}, P.reg.proto, P.reg.prio, P.reg.cible);
 }
 
 /* Ce que la feuille a posé à cette adresse. C'est tout l'intérêt d'avoir le
@@ -6553,27 +6553,43 @@ function vArt(){
     });
   };
 
-  const vus = [];
+  /* La liste ne se refait que si les univers entendus changent. Avant, elle
+     comparait aussi la cadence et la source, qui bougent chaque seconde : la
+     liste se refaisait, l'écoute repartait sur le premier univers en quittant
+     puis rejoignant son groupe, et la grille passait au noir le temps de la
+     trame suivante. C'était le clignotement, et le choix de l'univers sautait. */
+  const cleU = u => u.proto + ":" + u.univers;
+  let vus = null, choisi = null;
   poser(() => { if(arretDmx) arretDmx(); arretUniv(); arretNoeuds(); });
   const arretUniv = NET.univers(e => {
-    const list = e.univers || [];
+    const list = (e.univers || []).slice()
+      .sort((a, b) => a.proto.localeCompare(b.proto) || a.univers - b.univers);
     tete.innerHTML = `<div class="kick">Écoute du réseau</div>
       <h3>${list.length} univers</h3>
       <p>${marque(e.demo)}</p>`;
-    if(JSON.stringify(list) === JSON.stringify(vus)) return;
-    vus.length = 0; vus.push(...list);
-    choix.replaceChildren(...list.map((u, i) => {
+    const cles = list.map(cleU).join(",");
+    if(cles === vus) return;
+    vus = cles;
+    if(!list.length){
+      choix.replaceChildren(el("p", "muted", "Aucun univers entendu sur ce réseau."));
+      return;
+    }
+    if(!list.some(u => cleU(u) === choisi)){
+      choisi = cleU(list[0]);
+      ecouter(list[0].proto, list[0].univers);
+    }
+    choix.replaceChildren(...list.map(u => {
       const b = el("button", "pill", `U${u.univers} · ${u.proto}`);
-      b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+      b.setAttribute("aria-pressed", String(cleU(u) === choisi));
       b.onclick = () => {
         choix.querySelectorAll(".pill").forEach(x => x.setAttribute("aria-pressed", "false"));
         b.setAttribute("aria-pressed", "true");
+        if(cleU(u) === choisi) return;
+        choisi = cleU(u);
         ecouter(u.proto, u.univers);
       };
       return b;
     }));
-    if(list.length) ecouter(list[0].proto, list[0].univers);
-    else choix.replaceChildren(el("p", "muted", "Aucun univers entendu sur ce réseau."));
   });
   const arretNoeuds = NET.noeuds(e => {
     const ns = e.noeuds || [];
