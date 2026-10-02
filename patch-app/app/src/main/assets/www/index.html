@@ -581,7 +581,12 @@
   .rg .ac.on{background:var(--tel);border-color:var(--tel);color:var(--on)}
   .rg .ac.vide{border-style:dashed;color:var(--ink3)}
   .rg.on{background:color-mix(in srgb,var(--tel) 10%,transparent)}
-  .rg.cliquable{cursor:pointer}
+  .rg.cliquable{cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .rg .coche{width:44px;height:44px;border-radius:11px;border:2px solid var(--line);background:var(--bg);
+      display:grid;place-items:center;font:700 22px/1 var(--body);color:var(--on)}
+  .rg .coche.on{background:var(--tel);border-color:var(--tel)}
+  .rg.choisi{background:color-mix(in srgb,var(--tel) 14%,transparent)}
+  .pecr .p-bas button.sup{background:var(--ko);color:var(--on)}
   .rg.pointe{outline:2px solid var(--tel);outline-offset:-2px;border-radius:10px;
       scroll-margin-top:132px}
 
@@ -2818,6 +2823,9 @@ let POINTE = null;       // gradateur ou appareil repéré dans la liste
 /* Circuit du gradateur pointé à son arrivée : la touche Grada s'en sert pour
    rendre ce que le pavé a tapé, puisque les chiffres vont d'abord au circuit. */
 let CIR0 = { n:null, v:"" };
+/* Sélection pour supprimer : null = hors sélection, sinon l'ensemble des
+   rangées cochées ("g12" pour un gradateur, "a3" pour un appareil). */
+let SELM = null;
 let PAVE = null;         // frappe du pavé numérique ; null = pavé fermé
 let ABC = false;         // le circuit se tape au clavier du téléphone (« 12b », « face »)
 let IA = 0;              // rang de l'appareil en cours d'attribution
@@ -2840,7 +2848,7 @@ function vPatch(){
     <div class="p-bas"><div class="in" id="p-bas"></div></div>`;
   /* Quitter l'écran relâche le flux et referme ce qui traîne : on ne laisse
      pas un gradateur allumé derrière soi. */
-  poser(() => { fermerVolet(true); NET.emissionArret();
+  poser(() => { fermerVolet(true); NET.emissionArret(); SELM = null;
                 NIV = {}; SEL = 0; HL = null; DMX = {}; DSEL = [];
                 const a = document.querySelector(".p-annul"); if(a) a.remove(); });
   setTimeout(() => {
@@ -2863,7 +2871,7 @@ function peindre(){
   const rang = el("div", "p-entete");
   const bk = el("button", "bk", ic("back"));
   bk.setAttribute("aria-label", "Retour");
-  bk.onclick = () => retour();
+  bk.onclick = () => SELM ? sortirSel() : retour();
   const t = el("button", "p-titre");
   t.innerHTML = `<span class="nm"><b>${esc(P.nom || "Sans titre")}</b><span class="ch">▾</span></span>
     <small>${esc(P.reg.proto)} · univers ${P.reg.u} · ${pl(nG, "gradateur")}</small>`;
@@ -2903,7 +2911,14 @@ function peindre(){
   ba.setAttribute("aria-label", "Ajouter des appareils");
   ba.setAttribute("aria-expanded", VOLET === "ajouter");
   ba.onclick = () => ouvrirVolet("ajouter");
-  $("#p-bas").replaceChildren(bg, ba);
+  if(SELM){
+    const fin = el("button", "att", "Annuler");
+    fin.onclick = () => sortirSel();
+    const sup = el("button", "sup", SELM.size ? `Supprimer (${SELM.size})` : "Supprimer");
+    sup.disabled = !SELM.size;
+    sup.onclick = () => supprimerSelection();
+    $("#p-bas").replaceChildren(fin, sup);
+  } else $("#p-bas").replaceChildren(bg, ba);
 
   if(VOLET === "relever") majVoletRelever();
   if(VOLET === "attr") majVoletAttribuer();
@@ -3010,21 +3025,108 @@ function barreTele(){
    — c'est ce qu'on cherche —, la désignation, l'adresse, et l'ampoule qui
    allume. Toucher la rangée ouvre sa fiche : l'allumer au moindre appui
    envoyait une lyre à fond quand on voulait seulement regarder. */
-function rangee({ circuit, titre, sous, u, adr, allume, nomLampe, onFiche, onLampe }){
-  const d = el("div", "rg cliquable" + (allume ? " on" : ""));
+function rangee({ cle, circuit, titre, sous, u, adr, allume, nomLampe, onFiche, onLampe }){
+  const coche = SELM && SELM.has(cle);
+  const d = el("div", "rg cliquable" + (allume ? " on" : "") + (SELM ? " choix" : "") + (coche ? " choisi" : ""));
   const c = el("button", "cc" + (circuit ? "" : " vide"), esc(circuit || "?"));
   c.setAttribute("aria-label", circuit ? `Circuit ${circuit}, modifier` : "Attribuer un circuit");
-  c.onclick = e => { e.stopPropagation(); onFiche(true); };
+  c.onclick = e => { e.stopPropagation(); if(SELM) basculerSel(cle, d); else onFiche(true); };
   d.append(c);
   d.insertAdjacentHTML("beforeend", `<span class="tx"><b>${esc(titre)}</b>${sous ? `<span>${esc(sous)}</span>` : ""}</span>
     <span class="dm">U${esc(String(u))}<b>${esc(String(adr))}</b></span>`);
-  const l = el("button", "lampe" + (allume ? " on" : ""), ic("ampoule"));
-  l.setAttribute("aria-label", (allume ? "Éteindre " : "Allumer ") + nomLampe);
-  l.setAttribute("aria-pressed", allume ? "true" : "false");
-  l.onclick = e => { e.stopPropagation(); onLampe(); };
-  d.append(l);
-  d.onclick = () => onFiche(false);
+  if(SELM){
+    d.setAttribute("role", "checkbox");
+    d.setAttribute("aria-checked", coche ? "true" : "false");
+    d.setAttribute("aria-label", titre);
+    d.append(el("span", "coche" + (coche ? " on" : ""), coche ? "✓" : ""));
+  } else {
+    const l = el("button", "lampe" + (allume ? " on" : ""), ic("ampoule"));
+    l.setAttribute("aria-label", (allume ? "Éteindre " : "Allumer ") + nomLampe);
+    l.setAttribute("aria-pressed", allume ? "true" : "false");
+    l.onclick = e => { e.stopPropagation(); onLampe(); };
+    d.append(l);
+  }
+  /* Un appui long sur une rangée ouvre la sélection, avec elle de cochée. */
+  let appui = null, pris = false, depart = null;
+  d.addEventListener("pointerdown", e => {
+    if(SELM || e.target.closest("button")) return;
+    depart = [e.clientX, e.clientY];
+    clearTimeout(appui);
+    appui = setTimeout(() => { appui = null; pris = true; entrerSel(cle); }, 500);
+  });
+  d.addEventListener("pointermove", e => {
+    if(appui && depart && Math.hypot(e.clientX - depart[0], e.clientY - depart[1]) > 10){
+      clearTimeout(appui); appui = null;
+    }
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(t =>
+    d.addEventListener(t, () => { clearTimeout(appui); appui = null; }));
+  d.onclick = () => {
+    if(pris){ pris = false; return; }
+    if(SELM) basculerSel(cle, d); else onFiche(false);
+  };
   return d;
+}
+
+/* ------------------------- sélection pour supprimer ------------------------ */
+function entrerSel(cle){
+  SELM = new Set(cle ? [cle] : []);
+  peindre();
+}
+function sortirSel(){ SELM = null; peindre(); }
+function basculerSel(cle, r){
+  if(SELM.has(cle)) SELM.delete(cle); else SELM.add(cle);
+  const on = SELM.has(cle);
+  r.classList.toggle("choisi", on);
+  r.setAttribute("aria-checked", on ? "true" : "false");
+  const k = r.querySelector(".coche");
+  if(k){ k.classList.toggle("on", on); k.textContent = on ? "✓" : ""; }
+  majBarreSel();
+}
+function majBarreSel(){
+  const b = $("#p-bas .sup");
+  if(b){
+    b.textContent = SELM.size ? `Supprimer (${SELM.size})` : "Supprimer";
+    b.disabled = !SELM.size;
+  }
+}
+/* « Tout » dans l'en-tête d'une pile : coche les rangées qu'elle montre, ou les
+   décoche si elles le sont déjà toutes. */
+function boutonChoix(attr){
+  const b = el("button", null, "Choisir");
+  b.onclick = () => {
+    if(!SELM){ entrerSel(null); return; }
+    const rs = [...document.querySelectorAll(`.pile .rg[data-${attr}]`)];
+    const cles = rs.map(r => attr + r.dataset[attr]);
+    const tous = cles.length && cles.every(k => SELM.has(k));
+    rs.forEach((r, i) => { if(SELM.has(cles[i]) === !!tous) basculerSel(cles[i], r); });
+    b.textContent = tous ? "Tout" : "Aucun";
+  };
+  if(SELM) b.textContent = "Tout";
+  return b;
+}
+function supprimerSelection(){
+  const cles = [...SELM];
+  const gs = cles.filter(k => k[0] === "g").map(k => +k.slice(1));
+  const as = cles.filter(k => k[0] === "a").map(k => +k.slice(1)).sort((a, b) => b - a);
+  SELM = null;
+  if(!gs.length && !as.length){ peindre(); return; }
+  const total = gs.length + as.length;
+  const msg = [gs.length && pl(gs.length, "gradateur"), as.length && pl(as.length, "appareil")]
+    .filter(Boolean).join(" et ") + (total > 1 ? " retirés" : " retiré");
+  if(as.length && HL){ HL = null; envoyer(); }
+  annulable(msg, () => {
+    gs.forEach(n => {
+      if(!P.exclus.includes(n)) P.exclus.push(n);
+      delete P.grada[n]; delete NIV[n];
+      if(SEL === n) SEL = 0;
+    });
+    /* Du dernier au premier : retirer un appareil ne change pas le numéro de
+       ceux qui le précèdent. */
+    as.forEach(n => { const x = appareils().find(y => y.n === n); if(x) retirerAppareil(x); });
+  });
+  envoyer();
+  peindre();
 }
 
 function pile(titre, compte, elements, rien, boutons){
@@ -3057,6 +3159,7 @@ function rangG(n){
   const a = adrGrada(n) || { u:"—", canal:"—" };
   const c = circuitGrada(n), lv = NIV[n] || 0, note = noteGrada(n);
   const r = rangee({
+    cle:"g" + n,
     circuit:c,
     titre:"Gradateur " + n,
     sous:[note || (c ? "" : "à relever"), lv > 0 ? lv + " %" : ""].filter(Boolean).join(" · "),
@@ -3086,7 +3189,7 @@ function pileGradas(){
 
   const b = el("button", null, toutVoirG());
   b.onclick = () => { MASQUE = !MASQUE; peindre(); };
-  const p = pile("Gradateurs", comptesG(), rangs, rienG(), tous.length ? b : null);
+  const p = pile("Gradateurs", comptesG(), rangs, rienG(), tous.length ? [b, boutonChoix("g")] : null);
   p.dataset.pile = "g";
   return p;
 }
@@ -3122,6 +3225,7 @@ function pileApps(){
   const rangs = liste.map(x => {
     const c = circuitApp(x.n);
     const r = rangee({
+      cle:"a" + x.n,
       circuit:c,
       titre:`${courtNom(x.app)} n° ${x.n}`,
       sous:`${x.mode || x.ch + " ch"}${ko.has(x.n) ? " · chevauchement" : ""}`,
@@ -3135,7 +3239,7 @@ function pileApps(){
     return r;
   });
   return pile("Appareils", `${relevesA()} sur ${liste.length} avec circuit · ${puissanceTotale(liste)}`,
-              rangs, "Aucun appareil : touchez « Ajouter » en bas.");
+              rangs, "Aucun appareil : touchez « Ajouter » en bas.", liste.length ? boutonChoix("a") : null);
 }
 
 /* Mettre un appareil en évidence : le geste des gradateurs, appliqué au patch. */
@@ -3172,6 +3276,7 @@ function annulable(message, faire){
 
 /* -------------------------------- volets ---------------------------------- */
 function ouvrirVolet(quoi, arg){
+  SELM = null;
   if(VOLET === quoi && arg == null){ fermerVolet(); return; }
   fermerVolet(true);
   VOLET = quoi; CIR0 = { n:null, v:"" }; PAVE = null; ABC = false; DCMD = []; DOUV = false; DMSG = ""; CONFIRME = null;
@@ -4155,12 +4260,13 @@ function supprimerAppareil(x){
   annulable(`${courtNom(x.app)} n° ${x.n} retiré`, () => retirerAppareil(x));
   fermerVolet();
 }
+/* L'appareil retiré laisse un trou : ceux qui le suivent gardent leur adresse
+   (on n'atteint pas toujours un projecteur à huit mètres pour le réadresser).
+   Pour cela il est d'abord pris seul dans sa ligne, qui fige l'adresse de la
+   suivante. */
 function retirerAppareil(x){
-  const l = P.lignes.find(y => y.id === x.ligne);
-  if(l){
-    l.nb = Math.max(0, l.nb - 1);
-    if(!l.nb) P.lignes = P.lignes.filter(y => y.id !== l.id);
-  }
+  const l = isolerAppareil(x);
+  if(l) P.lignes = P.lignes.filter(y => y.id !== l.id);
   /* Les circuits sont attachés au rang de l'appareil : ce qui suit remonte. */
   const suite = {};
   Object.keys(P.fiches).forEach(k => {
