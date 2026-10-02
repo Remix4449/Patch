@@ -34,6 +34,10 @@ public class Sacn {
 
     public final Map<Integer, Uni> univers = new ConcurrentHashMap<Integer, Uni>();
     public final byte[] niveaux = new byte[512];
+
+    /** Une source de l'univers écouté, repérée par son CID. */
+    private static class Flux { final byte[] d = new byte[512]; int prio; long t; String ip = "", nom = "", id = ""; }
+    private final Map<String, Flux> flux = new java.util.HashMap<String, Flux>();
     public volatile int ecoute = -1;
     public volatile String ecouteSrc = "", ecouteNom = "";
     public volatile int ecoutePrio = 0, ecouteHz = 0;
@@ -101,7 +105,7 @@ public class Sacn {
             if (universBase1 > 0 && sock != null) rejoindre(groupe(universBase1));
             rejoint = universBase1;
             ecoute = universBase1;
-            synchronized (niveaux) { java.util.Arrays.fill(niveaux, (byte) 0); }
+            synchronized (niveaux) { java.util.Arrays.fill(niveaux, (byte) 0); flux.clear(); }
         } catch (Exception ignore) { }
     }
 
@@ -177,12 +181,25 @@ public class Sacn {
             if (u == ecoute && b[125] == 0) {      // code de départ nul = données DMX
                 int nb = Math.max(0, (((b[123] & 255) << 8) | (b[124] & 255)) - 1);
                 nb = Math.min(512, nb);
+                String id = cidDe(b);
+                boolean fin = (b[112] & 0x40) != 0;
+                Flux gagnant;
                 synchronized (niveaux) {
-                    java.util.Arrays.fill(niveaux, (byte) 0);
-                    for (int i = 0; i < nb && 126 + i < len; i++) niveaux[i] = b[126 + i];
+                    if (fin) flux.remove(id);
+                    else {
+                        Flux f = flux.get(id);
+                        if (f == null) { f = new Flux(); flux.put(id, f); }
+                        java.util.Arrays.fill(f.d, (byte) 0);
+                        for (int i = 0; i < nb && 126 + i < len; i++) f.d[i] = b[126 + i];
+                        f.prio = prio; f.t = t; f.ip = src; f.nom = nom; f.id = id;
+                    }
+                    gagnant = fusionner(t);
                 }
-                ecouteSrc = src; ecouteNom = nom; ecoutePrio = prio;
-                trames++;
+                if (gagnant != null) {
+                    ecouteSrc = gagnant.ip; ecouteNom = gagnant.nom; ecoutePrio = gagnant.prio;
+                }
+                // La cadence est celle de la source affichée, pas la somme de toutes.
+                if (gagnant != null && id.equals(gagnant.id)) trames++;
                 if (t - fenetre >= 1000) { ecouteHz = trames; trames = 0; fenetre = t; }
             }
             return;
@@ -201,6 +218,42 @@ public class Sacn {
                 }
             } catch (Exception ignore) { }
         }
+    }
+
+    /**
+     * Ce que voit un récepteur quand plusieurs sources émettent le même univers :
+     * la priorité la plus haute l'emporte, et à priorité égale le plus haut des
+     * niveaux sort, canal par canal (HTP). Avant, chaque trame reçue remplaçait
+     * l'affichage : deux sources sur un univers, et la grille passait de l'une à
+     * l'autre trente fois par seconde.
+     *
+     * Une source muette depuis 2,5 s est oubliée, comme le veut E1.31 ; une
+     * trame marquée fin de flux la retire aussitôt. Appelé sous le verrou de
+     * niveaux.
+     */
+    private Flux fusionner(long t) {
+        int haute = -1;
+        Flux gagnant = null;
+        java.util.Iterator<Flux> it = flux.values().iterator();
+        while (it.hasNext()) {
+            Flux f = it.next();
+            if (t - f.t > 2500) { it.remove(); continue; }
+            if (f.prio > haute || (f.prio == haute && f.t > gagnant.t)) { haute = f.prio; gagnant = f; }
+        }
+        if (gagnant == null) return null;
+        java.util.Arrays.fill(niveaux, (byte) 0);
+        for (Flux f : flux.values()) {
+            if (f.prio != haute) continue;
+            for (int i = 0; i < 512; i++)
+                if ((f.d[i] & 255) > (niveaux[i] & 255)) niveaux[i] = f.d[i];
+        }
+        return gagnant;
+    }
+
+    private static String cidDe(byte[] b) {
+        StringBuilder s = new StringBuilder(32);
+        for (int i = 22; i < 38; i++) s.append(Integer.toHexString((b[i] & 255) | 0x100).substring(1));
+        return s.toString();
     }
 
     /* ------------------------------ émission ---------------------------- */
@@ -268,7 +321,7 @@ public class Sacn {
         return p;
     }
 
-    private int suivant(int u) {
+    private synchronized int suivant(int u) {
         Integer n = sequences.get(u);
         int v = ((n == null ? 0 : n) + 1) & 255;
         sequences.put(u, v);
