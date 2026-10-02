@@ -3024,34 +3024,45 @@ function boutonPlus(classe, etiquette, ouvert, ouvre){
    ceux qui portent un circuit — plus celui qu'on relève, pour qu'on le voie
    s'allumer dans la liste. Le bouton de l'en-tête rend les autres visibles le
    temps d'une vérification. */
+/* Une rangée de gradateur se refait seule : relever deux cents gradateurs, c'est
+   deux cents « flèche » et autant de frappes de circuit, et reconstruire toute
+   la liste à chacune devenait lent sur un téléphone — les appuis rapides sur
+   la flèche se perdaient. */
+const dansListeG = n => circuitGrada(n) || gardes().includes(n);
+const visibleG = n => !MASQUE || dansListeG(n) || (VOLET === "relever" && n === POINTE);
+
+function rangG(n){
+  const a = adrGrada(n) || { u:"—", canal:"—" };
+  const c = circuitGrada(n), lv = NIV[n] || 0, note = noteGrada(n);
+  const r = rangee({
+    circuit:c,
+    titre:"Gradateur " + n,
+    sous:[note || (c ? "" : "à relever"), lv > 0 ? lv + " %" : ""].filter(Boolean).join(" · "),
+    u:a.u, adr:a.canal,
+    allume:lv > 0, nomLampe:"le gradateur " + n,
+    onFiche:focus => ouvrirVolet("fiche", { t:"g", n, focus }),
+    onLampe:() => {
+      if(lv > 0){ NIV[n] = 0; envoyer(); } else allumerSeuls([n]);
+      peindre();
+    }
+  });
+  r.dataset.g = n;
+  if(n === POINTE && VOLET === "relever") r.classList.add("pointe");
+  return r;
+}
+
+const rienG = () => gradas().length
+  ? "Aucun gradateur dans la liste : touchez + pour en ajouter."
+  : "Pas de gradateurs dans ce patch : touchez + pour en ajouter.";
+const comptesG = () => `${pl(relevesG(), "relevé")} sur ${gradas().length}`;
+const toutVoirG = () => MASQUE
+  ? `tout voir · ${gradas().filter(n => !dansListeG(n)).length}` : "masquer les vides";
+
 function pileGradas(){
   const tous = gradas();
-  const gardes_ = gardes();
-  const dansListe = n => circuitGrada(n) || gardes_.includes(n);
-  const vus = MASQUE ? tous.filter(n => dansListe(n) || (VOLET === "relever" && n === POINTE)) : tous;
-  const caches = tous.filter(n => !dansListe(n)).length;
+  const rangs = tous.filter(visibleG).map(rangG);
 
-  const rangs = vus.map(n => {
-    const a = adrGrada(n) || { u:"—", canal:"—" };
-    const c = circuitGrada(n), lv = NIV[n] || 0, note = noteGrada(n);
-    const r = rangee({
-      circuit:c,
-      titre:"Gradateur " + n,
-      sous:[note || (c ? "" : "à relever"), lv > 0 ? lv + " %" : ""].filter(Boolean).join(" · "),
-      u:a.u, adr:a.canal,
-      allume:lv > 0, nomLampe:"le gradateur " + n,
-      onFiche:focus => ouvrirVolet("fiche", { t:"g", n, focus }),
-      onLampe:() => {
-        if(lv > 0){ NIV[n] = 0; envoyer(); } else allumerSeuls([n]);
-        peindre();
-      }
-    });
-    r.dataset.g = n;
-    if(n === POINTE && VOLET === "relever") r.classList.add("pointe");
-    return r;
-  });
-
-  const b = el("button", null, MASQUE ? `tout voir · ${caches}` : "masquer les vides");
+  const b = el("button", null, toutVoirG());
   b.onclick = () => { MASQUE = !MASQUE; peindre(); };
   /* « + » ouvre le relevé sur le premier gradateur sans circuit ; s'il n'y en
      a plus, il en ajoute un. */
@@ -3060,10 +3071,34 @@ function pileGradas(){
     if(k == null){ P.reg.nb++; k = gradas().length - 1; }
     ouvrirVolet("relever", k);
   });
-  return pile("Gradateurs", `${pl(relevesG(), "relevé")} sur ${tous.length}`, rangs,
-              tous.length ? "Aucun gradateur dans la liste : touchez + pour en ajouter."
-                          : "Pas de gradateurs dans ce patch : touchez + pour en ajouter.",
-              [...(tous.length ? [b] : []), plus]);
+  const p = pile("Gradateurs", comptesG(), rangs, rienG(),
+                 [...(tous.length ? [b] : []), plus]);
+  p.dataset.pile = "g";
+  return p;
+}
+
+/* Remet à jour une seule rangée de gradateur — la refait, la retire ou
+   l'insère à sa place — et l'en-tête de la pile. */
+function majRangG(...ns){
+  const pile = $('.pile[data-pile="g"]');
+  if(!pile) return;
+  new Set(ns.filter(n => n != null)).forEach(n => {
+    const vieux = pile.querySelector(`.rg[data-g="${n}"]`);
+    const neuf = visibleG(n) && gradas().includes(n) ? rangG(n) : null;
+    if(vieux && neuf) vieux.replaceWith(neuf);
+    else if(vieux) vieux.remove();
+    else if(neuf){
+      const apres = [...pile.querySelectorAll(".rg[data-g]")].find(r => +r.dataset.g > n);
+      if(apres) apres.before(neuf); else pile.append(neuf);
+    }
+  });
+  const rien = pile.querySelector(".rien"), vide = !pile.querySelector(".rg[data-g]");
+  if(vide && !rien) pile.append(el("p", "rien", esc(rienG())));
+  if(!vide && rien) rien.remove();
+  const cpt = pile.querySelector("h4 .ti span");
+  if(cpt) cpt.textContent = comptesG();
+  const tv = pile.querySelector(".bts button:not(.plus)");
+  if(tv) tv.textContent = toutVoirG();
 }
 
 function pileApps(){
@@ -3164,7 +3199,7 @@ function ouvrirVolet(quoi, arg){
   /* Ouvrir le relevé, c'est déjà appeler le gradateur : il s'allume, la liste
      se déplace dessus et le volet s'ouvre sur lui. L'attribution fait de même
      avec les appareils. */
-  if(quoi === "relever") allerA(INDICE);
+  if(quoi === "relever") allerA(INDICE, 100, true);
   else if(quoi === "attr") allerApp(IA);
   else peindre();
 }
@@ -3270,13 +3305,22 @@ const prochainVide = (depuis = 0) => {
   return null;
 };
 
-function allerA(k, niveau = 100){
+function allerA(k, niveau = 100, complet = false){
   const l = gradas();
   if(k == null || k < 0 || k >= l.length){ peindre(); return; }
+  const avant = [POINTE, ...Object.keys(NIV).map(Number)];
   INDICE = k; CONFIRME = null;
   POINTE = l[k];
   allumerSeuls([l[k]], niveau);
-  peindre();
+  /* Un pas de flèche ne refait que ce qui change : les rangées quittée et
+     atteinte, la barre du haut et le volet. Le nombre de gradateurs, lui,
+     ne change pas — sinon (ajout, retrait) on repeint tout. */
+  if(complet) peindre();
+  else {
+    majRangG(...avant, POINTE, ...Object.keys(NIV).map(Number));
+    majBarre(); majCompteurs(); sauverPatchs();
+    majVoletRelever();
+  }
   /* En haut de la liste, pas au centre : le volet couvre la moitié basse. */
   const r = $(`.rg[data-g="${POINTE}"]`);
   if(r) r.scrollIntoView({ block:"start",
@@ -3301,7 +3345,7 @@ function majVoletRelever(){
     d.append(el("p", "rien", "Pas de gradateurs dans ce patch. Leur nombre se règle dans le menu du patch, en touchant son nom."));
     const plus = el("button", "act sec", "+ un gradateur");
     plus.onclick = () => { P.reg.nb++; P.exclus = P.exclus.filter(x => x !== P.reg.premier + P.reg.nb - 1);
-                           allerA(gradas().length - 1); };
+                           allerA(gradas().length - 1, 100, true); };
     d.append(plus);
     c.replaceChildren(d);
     return;
@@ -3322,7 +3366,7 @@ function majVoletRelever(){
   }
 
   const ecrire = (v, depuisSaisie) => {
-    f.circuit = v; majListe(); majCompteurs();
+    f.circuit = v; majRangG(n); majCompteurs(); sauverPatchs();
     if(!depuisSaisie) majVoletRelever();
   };
   const d = el("div");
@@ -3347,7 +3391,7 @@ function majVoletRelever(){
   note.placeholder = "repère : face jardin, contre 2…";
   note.value = f.note;
   note.setAttribute("aria-label", "Repère du gradateur " + n);
-  note.oninput = e => { f.note = e.target.value; majListe(); };
+  note.oninput = e => { f.note = e.target.value; majRangG(n); sauverPatchs(); };
   d.append(note);
 
   const j = el("div", "jauge", `<input type="range" min="0" max="100" value="${lv}"
@@ -3355,14 +3399,14 @@ function majVoletRelever(){
   j.querySelector("input").oninput = e => {
     NIV[n] = +e.target.value; envoyer();
     j.querySelector("b").textContent = NIV[n] + " %";
-    majListe(); majBarre();
+    majRangG(n); majBarre();
   };
   d.append(j);
 
   const r2 = el("div", "rang");
   const plus = el("button", "mini", "+ un gradateur");
   const sup = el("button", "mini sup", "Supprimer");
-  plus.onclick = () => { P.reg.nb++; allerA(gradas().length - 1); };
+  plus.onclick = () => { P.reg.nb++; allerA(gradas().length - 1, 100, true); };
   sup.onclick = () => supprimerGrada(n);
   r2.append(plus, sup);
   d.append(r2);
@@ -3406,7 +3450,7 @@ function validerPave(){
   const vise = Math.max(P.reg.premier, n);
   if(vise > P.reg.premier + P.reg.nb - 1) P.reg.nb = vise - P.reg.premier + 1;
   P.exclus = P.exclus.filter(x => x !== vise);
-  allerA(gradas().indexOf(vise));
+  allerA(gradas().indexOf(vise), 100, true);
 }
 
 /* « OK » referme le relevé. Si le gradateur appelé porte un circuit, il est déjà
@@ -4037,7 +4081,7 @@ function supprimerGrada(n){
   envoyer();
   if(VOLET === "relever"){
     INDICE = Math.min(INDICE, gradas().length - 1);
-    if(gradas()[INDICE]) allerA(INDICE); else peindre();
+    if(gradas()[INDICE]) allerA(INDICE, 100, true); else peindre();
   } else fermerVolet();
 }
 
