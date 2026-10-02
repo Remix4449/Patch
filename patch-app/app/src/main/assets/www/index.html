@@ -545,7 +545,16 @@
   .pile>h4{margin:0;padding:11px 14px;background:var(--sur2);font:700 10.5px/1 var(--body);
        letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
        display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .pile>h4 .ti{display:flex;flex-direction:column;gap:6px;min-width:0}
   .pile>h4 span{font:500 11px/1 var(--mono);text-transform:none;letter-spacing:0}
+  .pile>h4 .bts{display:flex;align-items:center;gap:6px;flex:none}
+  .pile>h4 button:disabled{opacity:.45;cursor:default}
+  .pile>h4 button.plus{width:44px;padding:0;font:700 24px/1 var(--body);letter-spacing:0;
+       background:var(--tel);border-color:var(--tel);color:var(--on)}
+  .pile>h4 button.plus.dmx{background:var(--dmx);border-color:var(--dmx)}
+  .pile>h4 button[aria-expanded="true"]{box-shadow:inset 0 0 0 2px color-mix(in srgb,currentColor 45%,transparent)}
+  .conf p{margin:0 0 12px;font-size:15px;line-height:1.4}
+  .conf .act{margin-bottom:8px}
   .pile>h4:has(button){padding:4px 4px 4px 14px}
   .pile>h4 button{border:1.5px solid var(--line);background:var(--bg);border-radius:99px;
        padding:0 12px;min-height:44px;font:600 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;
@@ -579,29 +588,12 @@
   .rg.pointe{outline:2px solid var(--tel);outline-offset:-2px;border-radius:10px;
       scroll-margin-top:132px}
 
-  /* Les deux actions, au-dessus de la barre d'onglets de l'application. */
   /* La barre d'onglets de l'application est masquée sur le patch : la liste
-     récupère sa place, le retour ramène où l'on était. */
+     récupère sa place, le retour ramène où l'on était. Plus de barre en bas :
+     l'ajout se fait par le « + » de l'en-tête de chaque liste. */
   body.patch-plein nav.tabbar{display:none}
   body.patch-plein .shell{padding-bottom:env(safe-area-inset-bottom,0px)}
-  .pecr .p-bas{position:fixed;left:0;right:0;z-index:9;
-      bottom:0;padding-bottom:calc(9px + env(safe-area-inset-bottom,0px))!important;
-      background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);
-      border-top:1.5px solid var(--line);padding:7px 16px}
-  .pecr .p-bas .in{max-width:560px;margin:0 auto;display:flex;gap:7px}
-  .pecr .p-bas button{flex:1;border:0;border-radius:11px;padding:0 10px;min-height:44px;
-      font:700 12.5px/1.2 var(--body);background:var(--tel);color:var(--on);cursor:pointer;
-      display:flex;align-items:center;justify-content:center;gap:7px;min-width:0}
-  .pecr .p-bas button .et{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pecr .p-bas button.dmx{background:var(--dmx)}
-  .pecr .p-bas button{min-height:50px;font-size:13.5px}
-  .pecr .p-bas button.att{background:var(--sur2);color:var(--ink)}
-  .pecr .p-bas button:disabled{opacity:.45;cursor:default}
-  .pecr .p-bas button .cpt{font:600 10.5px/1 var(--mono);background:color-mix(in srgb,currentColor 16%,transparent);
-      border-radius:99px;padding:3px 6px}
-  .pecr .p-bas button[aria-expanded="true"]{box-shadow:inset 0 0 0 2px color-mix(in srgb,currentColor 45%,transparent)}
-  /* La place que prend la barre du bas, rendue à la liste. */
-  .pecr{padding-bottom:78px}
+  .pecr{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
   /* Le bandeau « Annuler » d'une suppression, en haut : le volet tient le bas. */
   .p-annul{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:30;
       max-width:536px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:6px 6px 6px 16px;
@@ -2434,7 +2426,7 @@ const REG_DEFAUT = { proto:"sACN", u:1, adr:1, premier:1, nb:96, prio:100,
 
 function patchVide(nom){
   return { nom:nom || "", lignes:[], fiches:{}, grada:{}, reperes:{},
-           reg:{ ...REG_DEFAUT }, exclus:[] };
+           reg:{ ...REG_DEFAUT }, exclus:[], garde:[] };
 }
 
 let PATCHS = [], iPatch = 0, P = null;
@@ -2820,12 +2812,13 @@ let DCMD = [];           // sa ligne de commande, en jetons : ["1","/","137","At
 let DOUV = false;        // le dernier jeton est un nombre encore ouvert à la frappe
 let DMSG = "";           // ce qu'a donné la dernière ligne posée, quand ça mérite un mot
 let INDICE = 0;          // rang du gradateur en cours de relevé
+let CONFIRME = null;     // gradateur sans circuit pour lequel « OK » demande confirmation
+const gardes = () => P.garde || (P.garde = []);   // gradateurs sans circuit gardés dans la liste
 let fond = null, volet = null;
 
 function vPatch(){
   const d = el("div", "pecr");
-  d.innerHTML = `<div class="p-haut" id="p-haut"></div><div id="p-liste"></div>
-    <div class="p-bas"><div class="in" id="p-bas"></div></div>`;
+  d.innerHTML = `<div class="p-haut" id="p-haut"></div><div id="p-liste"></div>`;
   /* Quitter l'écran relâche le flux et referme ce qui traîne : on ne laisse
      pas un gradateur allumé derrière soi. */
   poser(() => { fermerVolet(true); NET.emissionArret();
@@ -2879,25 +2872,6 @@ function peindre(){
   $("#p-haut").replaceChildren(h);
 
   majListe();
-
-  /* Trois gestes en bas : relever les gradateurs, attribuer les circuits des
-     appareils, ajouter des appareils. Le compte dit ce qui reste à faire. */
-  const bg = el("button", "rel",
-    `<span class="et">Relever</span><span class="cpt">${restantsG()}</span>`);
-  bg.setAttribute("aria-label", `Relever les gradateurs, ${restantsG()} sans circuit`);
-  bg.setAttribute("aria-expanded", VOLET === "relever");
-  bg.onclick = () => ouvrirVolet("relever");
-  const bt = el("button", "att",
-    `<span class="et">Attribuer</span><span class="cpt">${restantsA()}</span>`);
-  bt.setAttribute("aria-label", `Attribuer les circuits des appareils, ${restantsA()} sans circuit`);
-  bt.setAttribute("aria-expanded", VOLET === "attr");
-  bt.disabled = !liste.length;
-  bt.onclick = () => ouvrirVolet("attr");
-  const ba = el("button", "dmx", `<span class="et">Ajouter</span>`);
-  ba.setAttribute("aria-label", "Ajouter des appareils");
-  ba.setAttribute("aria-expanded", VOLET === "ajouter");
-  ba.onclick = () => ouvrirVolet("ajouter");
-  $("#p-bas").replaceChildren(bg, bt, ba);
 
   if(VOLET === "relever") majVoletRelever();
   if(VOLET === "attr") majVoletAttribuer();
@@ -3021,13 +2995,29 @@ function rangee({ circuit, titre, sous, u, adr, allume, nomLampe, onFiche, onLam
   return d;
 }
 
-function pile(titre, compte, elements, rien, bouton){
+function pile(titre, compte, elements, rien, boutons){
   const d = el("div", "pile");
-  d.insertAdjacentHTML("beforeend", `<h4>${esc(titre)}<span>${esc(compte || "")}</span></h4>`);
-  if(bouton) d.querySelector("h4").append(bouton);
+  d.insertAdjacentHTML("beforeend",
+    `<h4><div class="ti">${esc(titre)}<span>${esc(compte || "")}</span></div></h4>`);
+  const bts = [].concat(boutons || []);
+  if(bts.length){
+    const w = el("div", "bts");
+    w.append(...bts);
+    d.querySelector("h4").append(w);
+  }
   if(!elements.length) d.insertAdjacentHTML("beforeend", `<p class="rien">${esc(rien || "Rien ici.")}</p>`);
   elements.forEach(e => d.append(e));
   return d;
+}
+
+/* Le « + » de l'en-tête d'une pile : c'est lui qui ajoute, il n'y a plus de
+   barre en bas. */
+function boutonPlus(classe, etiquette, ouvert, ouvre){
+  const b = el("button", "plus " + classe, "+");
+  b.setAttribute("aria-label", etiquette);
+  b.setAttribute("aria-expanded", ouvert);
+  b.onclick = ouvre;
+  return b;
 }
 
 /* Deux cents gradateurs dans une liste, personne ne les lit : on n'affiche que
@@ -3036,8 +3026,10 @@ function pile(titre, compte, elements, rien, bouton){
    temps d'une vérification. */
 function pileGradas(){
   const tous = gradas();
-  const vus = MASQUE ? tous.filter(n => circuitGrada(n) || (VOLET === "relever" && n === POINTE)) : tous;
-  const caches = tous.length - tous.filter(n => circuitGrada(n)).length;
+  const gardes_ = gardes();
+  const dansListe = n => circuitGrada(n) || gardes_.includes(n);
+  const vus = MASQUE ? tous.filter(n => dansListe(n) || (VOLET === "relever" && n === POINTE)) : tous;
+  const caches = tous.filter(n => !dansListe(n)).length;
 
   const rangs = vus.map(n => {
     const a = adrGrada(n) || { u:"—", canal:"—" };
@@ -3061,9 +3053,17 @@ function pileGradas(){
 
   const b = el("button", null, MASQUE ? `tout voir · ${caches}` : "masquer les vides");
   b.onclick = () => { MASQUE = !MASQUE; peindre(); };
+  /* « + » ouvre le relevé sur le premier gradateur sans circuit ; s'il n'y en
+     a plus, il en ajoute un. */
+  const plus = boutonPlus("", "Ajouter des gradateurs", VOLET === "relever", () => {
+    let k = prochainVide();
+    if(k == null){ P.reg.nb++; k = gradas().length - 1; }
+    ouvrirVolet("relever", k);
+  });
   return pile("Gradateurs", `${pl(relevesG(), "relevé")} sur ${tous.length}`, rangs,
-              tous.length ? "Aucun gradateur relevé : touchez « Relever » en bas."
-                          : "Pas de gradateurs dans ce patch.", tous.length ? b : null);
+              tous.length ? "Aucun gradateur dans la liste : touchez + pour en ajouter."
+                          : "Pas de gradateurs dans ce patch : touchez + pour en ajouter.",
+              [...(tous.length ? [b] : []), plus]);
 }
 
 function pileApps(){
@@ -3085,8 +3085,16 @@ function pileApps(){
     if(x.n === vise) r.classList.add("pointe");
     return r;
   });
+  const reste = restantsA();
+  const circ = el("button", null, reste ? `circuits · ${reste}` : "circuits");
+  circ.setAttribute("aria-label", `Attribuer les circuits des appareils, ${pl(reste, "appareil")} sans circuit`);
+  circ.setAttribute("aria-expanded", VOLET === "attr");
+  circ.disabled = !liste.length;
+  circ.onclick = () => ouvrirVolet("attr");
+  const plus = boutonPlus("dmx", "Ajouter des appareils", VOLET === "ajouter",
+                          () => ouvrirVolet("ajouter"));
   return pile("Appareils", `${relevesA()} sur ${liste.length} avec circuit · ${puissanceTotale(liste)}`,
-              rangs, "Aucun appareil : touchez « Ajouter » en bas.");
+              rangs, "Aucun appareil : touchez + pour en ajouter.", [circ, plus]);
 }
 
 /* Mettre un appareil en évidence : le geste des gradateurs, appliqué au patch. */
@@ -3125,7 +3133,7 @@ function annulable(message, faire){
 function ouvrirVolet(quoi, arg){
   if(VOLET === quoi && arg == null){ fermerVolet(); return; }
   fermerVolet(true);
-  VOLET = quoi; PAVE = null; ABC = false; DCMD = []; DOUV = false; DMSG = "";
+  VOLET = quoi; PAVE = null; ABC = false; DCMD = []; DOUV = false; DMSG = ""; CONFIRME = null;
   if(quoi === "relever") INDICE = arg != null ? arg : (prochainVide() ?? 0);
   if(quoi === "attr") IA = arg != null ? arg : (prochainApp() ?? 0);
   /* Le Pupitre s'ouvre là où on en était : sur le gradateur appelé la
@@ -3171,7 +3179,7 @@ function fermerVolet(sansPeindre){
   const f = fond, v = volet;
   f.classList.remove("on"); v.classList.remove("on");
   setTimeout(() => { f.remove(); v.remove(); }, 200);
-  fond = volet = null; VOLET = null; POINTE = null; CIBLE = null; PAVE = null; ABC = false;
+  fond = volet = null; VOLET = null; POINTE = null; CIBLE = null; PAVE = null; ABC = false; CONFIRME = null;
   DCMD = []; DOUV = false; DMSG = "";
   if(!sansPeindre) peindre();
 }
@@ -3198,7 +3206,7 @@ function afficheCircuit(valeur, cle, ecrire, noter){
     i.value = valeur;
     i.placeholder = "12b, face…";
     i.setAttribute("autocapitalize", "off");
-    i.setAttribute("enterkeyhint", "next");
+    i.setAttribute("enterkeyhint", "done");
     i.setAttribute("aria-label", "Circuit, au clavier");
     i.oninput = () => ecrire(i.value, true);
     i.onkeydown = e => { if(e.key === "Enter") noter(); };
@@ -3210,23 +3218,26 @@ function afficheCircuit(valeur, cle, ecrire, noter){
   return d;
 }
 
-function padCircuit({ valeur, ecrire, noter, prec, sauter }){
+/* Deux flèches pour se balader dans la liste, « OK » pour en sortir. Écrire un
+   circuit l'enregistre tout de suite : ▶ passe au suivant, OK referme. */
+function padCircuit({ valeur, ecrire, ok, prec, suiv }){
   const d = el("div", "cpad");
   d.setAttribute("role", "group");
   d.setAttribute("aria-label", "Pavé du circuit");
-  ["1", "2", "3", "◀", "4", "5", "6", "Sauter", "7", "8", "9", ABC ? "123" : "Abc",
-   "⌫", "0", "Noté ▶"].forEach(x => {
+  ["1", "2", "3", "◀", "4", "5", "6", "▶", "7", "8", "9", ABC ? "123" : "Abc",
+   "⌫", "0", "OK"].forEach(x => {
     const chiffre = /^\d$/.test(x);
-    const b = el("button", chiffre ? null : x === "Noté ▶" ? "ok" : "fn", x);
-    const aides = { "◀":"Précédent", "⌫":"Effacer le dernier caractère",
-                    Abc:"Taper le circuit au clavier", "123":"Revenir au pavé" };
+    const b = el("button", chiffre ? null : x === "OK" ? "ok" : "fn", x);
+    const aides = { "◀":"Précédent", "▶":"Suivant", "⌫":"Effacer le dernier caractère",
+                    Abc:"Taper le circuit au clavier", "123":"Revenir au pavé",
+                    OK:"Terminer" };
     if(aides[x]) b.setAttribute("aria-label", aides[x]);
     b.onclick = () => {
       if(chiffre){ if(String(valeur).length < 6) ecrire(String(valeur) + x); return; }
       if(x === "⌫"){ ecrire(String(valeur).slice(0, -1)); return; }
       if(x === "◀"){ prec(); return; }
-      if(x === "Sauter"){ sauter(); return; }
-      if(x === "Noté ▶"){ noter(); return; }
+      if(x === "▶"){ suiv(); return; }
+      if(x === "OK"){ ok(); return; }
       ABC = !ABC;
       rafraichirVolet();
       if(ABC){ const i = volet && volet.querySelector(".cval input"); if(i) i.focus(); }
@@ -3262,7 +3273,7 @@ const prochainVide = (depuis = 0) => {
 function allerA(k, niveau = 100){
   const l = gradas();
   if(k == null || k < 0 || k >= l.length){ peindre(); return; }
-  INDICE = k;
+  INDICE = k; CONFIRME = null;
   POINTE = l[k];
   allumerSeuls([l[k]], niveau);
   peindre();
@@ -3296,6 +3307,20 @@ function majVoletRelever(){
     return;
   }
 
+  /* OK sur un gradateur sans circuit : on demande avant de le garder dans la
+     liste, il n'y entre jamais en le parcourant. */
+  if(CONFIRME === n){
+    const q = el("div", "conf");
+    q.append(el("p", null, `Le gradateur <b>${n}</b> n'a pas de circuit. L'ajouter quand même à la liste ?`));
+    const oui = el("button", "act", "Ajouter à la liste");
+    oui.onclick = () => { if(!gardes().includes(n)) gardes().push(n); fermerVolet(); };
+    const non = el("button", "act sec", "Retour");
+    non.onclick = () => { CONFIRME = null; majVoletRelever(); };
+    q.append(oui, non);
+    c.replaceChildren(q);
+    return;
+  }
+
   const ecrire = (v, depuisSaisie) => {
     f.circuit = v; majListe(); majCompteurs();
     if(!depuisSaisie) majVoletRelever();
@@ -3307,14 +3332,14 @@ function majVoletRelever(){
   const num = el("button", "n", `${n}<small>changer</small>`);
   num.setAttribute("aria-label", `Gradateur ${n}, appeler un autre gradateur par son numéro`);
   num.onclick = () => { PAVE = ""; majVoletRelever(); };
-  ecr.append(num, afficheCircuit(f.circuit, "rel-cir", ecrire, suivantARelever));
+  ecr.append(num, afficheCircuit(f.circuit, "rel-cir", ecrire, validerRelever));
   ecr.insertAdjacentHTML("beforeend",
     `<span class="ad">U${a.u} · canal ${a.canal} · ${lv} %</span>`);
   d.append(ecr);
   d.append(padCircuit({
-    valeur:f.circuit, ecrire, noter:suivantARelever,
+    valeur:f.circuit, ecrire, ok:validerRelever,
     prec:() => allerA(INDICE - 1),
-    sauter:() => allerA(prochainVide(INDICE + 1) ?? Math.min(l.length - 1, INDICE + 1))
+    suiv:() => allerA(INDICE + 1)
   }));
 
   const note = el("input", "note");
@@ -3337,11 +3362,9 @@ function majVoletRelever(){
   const r2 = el("div", "rang");
   const plus = el("button", "mini", "+ un gradateur");
   const sup = el("button", "mini sup", "Supprimer");
-  const fin = el("button", "mini", "Terminer");
   plus.onclick = () => { P.reg.nb++; allerA(gradas().length - 1); };
   sup.onclick = () => supprimerGrada(n);
-  fin.onclick = () => fermerVolet();
-  r2.append(plus, sup, fin);
+  r2.append(plus, sup);
   d.append(r2);
 
   d.append(el("p", "route", esc(routeEmission(NET.emissionEtat()))));
@@ -3386,18 +3409,14 @@ function validerPave(){
   allerA(gradas().indexOf(vise));
 }
 
-/* « Noté » avance, toujours : le prochain gradateur sans circuit devant, sinon
-   celui d'après, sinon on repart du début sur ceux qu'on a sautés. Appeler le
-   dernier gradateur au pavé mettait fin au relevé alors que rien n'était
-   relevé ; le volet ne se referme plus que lorsqu'il ne reste plus rien. */
-function suivantARelever(){
-  const l = gradas();
-  const k = prochainVide(INDICE + 1);
-  if(k != null){ allerA(k); return; }
-  if(INDICE + 1 < l.length){ allerA(INDICE + 1); return; }
-  const reprise = prochainVide(0);
-  if(reprise != null && reprise !== INDICE){ allerA(reprise); return; }
-  fermerVolet();
+/* « OK » referme le relevé. Si le gradateur appelé porte un circuit, il est déjà
+   noté (l'écriture l'enregistre) ; sinon on demande s'il doit entrer dans la
+   liste sans circuit. */
+function validerRelever(){
+  const n = gradas()[INDICE];
+  if(n == null || circuitGrada(n) || gardes().includes(n)){ fermerVolet(); return; }
+  CONFIRME = n;
+  majVoletRelever();
 }
 
 /* ----------------- volet : attribuer les circuits des appareils ----------- */
@@ -3423,16 +3442,6 @@ function allerApp(k){
     behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
 
-function suivantAAttribuer(){
-  const l = appareils();
-  const k = prochainApp(IA + 1);
-  if(k != null){ allerApp(k); return; }
-  if(IA + 1 < l.length){ allerApp(IA + 1); return; }
-  const reprise = prochainApp(0);
-  if(reprise != null && reprise !== IA){ allerApp(reprise); return; }
-  fermerVolet();
-}
-
 function majVoletAttribuer(){
   const l = appareils();
   const x = l[IA];
@@ -3440,7 +3449,7 @@ function majVoletAttribuer(){
   volet.querySelector(".tete .cpt").textContent = `${relevesA()} / ${l.length} attribués`;
   const c = volet.querySelector(".corps");
   if(!x){
-    c.replaceChildren(el("p", "rien", "Aucun appareil dans ce patch : touchez « Ajouter » en bas."));
+    c.replaceChildren(el("p", "rien", "Aucun appareil dans ce patch : touchez + dans la liste des appareils."));
     return;
   }
   const v = circuitApp(x.n);
@@ -3453,18 +3462,15 @@ function majVoletAttribuer(){
       Math.round(relevesA() / Math.max(1, l.length) * 100)}%"></i></div>`;
   const ecr = el("div", "ecr");
   ecr.append(el("span", "n app", `${x.n}<small>${esc(courtNom(x.app))}</small>`));
-  ecr.append(afficheCircuit(v, "att-cir", ecrire, suivantAAttribuer));
+  ecr.append(afficheCircuit(v, "att-cir", ecrire, () => fermerVolet()));
   ecr.insertAdjacentHTML("beforeend",
     `<span class="ad">U${x.u} · ${x.adr} → ${x.fin} · ${esc(x.mode || x.ch + " ch")}</span>`);
   d.append(ecr);
   d.append(padCircuit({
-    valeur:v, ecrire, noter:suivantAAttribuer,
+    valeur:v, ecrire, ok:() => fermerVolet(),
     prec:() => allerApp(IA - 1),
-    sauter:() => allerApp(prochainApp(IA + 1) ?? Math.min(l.length - 1, IA + 1))
+    suiv:() => allerApp(IA + 1)
   }));
-  const fin = el("button", "act sec", "Terminer");
-  fin.onclick = () => fermerVolet();
-  d.append(fin);
   d.append(el("p", "route", esc(routeEmission(NET.emissionEtat()))));
   gardeFocus(c, () => c.replaceChildren(d));
 }
@@ -4117,7 +4123,7 @@ function majVoletAjouter(){
       <button class="x" aria-label="Retirer la ligne">✕</button>
       <div class="rg"><button class="et${enKo ? " ko" : ""}" title="Basculer le départ">${
         l.suite ? "à la suite" : "départ imposé"}
-        <b>${mes.length ? `U${mes[0].u}·${mes[0].adr}→${mes[mes.length - 1].fin}` : "—"}</b></button>${
+        <b>${mes.length ? `U${mes[0].u}·${mes[0].adr} → U${mes[mes.length - 1].u}·${mes[mes.length - 1].fin}` : "—"}</b></button>${
         enKo ? `<button class="lib" title="Reposer la ligne sur une plage libre">adresse libre</button>` : ""}</div>`;
     r.querySelector(".sa").onchange = e => {
       l.app = e.target.value;
@@ -4433,9 +4439,6 @@ function majBarre(){
 }
 function majCompteurs(){
   const nG = gradas().length, nA = appareils().length;
-  const r = $("#p-bas .rel .cpt"), a = $("#p-bas .att .cpt");
-  if(r) r.textContent = restantsG();
-  if(a) a.textContent = restantsA();
   const og = $('#p-haut .ongl [data-o="grada"] em'), oa = $('#p-haut .ongl [data-o="app"] em');
   if(og) og.textContent = `${relevesG()}/${nG}`;
   if(oa) oa.textContent = `${relevesA()}/${nA}`;
