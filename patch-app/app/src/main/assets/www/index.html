@@ -4684,13 +4684,20 @@ function vGel(){
 }
 
 /* --------------------------- section de câble ---------------------------- */
-/* D'après macalculatriceenligne.com : la section se tire de la chute de
-   tension admise, puis on vérifie que le câble tient le courant une fois
-   déclassé par la chaleur et le regroupement.
-     mono : I = P / U                S = 2 × ρ × L × I / ΔU
-     tri  : I = P / (√3 × U × cosφ)  S = √3 × ρ × L × I × cosφ / ΔU
-   ΔU se compte sur 230 V en mono, sur 400 V (tension composée) en tri. */
-const RHO = { cu:0.0178, al:0.0291 };          // Ω·mm²/m
+/* Méthode de la NF C 15-100 (§ 525 et 523), celle des calculateurs de
+   fabricants comme Nexans EasyCalc. Deux vérifications, on garde la plus
+   grosse section :
+   · chute de tension, avec la résistivité du câble chaud (1,25 × ρ à 20 °C)
+     et la réactance linéique λ = 0,08 mΩ/m :
+       ΔU = b × (ρ × L / S × cos φ + λ × L × sin φ) × I
+       b = 2 en mono (aller et retour), √3 en tri ; ΔU se compte sur 230 V en
+       mono, sur 400 V (tension composée) en tri ;
+   · échauffement : le câble protège son calibre, pas seulement le courant
+     d'emploi. On prend le premier calibre In ≥ IB, puis il faut
+     Iz × K1 × K2 ≥ k × In (k = 1 en disjoncteur ; en fusible gG, 1,31 jusqu'à
+     10 A, 1,21 jusqu'à 25 A, 1,10 au-delà). */
+const RHO = { cu:0.0225, al:0.036 };           // Ω·mm²/m, câble en service
+const LAMBDA = 0.00008;                         // Ω/m
 const SECTIONS = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
 /* Courants admissibles, PVC 70 °C, encastré ou sous conduit (méthode A1 de
    l'IEC 60364-5-52, reprise par la NF C 15-100) : deux conducteurs chargés en
@@ -4703,33 +4710,49 @@ const IADM = {
   al:{ 2:[0, 0, 0, 0, 0, 48, 63, 77, 93, 118, 142, 164],
        3:[0, 0, 0, 0, 0, 43, 57, 70, 84, 107, 129, 149] }
 };
-const K1 = { 30:1, 40:0.87, 50:0.71, 60:0.58 };                   // température, PVC
+const K1 = { 30:1, 40:0.87, 50:0.71, 60:0.50 };                   // température, PVC
 const K2 = [1, 0.80, 0.70, 0.65, 0.60, 0.57, 0.54, 0.52, 0.50];   // 1 à 9 câbles et plus
+const CALIBRES = {
+  dj:[2, 3, 6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250],
+  gg:[2, 4, 6, 8, 10, 12, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250]
+};
+const kFusible = In => In <= 10 ? 1.31 : In <= 25 ? 1.21 : 1.10;
 
 const CLE_CAB = "section.v1";
 const CAB = lireCalcul(CLE_CAB, { mode:"W", q:"3500", reseau:"mono", l:"25", dv:"3", mat:"cu",
-                            cos:"1", t:30, n:1 });
+                            cos:"1", t:30, n:1, prot:"dj", cal:"" });
 
 /* Sur un clavier de téléphone français, la virgule vient avant le point. */
 const nombre = v => parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", "."));
 const chiffre = (v, n) => vg(Number(v.toFixed(n)));
 
 function calculSection(c){
-  const tri = c.reseau === "tri", U = tri ? 400 : 230;
-  const cos = tri ? nombre(c.cos) : 1;
+  const tri = c.reseau === "tri", U = tri ? 400 : 230, b = tri ? Math.sqrt(3) : 2;
+  const cos = nombre(c.cos), sin = Math.sqrt(Math.max(0, 1 - cos * cos));
   const q = nombre(c.q), L = nombre(c.l), dv = nombre(c.dv);
   if(!(q > 0 && L > 0 && dv > 0 && cos > 0 && cos <= 1)) return null;
-  const I = c.mode === "A" ? q : tri ? q / (Math.sqrt(3) * U * cos) : q / U;
+  const I = c.mode === "A" ? q : q / ((tri ? Math.sqrt(3) : 1) * U * cos);
   const dU = dv / 100 * U;
-  const k = RHO[c.mat] * (tri ? Math.sqrt(3) * L * I * cos : 2 * L * I);   // S × ΔU
-  const S = k / dU;
+  const rho = RHO[c.mat];
+  const chuteEn = s => b * (rho * L / s * cos + LAMBDA * L * sin) * I;
+  /* La part réactive ne dépend pas de la section : si elle mange déjà toute
+     la chute admise, aucune section ne suffit. */
+  const reste = dU - b * LAMBDA * L * sin * I;
+  const S = reste > 0 ? b * rho * L * cos * I / reste : Infinity;
+  /* Calibre : celui saisi s'il couvre le courant d'emploi, sinon le premier
+     calibre normalisé au-dessus. */
+  const saisi = nombre(c.cal);
+  const In = saisi >= I ? saisi : CALIBRES[c.prot].find(x => x >= I) ?? Math.ceil(I);
+  const kp = c.prot === "gg" ? kFusible(In) : 1;
+  const exige = kp * In;
   const K = K1[c.t] * K2[c.n - 1];
   const tab = IADM[c.mat][tri ? 3 : 2];
   const parChute = SECTIONS.findIndex((s, j) => tab[j] && s >= S);
-  const i = SECTIONS.findIndex((s, j) => tab[j] && s >= S && tab[j] * K >= I);
-  const r = { tri, U, I, dU, dv, S, K, parChute, premier:tab.findIndex(x => x) };
+  const i = SECTIONS.findIndex((s, j) => tab[j] && s >= S && tab[j] * K >= exige);
+  const r = { tri, U, I, dU, dv, S, K, In, kp, exige, calTrop: saisi > 0 && saisi < I,
+              parChute, premier:tab.findIndex(x => x) };
   if(i < 0) return r;
-  return Object.assign(r, { i, s:SECTIONS[i], chute:k / SECTIONS[i], iz:tab[i] * K, iadm:tab[i] });
+  return Object.assign(r, { i, s:SECTIONS[i], chute:chuteEn(SECTIONS[i]), iz:tab[i] * K, iadm:tab[i] });
 }
 
 function peindreSection(zone){
@@ -4743,19 +4766,24 @@ function peindreSection(zone){
   const mm = s => vg(s) + " mm²";
   const mat = c.mat === "al" ? "aluminium" : "cuivre";
   const kv = (lab, val) => `<div class="kv"><span>${lab}</span><b>${val}</b></div>`;
-  const calc = kv("Courant", chiffre(r.I, 1) + " A")
-             + kv("Section calculée", chiffre(r.S, 2) + " mm²")
+  const prot = c.prot === "gg" ? "fusible gG" : "disjoncteur";
+  const calc = kv("Courant d'emploi", chiffre(r.I, 1) + " A")
+             + kv("Protection", `${prot} ${vg(r.In)} A`)
+             + kv("Section calculée", isFinite(r.S) ? chiffre(r.S, 2) + " mm²" : "—")
              + kv("Chute admise", chiffre(r.dU, 1) + " V · " + vg(r.dv) + " %");
+  const avert = r.calTrop
+    ? `<p class="alert">Le calibre saisi est sous le courant d'emploi : le calcul prend ${vg(r.In)} A.</p>` : "";
   if(r.s == null){
     zone.innerHTML = `<div class="kick">Section conseillée · ${mat}</div>
       <div class="big"><b>&gt; 120</b><span>mm²</span></div>
       ${calc}
       <p class="alert">Aucune section jusqu'à 120 mm² ne suffit : raccourcir la ligne,
-        ou répartir la charge sur plusieurs câbles${r.tri ? "" : ", ou passer en triphasé"}.</p>`;
+        ou répartir la charge sur plusieurs câbles${r.tri ? "" : ", ou passer en triphasé"}.</p>${avert}`;
     return;
   }
+  const besoin = r.kp > 1 ? `${chiffre(r.exige, 1)} A (${vg(r.kp)} × ${vg(r.In)} A)` : `${vg(r.In)} A`;
   const pourquoi = r.i > r.parChute
-    ? `Fixée par l'échauffement : ${mm(SECTIONS[r.parChute])} suffisait pour la chute de tension, mais pas pour le courant une fois déclassé.`
+    ? `Fixée par l'échauffement : ${mm(SECTIONS[r.parChute])} suffisait pour la chute de tension, mais pas pour protéger ${besoin} une fois déclassé.`
     : r.parChute === r.premier && r.S <= (r.premier ? SECTIONS[r.premier - 1] : SECTIONS[0] * 0.999)
     ? (c.mat === "al" ? `Plus petite section en aluminium : le calcul demande moins de ${mm(r.s)}.`
                       : `Plus petite section : le calcul demande moins de ${mm(r.s)}.`)
@@ -4766,12 +4794,11 @@ function peindreSection(zone){
     <p>${pourquoi}</p>
     ${calc}
     ${kv("Chute en " + mm(r.s), chiffre(r.chute, 2) + " V · " + chiffre(r.chute / r.U * 100, 2) + " %")}
-    ${kv("Courant admissible", dec)}`;
+    ${kv("Courant admissible", dec)}${avert}`;
 }
 
 function vCable(){
   const c = CAB;
-  const tri = c.reseau === "tri";
   const d = el("div", "cab");
   d.append(bar("Section de câble"));
   const res = el("div", "res");
@@ -4818,9 +4845,16 @@ function vCable(){
   ci.append(ff);
   ci.insertAdjacentHTML("beforeend", `<p class="muted" style="margin:-4px 0 12px">Longueur réelle
     du câble, pas la distance à vol d'oiseau. Chute : 3 % pour l'éclairage, 5 % pour le reste.</p>`);
-  if(tri) ci.append(champ("cos φ", "cos", "1", "1 pour la lumière et les résistances, 0,85 pour les moteurs."));
+  ci.append(champ("cos φ", "cos", "1", "1 pour les halogènes et les résistances, 0,9 pour les blocs LED, 0,85 pour les moteurs."));
   ci.append(choix("Conducteur", "mat", [["cu", "Cuivre"], ["al", "Aluminium"]]));
   d.append(ci);
+
+  const pr = el("div", "card");
+  pr.innerHTML = `<h4>Protection</h4>`;
+  pr.append(choix("En tête de ligne", "prot", [["dj", "Disjoncteur"], ["gg", "Fusible gG"]]));
+  pr.append(champ("Calibre (A)", "cal", "16",
+    "Laisser vide pour prendre le premier calibre au-dessus du courant. Le câble doit tenir le calibre, pas seulement la charge."));
+  d.append(pr);
 
   const de = el("div", "card");
   de.innerHTML = `<h4>Déclassement</h4>`;
@@ -4837,9 +4871,13 @@ function vCable(){
   d.append(de);
 
   const fo = el("details", "card formules");
-  fo.innerHTML = `<summary>Formules</summary><p class="formule">mono · I = P / U<br>S = 2 × ρ × L × I / ΔU<br>
-    tri · I = P / (√3 × U × cos φ)<br>S = √3 × ρ × L × I × cos φ / ΔU<br>
-    ρ cuivre 0,0178 · alu 0,0291 Ω·mm²/m<br>ΔU sur 230 V en mono, 400 V en tri</p>`;
+  fo.innerHTML = `<summary>Formules</summary><p class="formule">mono · I = P / (U × cos φ) · b = 2<br>
+    tri · I = P / (√3 × U × cos φ) · b = √3<br>
+    ΔU = b × (ρ × L / S × cos φ + λ × L × sin φ) × I<br>
+    ρ cuivre 0,0225 · alu 0,036 Ω·mm²/m (câble chaud)<br>λ = 0,08 mΩ/m<br>
+    ΔU sur 230 V en mono, 400 V en tri<br>
+    Iz × K1 × K2 ≥ k × In · k = 1 en disjoncteur,<br>1,31 / 1,21 / 1,10 en fusible gG
+    (≤ 10 A / ≤ 25 A / au-delà)<br>NF C 15-100 § 523 et 525</p>`;
   d.append(fo);
 
   peindreSection(res);
