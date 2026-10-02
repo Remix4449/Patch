@@ -2495,7 +2495,7 @@ function vEdit(k, i){
 /* ------------------------------ le modèle -------------------------------- */
 /* Un patch : ses lignes d'appareils, le circuit de chacun, la plage de
    gradateurs avec leurs circuits et repères, et les réglages du flux. */
-const REG_DEFAUT = { proto:"sACN", u:1, adr:1, premier:1, nb:96, prio:100,
+const REG_DEFAUT = { proto:"sACN", u:1, adr:1, premier:1, nb:0, prio:100,
                      cible:"", pas:5, solo:true, hlTout:false };
 
 function patchVide(nom){
@@ -2704,6 +2704,9 @@ const ficheGrada = n => P.grada[n] || (P.grada[n] = { circuit:"", note:"" });
 const circuitGrada = n => String((P.grada[n] || {}).circuit || "").trim();
 const noteGrada = n => String((P.grada[n] || {}).note || "");
 const circuitApp = n => String(P.fiches[n] || "").trim();
+/* Les gradateurs qui comptent sont ceux de la liste : un circuit, ou gardés sans
+   circuit. Le reste de la plage n'est qu'un chemin que les flèches ont tracé. */
+const listesG = () => gradas().filter(n => circuitGrada(n) || gardes().includes(n)).length;
 const restantsG = () => gradas().filter(n => !circuitGrada(n)).length;
 const relevesG = () => gradas().filter(n => circuitGrada(n)).length;
 const restantsA = () => appareils().filter(x => !circuitApp(x.n)).length;
@@ -2915,7 +2918,7 @@ function vPatch(){
 
 function peindre(){
   const liste = appareils();
-  const nG = gradas().length;
+  const nG = listesG();
 
   /* En-tête : le nom du spectacle et ce qui vaut pour tout le patch — le
      protocole n'est plus répété sur chaque gradateur —, le pupitre, les onglets. */
@@ -2947,7 +2950,7 @@ function peindre(){
   const o = el("div", "ongl");
   [["tout", "Tout", ""],
    ["app", "Appareils", `${relevesA()}/${liste.length}`],
-   ["grada", "Gradateurs", `${relevesG()}/${nG}`]].forEach(([k, lib, n]) => {
+   ["grada", "Gradateurs", nG ? String(nG) : ""]].forEach(([k, lib, n]) => {
     const b = el("button", null, `${lib}${n ? `<em>${n}</em>` : ""}`);
     b.dataset.o = k;
     b.setAttribute("aria-pressed", ONGLET === k);
@@ -2961,9 +2964,8 @@ function peindre(){
 
   /* Deux gestes en bas : relever les gradateurs, ajouter des appareils. Les
      circuits des appareils se passent depuis leur fiche (◀ ▶). */
-  const bg = el("button", "rel",
-    `<span class="et">Relever</span><span class="cpt">${restantsG()}</span>`);
-  bg.setAttribute("aria-label", `Relever les gradateurs, ${restantsG()} sans circuit`);
+  const bg = el("button", "rel", `<span class="et">Relever</span>`);
+  bg.setAttribute("aria-label", "Relever les gradateurs");
   bg.setAttribute("aria-expanded", VOLET === "relever");
   bg.onclick = () => ouvrirVolet("relever");
   const ba = el("button", "dmx", `<span class="et">Ajouter</span>`);
@@ -3236,18 +3238,18 @@ function rangG(n){
 
 const rienG = () => gradas().length
   ? "Aucun gradateur relevé : touchez « Relever » en bas."
-  : "Pas de gradateurs dans ce patch.";
-const comptesG = () => `${pl(relevesG(), "relevé")} sur ${gradas().length}`;
-const toutVoirG = () => MASQUE
-  ? `tout voir · ${gradas().filter(n => !dansListeG(n)).length}` : "masquer les vides";
+  : "Aucun gradateur : touchez « Relever » en bas.";
+const comptesG = () => pl(listesG(), "gradateur");
+const cachesG = () => gradas().filter(n => !visibleG(n) && !dansListeG(n)).length;
+const toutVoirG = () => MASQUE ? `tout voir · ${cachesG()}` : "masquer les vides";
 
 function pileGradas(){
   const tous = gradas();
   const rangs = tous.filter(visibleG).map(rangG);
 
-  const b = el("button", null, toutVoirG());
+  const b = el("button", "tv", toutVoirG());
   b.onclick = () => { MASQUE = !MASQUE; peindre(); };
-  const p = pile("Gradateurs", comptesG(), rangs, rienG(), tous.length ? [b, boutonChoix("g")] : null);
+  const p = pile("Gradateurs", comptesG(), rangs, rienG(), [(cachesG() || !MASQUE) ? b : null, boutonChoix("g")]);
   p.dataset.pile = "g";
   return p;
 }
@@ -3272,7 +3274,7 @@ function majRangG(...ns){
   if(!vide && rien) rien.remove();
   const cpt = pile.querySelector("h4 .ti span");
   if(cpt) cpt.textContent = comptesG();
-  const tv = pile.querySelector(".bts button");
+  const tv = pile.querySelector(".bts .tv");
   if(tv) tv.textContent = toutVoirG();
 }
 
@@ -3338,7 +3340,7 @@ function ouvrirVolet(quoi, arg){
   if(VOLET === quoi && arg == null){ fermerVolet(); return; }
   fermerVolet(true);
   VOLET = quoi; CIR0 = { n:null, v:"" }; PAVE = null; ABC = false; DCMD = []; DOUV = false; DMSG = ""; CONFIRME = null;
-  if(quoi === "relever") INDICE = arg != null ? arg : (prochainVide() ?? 0);
+  if(quoi === "relever") INDICE = arg != null ? arg : debutReleve();
   if(quoi === "attr") IA = arg != null ? arg : (prochainApp() ?? 0);
   /* Le Pupitre s'ouvre là où on en était : sur le gradateur appelé la
      première fois, sur l'univers du patch à défaut. */
@@ -3424,18 +3426,18 @@ function afficheCircuit(valeur, cle, ecrire, noter){
 
 /* Deux flèches pour se balader dans la liste, « OK » pour en sortir. Écrire un
    circuit l'enregistre tout de suite : ▶ passe au suivant, OK referme. */
-function padCircuit({ valeur, ecrire, ok, prec, suiv, grada }){
+function padCircuit({ valeur, ecrire, ok, prec, suiv, grada, garder }){
   const d = el("div", "cpad" + (grada ? " avec-grada" : ""));
   d.setAttribute("role", "group");
   d.setAttribute("aria-label", "Pavé du circuit");
-  ["1", "2", "3", "◀", "4", "5", "6", "▶", "7", "8", "9", ABC ? "123" : "Abc",
+  ["1", "2", "3", "◀", "4", "5", "6", "▶", "7", "8", "9", garder ? "Garder" : ABC ? "123" : "Abc",
    "⌫", "0", ...(grada ? ["Grada"] : []), "OK"].forEach(x => {
     const chiffre = /^\d$/.test(x);
     const b = el("button", chiffre ? null : x === "OK" ? "ok" : "fn",
                  x === "Grada" && valeur ? "Grada " + valeur : x);
     const aides = { "◀":"Précédent", "▶":"Suivant", "⌫":"Effacer le dernier caractère",
                     Abc:"Taper le circuit au clavier", "123":"Revenir au pavé",
-                    OK:"Terminer", Grada:"Aller au gradateur dont le numéro est tapé" };
+                    OK:"Terminer", Garder:"Ajouter ce gradateur à la liste sans circuit et passer au suivant", Grada:"Aller au gradateur dont le numéro est tapé" };
     if(aides[x]) b.setAttribute("aria-label", aides[x]);
     b.onclick = () => {
       if(chiffre){ if(String(valeur).length < 6) ecrire(String(valeur) + x); return; }
@@ -3444,6 +3446,7 @@ function padCircuit({ valeur, ecrire, ok, prec, suiv, grada }){
       if(x === "▶"){ suiv(); return; }
       if(x === "OK"){ ok(); return; }
       if(x === "Grada"){ grada(); return; }
+      if(x === "Garder"){ garder(); return; }
       ABC = !ABC;
       rafraichirVolet();
       if(ABC){ const i = volet && volet.querySelector(".cval input"); if(i) i.focus(); }
@@ -3470,6 +3473,14 @@ function gardeFocus(c, faire){
 }
 
 /* ------------------- volet : relever les gradateurs ----------------------- */
+/* Le relevé reprend après le dernier gradateur de la liste, ou au premier
+   numéro quand elle est vide ; la plage s'élargit jusque-là. */
+function debutReleve(){
+  const dans = gradas().filter(n => circuitGrada(n) || gardes().includes(n));
+  const n = dans.length ? dans[dans.length - 1] + 1 : P.reg.premier;
+  elargirG(n);
+  return Math.max(0, gradas().indexOf(n));
+}
 const prochainVide = (depuis = 0) => {
   const l = gradas();
   for(let k = depuis; k < l.length; k++) if(!circuitGrada(l[k])) return k;
@@ -3530,10 +3541,9 @@ function majVoletRelever(){
   const a = n ? adrGrada(n) : null;
   const f = n ? ficheGrada(n) : { circuit:"", note:"" };
   const lv = n ? (NIV[n] || 0) : 0;
-  const faits = relevesG();
 
   volet.querySelector(".tete h3").textContent = "Relevé des gradateurs";
-  volet.querySelector(".tete .cpt").textContent = `${faits} / ${l.length} relevés`;
+  volet.querySelector(".tete .cpt").textContent = pl(listesG(), "gradateur");
   const c = volet.querySelector(".corps");
 
   if(PAVE !== null){ c.replaceChildren(paveNumerique()); return; }
@@ -3568,8 +3578,6 @@ function majVoletRelever(){
     if(!depuisSaisie) majVoletRelever();
   };
   const d = el("div");
-  d.innerHTML = `<div class="avanc"><i style="width:${
-      Math.round(faits / Math.max(1, l.length) * 100)}%"></i></div>`;
   const ecr = el("div", "ecr");
   const num = el("button", "n", `${n}<small>changer</small>`);
   num.setAttribute("aria-label", `Gradateur ${n}, appeler un autre gradateur par son numéro`);
@@ -3582,6 +3590,10 @@ function majVoletRelever(){
     valeur:f.circuit, ecrire, ok:validerRelever,
     prec:() => pasG(-1),
     suiv:() => pasG(1),
+    garder:() => {
+      if(!gardes().includes(n)) gardes().push(n);
+      pasG(1);
+    },
     grada:() => {
       const m = parseInt(f.circuit, 10);
       if(!m || m > MAX_GRADA) return;
@@ -4567,9 +4579,8 @@ function majVoletPatchs(){
   d.append(z);
 
   if(NOUVEAU){
-    /* Un patch neuf demande ce qui change d'une salle à l'autre : son nom, le
-       protocole et le nombre de gradateurs — zéro pour une salle sans
-       gradateurs, au lieu des 96 posés d'office. */
+    /* Un patch neuf demande son nom et son protocole. Les gradateurs ne sont
+       pas comptés d'avance : ils entrent dans la liste quand on les relève. */
     const f = el("div", "neuf");
     f.innerHTML = `<h5>Nouveau patch</h5>
       <div class="f"><label for="np-nom">Nom</label>
@@ -4577,19 +4588,15 @@ function majVoletPatchs(){
                placeholder="Création, série 2026…"></div>
       <div class="plage"><div class="f"><label for="np-proto">Protocole</label>
           <select id="np-proto"><option${NOUVEAU.proto === "sACN" ? " selected" : ""}>sACN</option>
-            <option${NOUVEAU.proto === "Art-Net" ? " selected" : ""}>Art-Net</option></select></div>
-        <div class="f"><label for="np-nb">Gradateurs</label>
-          <input id="np-nb" data-focus="np-nb" inputmode="numeric" value="${NOUVEAU.nb}"></div></div>`;
+            <option${NOUVEAU.proto === "Art-Net" ? " selected" : ""}>Art-Net</option></select></div></div>`;
     f.querySelector("#np-nom").oninput = e => { NOUVEAU.nom = e.target.value; };
     f.querySelector("#np-proto").onchange = e => { NOUVEAU.proto = e.target.value; };
-    f.querySelector("#np-nb").oninput = e => { NOUVEAU.nb = e.target.value.replace(/\D/g, ""); };
     const r = el("div", "rang2");
     const ok = el("button", "act", "Créer le patch");
     const an = el("button", "act sec", "Annuler");
     ok.onclick = () => {
       const p = patchVide(NOUVEAU.nom.trim() || "Nouveau patch " + (PATCHS.length + 1));
       p.reg.proto = NOUVEAU.proto;
-      p.reg.nb = Math.max(0, Math.min(999, parseInt(NOUVEAU.nb, 10) || 0));
       PATCHS.push(p);
       NOUVEAU = null;
       chargerPatch(PATCHS.length - 1);
@@ -4603,7 +4610,7 @@ function majVoletPatchs(){
     const neuf = el("button", "act", "+ Nouveau patch");
     const dupl = el("button", "act sec", "Dupliquer celui-ci");
     neuf.onclick = () => {
-      NOUVEAU = { nom:"", proto:P.reg.proto, nb:"0" };
+      NOUVEAU = { nom:"", proto:P.reg.proto };
       majVoletPatchs();
       const i = volet.querySelector("#np-nom"); if(i) i.focus();
     };
@@ -4646,8 +4653,6 @@ function majVoletPatchs(){
       <input class="r-a" data-focus="r-a" inputmode="numeric" value="${P.reg.adr}"></div>
     <div class="f"><label>1er n° de gradateur</label>
       <input class="r-p" data-focus="r-p" inputmode="numeric" value="${P.reg.premier}"></div>
-    <div class="f"><label>Nb de gradateurs</label>
-      <input class="r-n" data-focus="r-n" inputmode="numeric" value="${P.reg.nb}"></div>
     ${sacnP ? `<div class="f"><label>Priorité sACN</label>
       <input class="r-prio" data-focus="r-prio" inputmode="numeric" value="${P.reg.prio}"></div>` : ""}
     <div class="f dest"><label>Destination</label>
@@ -4663,7 +4668,6 @@ function majVoletPatchs(){
   pla.querySelector(".r-u").onchange = e => { P.reg.u = nbre(e.target.value, 1, 63999, 1); peindre(); };
   pla.querySelector(".r-a").onchange = e => { P.reg.adr = nbre(e.target.value, 1, 512, 1); peindre(); };
   pla.querySelector(".r-p").onchange = e => { P.reg.premier = nbre(e.target.value, 1, 9999, 1); peindre(); };
-  pla.querySelector(".r-n").onchange = e => { P.reg.nb = nbre(e.target.value, 0, 999, 0); peindre(); };
   const pr = pla.querySelector(".r-prio");
   if(pr) pr.onchange = e => { P.reg.prio = nbre(e.target.value, 1, 200, 100); envoyer(); };
   pla.querySelector(".r-cible").onchange = e => { P.reg.cible = e.target.value.trim(); envoyer(); };
@@ -4711,17 +4715,12 @@ function majBarre(){
   $("#p-haut").replaceChildren(h);
 }
 function majCompteurs(){
-  const nG = gradas().length, nA = appareils().length;
-  const r = $("#p-bas .rel .cpt"), a = $("#p-bas .att .cpt");
-  if(r) r.textContent = restantsG();
-  if(a) a.textContent = restantsA();
+  const nG = listesG(), nA = appareils().length;
   const og = $('#p-haut .ongl [data-o="grada"] em'), oa = $('#p-haut .ongl [data-o="app"] em');
-  if(og) og.textContent = `${relevesG()}/${nG}`;
+  if(og) og.textContent = nG;
   if(oa) oa.textContent = `${relevesA()}/${nA}`;
   if(volet && VOLET === "relever"){
-    volet.querySelector(".tete .cpt").textContent = `${relevesG()} / ${nG} relevés`;
-    const i = volet.querySelector(".avanc i");
-    if(i) i.style.width = Math.round(relevesG() / Math.max(1, nG) * 100) + "%";
+    volet.querySelector(".tete .cpt").textContent = pl(nG, "gradateur");
   }
   if(volet && VOLET === "attr"){
     volet.querySelector(".tete .cpt").textContent = `${relevesA()} / ${nA} attribués`;
@@ -4738,6 +4737,7 @@ function exporterFeuille(){
     { day:"2-digit", month:"long", year:"numeric" });
   const liste = appareils();
   const releves = gradas().filter(n => circuitGrada(n));
+  const sansCirc = gradas().filter(n => !circuitGrada(n) && gardes().includes(n)).length;
   const circuits = parCircuit();
   const univ = [...new Set(liste.map(x => x.u))];
 
@@ -4789,7 +4789,7 @@ function exporterFeuille(){
 </style></head><body>
 <header>
   <div><h1>${esc(P.nom || "Patch")}</h1>
-    <p class="sous">${releves.length} gradateurs relevés sur ${gradas().length} ·
+    <p class="sous">${pl(releves.length, "gradateur")} ·
       ${circuits.length} circuits · ${liste.length} appareils · ${puissanceTotale(liste)} ·
       ${esc(P.reg.proto)} univers ${P.reg.u}</p></div>
   <div class="meta">${date}<br>Patch — inventaire régie</div>
@@ -4820,8 +4820,8 @@ function exporterFeuille(){
 </tr></thead><tbody>${tCircuits
   || `<tr><td colspan="4">Aucun circuit.</td></tr>`}</tbody></table>
 
-<footer>${gradas().length - releves.length} gradateurs sans circuit ne figurent pas dans le
-premier tableau.${puissanceTotale(liste).endsWith("*")
+<footer>${sansCirc ? `${pl(sansCirc, "gradateur")} sans circuit ne figurent pas dans le
+premier tableau.` : ""}${puissanceTotale(liste).endsWith("*")
   ? " L'astérisque signale une puissance incomplète : un appareil du patch n'a pas de puissance"
     + " renseignée à l'inventaire." : ""}</footer>
 </body></html>`;
