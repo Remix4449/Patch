@@ -3430,8 +3430,11 @@ function padCircuit({ valeur, ecrire, ok, prec, suiv, grada, garder }){
   const d = el("div", "cpad" + (grada ? " avec-grada" : ""));
   d.setAttribute("role", "group");
   d.setAttribute("aria-label", "Pavé du circuit");
-  ["1", "2", "3", "◀", "4", "5", "6", "▶", "7", "8", "9", garder ? "Garder" : ABC ? "123" : "Abc",
-   "⌫", "0", ...(grada ? ["Grada"] : []), "OK"].forEach(x => {
+  /* « Garder » ajoute le gradateur à la liste puis passe au suivant : posé juste
+     sous ▶, un appui un peu bas l'ajoutait sans qu'on le voie. Il descend en bas
+     à gauche, et ⌫, sans effet sur un circuit vide, prend sa place sous ▶. */
+  ["1", "2", "3", "◀", "4", "5", "6", "▶", "7", "8", "9", "⌫",
+   garder ? "Garder" : ABC ? "123" : "Abc", "0", ...(grada ? ["Grada"] : []), "OK"].forEach(x => {
     const chiffre = /^\d$/.test(x);
     const b = el("button", chiffre ? null : x === "OK" ? "ok" : "fn",
                  x === "Grada" && valeur ? "Grada " + valeur : x);
