@@ -2707,7 +2707,7 @@ const circuitApp = n => String(P.fiches[n] || "").trim();
 /* Les gradateurs qui comptent sont ceux de la liste : un circuit, ou gardés sans
    circuit. Le reste de la plage n'est qu'un chemin que les flèches ont tracé. */
 const listesG = () => gradas().filter(n => circuitGrada(n) || gardes().includes(n)).length;
-const restantsG = () => gradas().filter(n => !circuitGrada(n)).length;
+const restantsG = () => gradas().filter(n => !circuitGrada(n) && gardes().includes(n)).length;
 const relevesG = () => gradas().filter(n => circuitGrada(n)).length;
 const restantsA = () => appareils().filter(x => !circuitApp(x.n)).length;
 const relevesA = () => appareils().filter(x => circuitApp(x.n)).length;
@@ -2870,7 +2870,6 @@ function routeEmission(etat){
 
 /* ------------------------------ l'écran ---------------------------------- */
 let ONGLET = "tout";     // tout | app | grada — l'onglet survit aux rendus
-let MASQUE = true;       // n'afficher que les gradateurs qui portent un circuit
 /* Le pupitre en barre part replié sur une ligne : déplié, il prenait deux
    rangées même plateau noir, et la liste n'avait plus que 41 % de l'écran. */
 let REPLIEE = true;
@@ -3205,15 +3204,17 @@ function pile(titre, compte, elements, rien, boutons){
 }
 
 /* Deux cents gradateurs dans une liste, personne ne les lit : on n'affiche que
-   ceux qui portent un circuit — plus celui qu'on relève, pour qu'on le voie
-   s'allumer dans la liste. Le bouton de l'en-tête rend les autres visibles le
-   temps d'une vérification. */
+   ceux qui portent un circuit ou qu'on a gardés. */
 /* Une rangée de gradateur se refait seule : relever deux cents gradateurs, c'est
    deux cents « flèche » et autant de frappes de circuit, et reconstruire toute
    la liste à chacune devenait lent sur un téléphone — les appuis rapides sur
    la flèche se perdaient. */
 const dansListeG = n => circuitGrada(n) || gardes().includes(n);
-const visibleG = n => !MASQUE || dansListeG(n) || (VOLET === "relever" && n === POINTE);
+/* Seuls les gradateurs de la liste s'affichent. Ceux que les flèches ont
+   seulement parcourus n'y entrent jamais, même celui qu'on relève : le volet le
+   montre déjà. « Tout voir » les faisait apparaître par dizaines, « à relever »,
+   sans qu'on ait rien demandé. */
+const visibleG = dansListeG;
 
 function rangG(n){
   const a = adrGrada(n) || { u:"—", canal:"—" };
@@ -3232,7 +3233,6 @@ function rangG(n){
     }
   });
   r.dataset.g = n;
-  if(n === POINTE && VOLET === "relever") r.classList.add("pointe");
   return r;
 }
 
@@ -3240,16 +3240,12 @@ const rienG = () => gradas().length
   ? "Aucun gradateur relevé : touchez « Relever » en bas."
   : "Aucun gradateur : touchez « Relever » en bas.";
 const comptesG = () => pl(listesG(), "gradateur");
-const cachesG = () => gradas().filter(n => !visibleG(n) && !dansListeG(n)).length;
-const toutVoirG = () => MASQUE ? `tout voir · ${cachesG()}` : "masquer les vides";
 
 function pileGradas(){
   const tous = gradas();
   const rangs = tous.filter(visibleG).map(rangG);
 
-  const b = el("button", "tv", toutVoirG());
-  b.onclick = () => { MASQUE = !MASQUE; peindre(); };
-  const p = pile("Gradateurs", comptesG(), rangs, rienG(), [(cachesG() || !MASQUE) ? b : null, boutonChoix("g")]);
+  const p = pile("Gradateurs", comptesG(), rangs, rienG(), [boutonChoix("g")]);
   p.dataset.pile = "g";
   return p;
 }
@@ -3274,8 +3270,6 @@ function majRangG(...ns){
   if(!vide && rien) rien.remove();
   const cpt = pile.querySelector("h4 .ti span");
   if(cpt) cpt.textContent = comptesG();
-  const tv = pile.querySelector(".bts .tv");
-  if(tv) tv.textContent = toutVoirG();
 }
 
 function pileApps(){
@@ -4689,7 +4683,7 @@ function majVoletPatchs(){
 function chargerPatch(i){
   toutEteindre();
   iPatch = i; P = PATCHS[i];
-  ONGLET = "tout"; MASQUE = true;
+  ONGLET = "tout";
   NET.emissionArret();
   sauverPatchs();
   fermerVolet();
