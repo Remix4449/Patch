@@ -3498,16 +3498,16 @@ function elargirG(n){
   P.exclus = P.exclus.filter(x => x !== n);
   return true;
 }
+/* ◀ ▶ vont au numéro voisin, pas au voisin dans la plage : après avoir tout
+   supprimé, les gradateurs que les flèches avaient parcourus restaient dans la
+   plage sans se voir, et ▶ sautait de 1 à l'un d'eux au lieu d'aller au 2. Un
+   numéro supprimé revient simplement, sans circuit. */
 function pasG(sens){
-  const l = gradas();
-  /* On part du gradateur affiché, pas du rang mémorisé : les deux ne divergent
-     jamais ainsi, quel que soit le chemin pris pour arriver ici. */
-  const ici = l.indexOf(POINTE);
-  const k = (ici >= 0 ? ici : INDICE) + sens;
-  if(k >= 0 && k < l.length){ allerA(k); return; }
-  const n = sens < 0 ? (l[0] != null ? l[0] - 1 : P.reg.premier - 1) : (l.length ? l[l.length - 1] + 1 : P.reg.premier);
+  const ici = POINTE != null ? POINTE : gradas()[INDICE];
+  const n = ici != null ? ici + sens : P.reg.premier;
+  const neuf = n > P.reg.premier + P.reg.nb - 1 || n < P.reg.premier || exclu(n);
   if(!elargirG(n)) return;
-  allerA(gradas().indexOf(n), 100, true);
+  allerA(gradas().indexOf(n), 100, neuf);
 }
 
 function allerA(k, niveau = 100, complet = false){
@@ -4115,13 +4115,13 @@ function clavierEos(){
 /* Le champ du circuit s'ouvre sur le pavé chiffres, et « Abc » passe au
    clavier complet : l'inputmode numérique seul interdisait « 12b » ou « face »,
    que la feuille et le Pupitre savent pourtant lire. */
-function champCircuit(valeur, etiquette, fleches){
+function champCircuit(valeur, etiquette, fleches, quoi = "Appareil"){
   const lettres = /\D/.test(valeur || "");
   return `<div class="cirl"><input class="cir" data-focus="fic-cir" inputmode="${lettres ? "text" : "numeric"}"
       value="${esc(valeur || "")}" placeholder="—" autocapitalize="off" enterkeyhint="done"
       aria-label="${esc(etiquette)}">${fleches
-        ? `<button type="button" class="abc vois" data-s="-1" aria-label="Appareil précédent">◀</button>`
-          + `<button type="button" class="abc vois" data-s="1" aria-label="Appareil suivant">▶</button>` : ""}
+        ? `<button type="button" class="abc vois" data-s="-1" aria-label="${quoi} précédent">◀</button>`
+          + `<button type="button" class="abc vois" data-s="1" aria-label="${quoi} suivant">▶</button>` : ""}
     <button type="button" class="abc" aria-label="Changer de clavier">${lettres ? "123" : "Abc"}</button></div>`;
 }
 function brancherAbc(d){
@@ -4153,7 +4153,7 @@ function majVoletFiche(){
     volet.querySelector(".tete .cpt").textContent =
       `U${a.u} · canal ${a.canal}`;
     d.innerHTML = `<div class="f"><label>Circuit</label>
-        ${champCircuit(f.circuit, "Circuit du gradateur " + n)}</div>
+        ${champCircuit(f.circuit, "Circuit du gradateur " + n, true, "Gradateur")}</div>
       <div class="f"><label>Repère</label>
         <input class="txt rep" value="${esc(f.note)}" placeholder="face jardin, contre 2…"
                aria-label="Repère du gradateur ${n}"></div>
@@ -4161,6 +4161,25 @@ function majVoletFiche(){
       <div class="kv"><span>Niveau</span><b>${lv} %</b></div>`;
     d.querySelector(".cir").oninput = e => { f.circuit = e.target.value; majListe(); majCompteurs(); };
     d.querySelector(".rep").oninput = e => { f.note = e.target.value; majListe(); };
+
+    /* ◀ ▶ : le numéro d'avant ou d'après, comme au Relevé, pour noter les
+       circuits de proche en proche sans refermer la fiche. Le gradateur allumé
+       passe la main au suivant. */
+    d.querySelectorAll(".vois").forEach(b => {
+      b.onmousedown = e => e.preventDefault();
+      b.onclick = () => {
+        const m = n + +b.dataset.s;
+        if(!elargirG(m)) return;
+        CIBLE = { t:"g", n:m };
+        if(lv > 0) allumerSeuls([m]);
+        peindre();
+        majVoletFiche();
+        const i = volet && volet.querySelector(".cir");
+        if(i){ i.focus(); i.select(); }
+        const r = $(`.rg[data-g="${m}"]`);
+        if(r) r.scrollIntoView({ block:"nearest" });
+      };
+    });
 
     const r = el("div", "rang2");
     const all = el("button", "act" + (lv > 0 ? "" : " sec"), lv > 0 ? "Éteindre" : "Allumer");
