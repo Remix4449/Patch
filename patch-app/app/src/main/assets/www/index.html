@@ -2896,6 +2896,7 @@ let DMSG = "";           // ce qu'a donné la dernière ligne posée, quand ça 
 let INDICE = 0;          // rang du gradateur en cours de relevé
 let CONFIRME = null;     // gradateur sans circuit pour lequel « OK » demande confirmation
 const gardes = () => P.garde || (P.garde = []);   // gradateurs sans circuit gardés dans la liste
+const oublierGarde = n => { P.garde = gardes().filter(x => x !== n); };
 let fond = null, volet = null;
 
 function vPatch(){
@@ -3177,7 +3178,7 @@ function supprimerSelection(){
   annulable(msg, () => {
     gs.forEach(n => {
       if(!P.exclus.includes(n)) P.exclus.push(n);
-      delete P.grada[n]; delete NIV[n];
+      delete P.grada[n]; delete NIV[n]; oublierGarde(n);
       if(SEL === n) SEL = 0;
     });
     /* Du dernier au premier : retirer un appareil ne change pas le numéro de
@@ -3495,6 +3496,9 @@ function elargirG(n){
     P.reg.adr = Math.max(1, P.reg.adr - (P.reg.premier - n));
     P.reg.nb += P.reg.premier - n; P.reg.premier = n;
   } else if(n > fin) P.reg.nb += n - fin;
+  /* Un numéro supprimé qui revient sous les flèches revient vierge. Il restait
+     « gardé » d'avant sa suppression et rentrait dans la liste tout seul. */
+  if(exclu(n)){ oublierGarde(n); delete P.grada[n]; }
   P.exclus = P.exclus.filter(x => x !== n);
   return true;
 }
@@ -4330,7 +4334,7 @@ function majVoletFiche(){
 function supprimerGrada(n){
   annulable(`Gradateur ${n} retiré`, () => {
     if(!P.exclus.includes(n)) P.exclus.push(n);
-    delete P.grada[n];
+    delete P.grada[n]; oublierGarde(n);
   });
   delete NIV[n];
   if(SEL === n) SEL = 0;
