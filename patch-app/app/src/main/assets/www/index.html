@@ -1730,12 +1730,15 @@ function resultats(){
   return d;
 }
 
+/* « ×12 · act : 10 » : le parc, puis ce qu'il en reste quand des prêts sont
+   sortis (logistique.js). */
+const nbParc = x => !x.nb ? "" : "×" + x.nb + (parcActuel(x) != null ? " · act : " + parcActuel(x) : "");
 function rowProj(p){
   const b = el("button", "row");
   b.style.setProperty("--c", "var(--proj)");
   b.innerHTML = `<span class="av">${ic(ICO_FAM[p.fam] || "lyre")}</span>
     <span class="g"><b>${esc(p.nom)}</b><span>${esc(p.marque)} · ${esc(p.fam)}</span></span>
-    <span class="r">${esc(p.w)}<i>${p.nb ? "×" + p.nb : esc(p.kg)}</i></span>`;
+    <span class="r">${esc(p.w)}<i>${p.nb ? esc(nbParc(p)) : esc(p.kg)}</i></span>`;
   b.onclick = () => go({ v:"fiche", p });
   return b;
 }
@@ -1750,12 +1753,12 @@ function rowSimple(t, s, r, r2, c, icone){
 function rowMach(m){
   return rowSimple(m.nom,
     [m.l && "L " + m.l, m.h && "H " + m.h, m.vit, m.trust].filter(Boolean).join(" · ") || "—",
-    m.nb ? "×" + m.nb : "", m.charge || "", "var(--mach)", ICO_MACH[m.type] || "structure");
+    nbParc(m), m.charge || "", "var(--mach)", ICO_MACH[m.type] || "structure");
 }
 const ICO_DIV = { "Électricité":"elec", "Réseau":"reseau", "Pupitre":"fader", "Vidéo":"projo", "Câblage":"cable" };
 function rowDiv(x){
   return rowSimple(x.nom, [x.marque, x.note].filter(Boolean).join(" · ") || x.type || "—",
-    x.nb ? "×" + x.nb : "", "", "var(--div)", ICO_DIV[x.type] || "caisse");
+    nbParc(x), "", "var(--div)", ICO_DIV[x.type] || "caisse");
 }
 function rowHaut(h){
   return rowSimple(h.nom, [h.type, h.pos].filter(Boolean).join(" · ") || "—",
@@ -1801,8 +1804,10 @@ function vFiche(p){
     <p>${esc(p.marque)}</p>
     <div class="stats"><div><b>${esc(p.w)}</b><span>Puissance</span></div>
       <div><b>${esc(p.kg)}</b><span>Poids</span></div>
-      <div><b>${p.nb ?? "—"}</b><span>Au parc</span></div></div>`;
+      <div><b>${p.nb ?? "—"}</b><span>Au parc</span></div>
+      ${parcActuel(p) != null ? `<div><b>${parcActuel(p)}</b><span>Act.</span></div>` : ""}</div>`;
   d.append(h);
+  d.append(cartePrets(p));
   d.append(carteModes(p));
   const a = el("div", "card");
   a.innerHTML = `<h4>Accroche</h4>
@@ -1817,6 +1822,18 @@ function vFiche(p){
     d.append(mod);
   }
   return d;
+}
+
+/* Les prêts qui tiennent du matériel de cette fiche hors du parc. */
+function cartePrets(obj){
+  const s = sortisDuParc().get(obj);
+  if(!s) return document.createDocumentFragment();
+  const c = el("div", "card");
+  c.innerHTML = `<h4>Prêté · ${s.q}</h4>`;
+  const l = el("div", "rowlist");
+  s.prets.forEach(x => l.append(rowLog(x, logEtat(x, logAuj()))));
+  c.append(l);
+  return c;
 }
 
 /* Bibliothèque de modes : saisie à la main ou import d'un fichier GDTF. */
@@ -7213,6 +7230,7 @@ const VIEWS = { home, parc:vParc, outils:vOutils, ups:vUps, dist:vDist,
 let VUE_AV = null;              // l'écran du rendu précédent
 function render(){
   if(STOP){ STOP(); STOP = null; }
+  SORTIS = null;
   /* Un rendu détruit les champs : on note lequel avait le curseur pour le rendre. */
   const avant = document.activeElement;
   const marque = avant && avant.dataset ? avant.dataset.focus : null;
