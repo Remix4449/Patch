@@ -383,6 +383,9 @@ const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", 
               "septembre", "octobre", "novembre", "décembre"];
 const CAL_LIGNES = 3;                          // pastilles par semaine avant la mesure de l'écran
 const CAL_T = 26, CAL_L = 17, CAL_E = 2;       // numéro du jour, ligne de pastille, écart (px)
+/* Comme dans Today, les pastilles se font fines pour tout montrer : leur
+   hauteur descend de CAL_LMAX à CAL_LMIN tant que le mois ne tient pas. */
+const CAL_LMAX = 16, CAL_LMIN = 12;
 const CLE_LOG_VOLET = "logistique.volet.v1";
 
 const numSemaine = j => {
@@ -458,11 +461,47 @@ function vLogMois(){
     return out;
   };
 
-  /* Une semaine du mois `mo`, avec au plus `L` lignes de pastilles et, si elle
-     a une hauteur imposée, étirée jusqu'à elle. */
-  const semaine = (l, L, h, mo) => {
+  /* Les fiches d'une semaine. Un spectacle donne une pastille par jour de
+     jeu, avec ses heures ; les autres fiches, une barre de leur premier à
+     leur dernier jour. Les plus longues d'abord, pour le placement. */
+  const itemsSemaine = l => {
     const jours = [...Array(7)].map((_, i) => plusJours(l, i));
     const dim = jours[6];
+    const items = [];
+    tous.forEach(x => {
+      if(x.type === "spec"){
+        if(x.debut > dim || finDe(x) < l) return;
+        jours.forEach((jj, i) => { const s = seancesDu(x, jj);
+          if(s.length) items.push({ x, cs:i, ce:i, h:s[0], lab:s.map(heureCourte).join(" ") + " " + x.titre }); });
+        return;
+      }
+      const fin = finDe(x);
+      if(x.debut > dim || fin < l) return;
+      items.push({ x, cs:x.debut < l ? 0 : ecartJours(l, x.debut), ce:fin > dim ? 6 : ecartJours(l, fin),
+                   long:fin !== x.debut, avant:x.debut < l, apres:fin > dim, h:x.hdebut || "", lab:etiquette(x) });
+    });
+    items.sort((p, q) => (q.ce - q.cs) - (p.ce - p.cs) || p.cs - q.cs
+      || p.h.localeCompare(q.h) || p.x.titre.localeCompare(q.x.titre));
+    return items;
+  };
+  /* Chaque fiche sur la première ligne libre ; au-delà de `n` lignes, elle
+     est comptée cachée dans ses jours. */
+  const placer = (items, n) => {
+    const lignes = [], cache = Array(7).fill(0), pos = [];
+    items.forEach(it => {
+      let li = 0;
+      while(lignes[li] && lignes[li].slice(it.cs, it.ce + 1).some(Boolean)) li++;
+      if(li >= n){ for(let c = it.cs; c <= it.ce; c++) cache[c]++; return; }
+      (lignes[li] = lignes[li] || Array(7).fill(false)).fill(true, it.cs, it.ce + 1);
+      pos.push([it, li]);
+    });
+    return { pos, cache, n:lignes.length };
+  };
+
+  /* Une semaine du mois `mo`, avec au plus `L` lignes de pastilles hautes de
+     `lh` et, si elle a une hauteur imposée, étirée jusqu'à elle. */
+  const semaine = (l, L, h, mo, lh, items) => {
+    const jours = [...Array(7)].map((_, i) => plusJours(l, i));
     const sem = el("div", "cal-sem");
     const num = el("span", "cal-num", String(numSemaine(l)));
     sem.append(num);
@@ -481,39 +520,9 @@ function vLogMois(){
       sem.append(f);
     });
 
-    /* Les fiches de la semaine. Un spectacle donne une pastille par jour de
-       jeu, avec ses heures ; les autres fiches, une barre de leur premier à
-       leur dernier jour. */
-    const items = [];
-    tous.forEach(x => {
-      if(x.type === "spec"){
-        if(x.debut > dim || finDe(x) < l) return;
-        jours.forEach((jj, i) => { const s = seancesDu(x, jj);
-          if(s.length) items.push({ x, cs:i, ce:i, h:s[0], lab:s.map(heureCourte).join(" ") + " " + x.titre }); });
-        return;
-      }
-      const fin = finDe(x);
-      if(x.debut > dim || fin < l) return;
-      items.push({ x, cs:x.debut < l ? 0 : ecartJours(l, x.debut), ce:fin > dim ? 6 : ecartJours(l, fin),
-                   long:fin !== x.debut, avant:x.debut < l, apres:fin > dim, h:x.hdebut || "", lab:etiquette(x) });
-    });
-    /* Les plus longues d'abord, chacune sur la première ligne libre. */
-    items.sort((p, q) => (q.ce - q.cs) - (p.ce - p.cs) || p.cs - q.cs
-      || p.h.localeCompare(q.h) || p.x.titre.localeCompare(q.x.titre));
-    const placer = n => {
-      const lignes = [], cache = Array(7).fill(0), pos = [];
-      items.forEach(it => {
-        let li = 0;
-        while(lignes[li] && lignes[li].slice(it.cs, it.ce + 1).some(Boolean)) li++;
-        if(li >= n){ for(let c = it.cs; c <= it.ce; c++) cache[c]++; return; }
-        (lignes[li] = lignes[li] || Array(7).fill(false)).fill(true, it.cs, it.ce + 1);
-        pos.push([it, li]);
-      });
-      return { pos, cache };
-    };
-    /* Ce qui déborde laisse sa dernière ligne au « +n ». */
-    let pl = placer(L);
-    if(pl.cache.some(Boolean)) pl = placer(L - 1);
+    /* Ce qui déborde encore laisse sa dernière ligne au « +n ». */
+    let pl = placer(items, L);
+    if(pl.cache.some(Boolean)) pl = placer(items, L - 1);
     pl.pos.forEach(([it, li]) => {
       const p = el("span", "cal-ev" + (it.long ? " long" : "") + (it.avant ? " avant" : "") + (it.apres ? " apres" : "")
         + (it.x.fait ? " fait" : ""), esc(it.lab));
@@ -536,7 +545,8 @@ function vLogMois(){
       p.style.gridRow = String(L + 1);
       sem.append(p);
     });
-    sem.style.gridTemplateRows = `${CAL_T}px repeat(${L}, ${CAL_L}px)` + (h ? " 1fr" : "");
+    sem.style.setProperty("--lh", lh + "px");
+    sem.style.gridTemplateRows = `${CAL_T}px repeat(${L}, ${lh}px)` + (h ? " 1fr" : "");
     if(h) sem.style.height = h + "px";
     num.style.gridRow = "1 / -1";
     sem.querySelectorAll(".cal-fond").forEach(f => f.style.gridRow = "1 / -1");
@@ -544,14 +554,40 @@ function vLogMois(){
   };
 
   /* Chaque mois remplit la hauteur disponible avec ses propres semaines : un
-     mois de cinq lignes n'a pas de rang vide sous lui. */
+     mois de cinq lignes n'a pas de rang vide sous lui. La place se partage
+     sur ce que chaque semaine a à montrer : une semaine chargée prend la
+     hauteur qu'une semaine vide n'utilise pas, et les pastilles s'affinent
+     tant que tout ne tient pas. Le « +n » ne reste que si, même fines, elles
+     débordent de l'écran. */
   const volets = [-1, 0, 1].map(moisVoisin);
   const dessiner = place => piste.replaceChildren(...volets.map(mo => {
     const ls = lundisDe(mo);
-    const h = place ? Math.max(58, Math.floor(place / ls.length)) : 0;
-    const L = h ? Math.max(1, Math.floor((h - 3 - CAL_T - CAL_E) / (CAL_L + CAL_E))) : CAL_LIGNES;
+    const its = ls.map(itemsSemaine);
     const v = el("div", "cal-vue");
-    v.append(...ls.map(l => semaine(l, L, h && h - 3, mo)));
+    if(!place){
+      v.append(...ls.map((l, k) => semaine(l, CAL_LIGNES, 0, mo, CAL_L, its[k])));
+      return v;
+    }
+    const besoin = its.map(it => placer(it, Infinity).n);
+    const tete = 3 + CAL_T + CAL_E;                  // marge, numéro du jour, écart
+    const lignesDe = lh => Math.floor((place - ls.length * tete) / (lh + CAL_E));
+    const total = besoin.reduce((a, b) => a + b, 0);
+    let lh = CAL_LMAX;
+    while(lh > CAL_LMIN && lignesDe(lh) < total) lh--;
+    /* Pas assez de lignes même fines : on en retire aux semaines les plus
+       chargées, une à une. */
+    const L = besoin.slice();
+    for(let reste = total - lignesDe(lh); reste > 0; reste--){
+      const k = L.indexOf(Math.max(...L));
+      if(L[k] <= 1) break;
+      L[k]--;
+    }
+    const plein = ls.map((_, k) => tete + L[k] * (lh + CAL_E));
+    const libre = Math.max(0, place - plein.reduce((a, b) => a + b, 0));
+    v.append(...ls.map((l, k) => {
+      const h = Math.max(58, Math.floor(plein[k] + libre / ls.length));
+      return semaine(l, Math.max(1, L[k]), h - 3, mo, lh, its[k]);
+    }));
     return v;
   }));
   dessiner(0);
