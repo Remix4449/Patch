@@ -21,8 +21,28 @@ function logTout(){
   if(!LOG_DATA){
     const d = lireLocal(CLE_LOG, null);
     LOG_DATA = Array.isArray(d && d.elements) ? d.elements : [];
+    if(dedoublonner(LOG_DATA)) ecrireLocal(CLE_LOG, { version:1, elements:LOG_DATA });
   }
   return LOG_DATA;
+}
+/* Deux fiches de Patch identiques en tout sauf l'identifiant sont une même
+   fiche notée deux fois (un « Ajouter » touché deux fois pendant que
+   l'agenda du téléphone répondait) : la seconde est retirée, avec son
+   rendez-vous dans l'agenda. Le parc ne compte ainsi le prêt qu'une fois. */
+const empreinte = x => JSON.stringify(Object.keys(x).filter(k => !["id", "maj", "tel", "tel2", "telCal"].includes(k))
+  .sort().map(k => [k, x[k]]));
+function dedoublonner(t){
+  const vus = new Set();
+  let n = 0;
+  t.forEach((x, i) => {
+    if(x.supprime || /^cal-/.test(x.id)) return;
+    const e = empreinte(x);
+    if(!vus.has(e)){ vus.add(e); return; }
+    try { if(typeof retirerTel === "function") retirerTel(x); } catch(err){}
+    t[i] = { id:x.id, type:x.type, supprime:true, maj:Date.now() };
+    n++;
+  });
+  return n;
 }
 const logVivants = () => logTout().filter(x => !x.supprime);
 const sauverLog = () => ecrireLocal(CLE_LOG, { version:1, elements:logTout() });
@@ -39,8 +59,13 @@ const LOG_TYPES = {
   pret: { t:"Prêt", pl:"Prêts", un:"un prêt", i:"pret", c:"var(--pret)",
           debut:"Sortie", fin:"Retour prévu", sup:"Retirer ce prêt" },
   stag: { t:"Stagiaire", pl:"Stagiaires", un:"un stagiaire", i:"stag", c:"var(--stag)",
-          debut:"Arrivée", fin:"Départ", sup:"Retirer ce stagiaire" }
+          debut:"Arrivée", fin:"Départ", sup:"Retirer ce stagiaire" },
+  /* Du matériel qui part ↗ ou qui arrive ↘ : un envoi, un retour, un achat.
+     Un achat n'a qu'une arrivée. */
+  logi: { t:"Logistique", pl:"Logistique", un:"une fiche logistique", i:"caisse", c:"var(--logi)",
+          debut:"Départ", fin:"Arrivée", sup:"Retirer cette fiche" }
 };
+const FLECHE_D = "↗", FLECHE_A = "↘";
 const LOG_CATS = ["Livraison", "Enlèvement", "Montage", "Démontage", "Transport",
                   "Réunion", "Répétition", "Visite", "Autre"];
 
@@ -92,8 +117,22 @@ const LOG_CHAMPS = {
     { rang:[{ c:"debut", l:"Arrivée", type:"date", req:true }, { c:"fin", l:"Départ", type:"date" }] },
     { c:"contact", l:"Contact", ph:"Téléphone, mail", plus:true },
     { c:"note", l:"Note", zone:true, ph:"Horaires, convention, objectifs…", plus:true }
+  ],
+  /* Deux dates facultatives, l'une ou l'autre suffit : un achat n'a pas de
+     départ. Elles donnent `debut` et `fin` à l'enregistrement. */
+  logi: [
+    { c:"titre", l:"Quoi", ph:"Pendrillons, commande de lampes", req:true },
+    { c:"tiers", l:"Avec qui", ph:"Fournisseur, transporteur, théâtre" },
+    { rang:[{ c:"depart", l:FLECHE_D + " Départ", type:"date" }, { c:"arrivee", l:FLECHE_A + " Arrivée", type:"date" }] },
+    { c:"lieu", l:"Lieu", ph:"Quai de déchargement" },
+    { c:"contact", l:"Contact", ph:"Nom, téléphone", plus:true },
+    { c:"note", l:"Note", zone:true, ph:"Numéro de commande, colisage…", plus:true },
+    { c:"fait", l:"Fait", coche:true }
   ]
 };
+/* Les mouvements d'une fiche logistique, dans l'ordre : départ puis arrivée. */
+const mouvements = x => [x.depart && { j:x.depart, f:FLECHE_D, t:"départ" },
+                         x.arrivee && { j:x.arrivee, f:FLECHE_A, t:"arrivée" }].filter(Boolean);
 const champsPlats = t => LOG_CHAMPS[t].flatMap(f => f.rang || [f]);
 
 /* ------------------------------- les dates ------------------------------ */
@@ -200,6 +239,17 @@ function logEtat(x, j){
              r2:[pro && pro.j === x.debut ? heuresDites(pro.s) : "", x.fin && x.fin !== x.debut ? "→ " + jourCourt(x.fin) : ""]
                .filter(Boolean).join(" ") };
   }
+  if(x.type === "logi"){
+    const mv = mouvements(x);
+    if(!mv.length) return { g:x.fait ? "fini" : "sansdate", cle:"", r:x.fait ? "fait" : "", r2:"" };
+    const der = mv[mv.length - 1];
+    if(x.fait || der.j < j) return { g:"fini", cle:der.j, r:x.fait ? "fait" : der.f + " " + der.t, r2:jourCourt(der.j) };
+    const pro = mv.find(m => m.j >= j);
+    if(pro.j === j) return { g:"auj", cle:j, r:pro.f + " " + pro.t, r2:mv.length > 1 && pro === mv[0] ? FLECHE_A + " " + jourCourt(mv[1].j) : "" };
+    if(mv.length > 1 && mv[0].j < j) return { g:"cours", cle:pro.j, r:"en route", r2:FLECHE_A + " " + jourCourt(pro.j) };
+    return { g:pro.j <= plusJours(j, 7) ? "semaine" : "plus", cle:pro.j, r:pro.f + " " + jourCourt(pro.j, true),
+             r2:mv.length > 1 && pro === mv[0] ? FLECHE_A + " " + jourCourt(mv[1].j) : "" };
+  }
   if(x.type === "stag"){
     if(!x.debut) return { g:"sansdate", cle:"", r:"", r2:"" };
     if(fin < j) return { g:"fini", cle:fin, r:"parti", r2:jourCourt(fin) };
@@ -234,6 +284,8 @@ function logSous(x){
     return [(x.sens || "Prêté à") + " " + (x.tiers || "?"), x.spectacle].filter(Boolean).join(" · ");
   if(x.type === "spec")
     return [x.tiers, x.lieu].filter(Boolean).join(" · ") || "Spectacle";
+  if(x.type === "logi")
+    return [mouvements(x).map(m => m.f + " " + jourCourt(m.j)).join("  "), x.tiers, x.lieu].filter(Boolean).join(" · ") || "Logistique";
   if(x.type === "stag")
     return [x.formation, x.service, x.tuteur && "avec " + x.tuteur].filter(Boolean).join(" · ") || "Stagiaire";
   return [x.cat, x.lieu, x.spectacle].filter(Boolean).join(" · ") || "Événement";
@@ -414,6 +466,7 @@ function couleurLog(x, e){
 const etiquette = x => (x.type === "ev" && x.hdebut ? heureCourte(x.hdebut) + " " : "") + logTitre(x);
 /* Un spectacle n'occupe que ses jours de jeu ; le reste, tout son intervalle. */
 const surJour = (x, j) => x.type === "spec" ? seancesDu(x, j).length > 0
+  : x.type === "logi" ? mouvements(x).some(m => m.j === j)
   : x.debut && x.debut <= j && finDe(x) >= j;
 
 function vLogMois(){
@@ -473,6 +526,12 @@ function vLogMois(){
         if(x.debut > dim || finDe(x) < l) return;
         jours.forEach((jj, i) => { const s = seancesDu(x, jj);
           if(s.length) items.push({ x, cs:i, ce:i, h:s[0], lab:s.map(heureCourte).join(" ") + " " + x.titre }); });
+        return;
+      }
+      /* Une fiche logistique : une pastille fléchée par mouvement. */
+      if(x.type === "logi"){
+        mouvements(x).forEach(m => { if(m.j >= l && m.j <= dim){ const i = ecartJours(l, m.j);
+          items.push({ x, cs:i, ce:i, h:"", lab:m.f + " " + x.titre }); } });
         return;
       }
       const fin = finDe(x);
@@ -857,9 +916,31 @@ function momentTel(x){
    Une fiche venue de l'agenda ne repart jamais : elle y est déjà. */
 const sortieDe = x => (!x || /^cal-/.test(x.id) ? "" : (logCal().sortie || {})[x.type === "spec" ? "ev" : x.type] || "");
 
+/* Une fiche logistique part en deux rendez-vous d'une journée, le titre
+   précédé de sa flèche, pour que Today les montre aussi : le départ dans
+   `tel`, l'arrivée dans `tel2`. */
+function pousserLogi(x, cal){
+  if(x.telCal && String(x.telCal) !== String(cal)){
+    [x.tel, x.tel2].forEach(t => t && NET.agendaTel.retirer(t)); x.tel = 0; x.tel2 = 0;
+  }
+  const ecrire = (cle, m) => {
+    if(!m){ if(x[cle]) NET.agendaTel.retirer(x[cle]); delete x[cle]; return; }
+    const [a, mo, j] = m.j.split("-").map(Number);
+    const ev = NET.agendaTel.ecrire(cal, x[cle], { titre:m.f + " " + x.titre, lieu:x.lieu || "",
+      note:[logSous(x), x.contact, x.note].filter(Boolean).join("\n"),
+      debut:Date.UTC(a, mo - 1, j), fin:Date.UTC(a, mo - 1, j + 1), journee:true });
+    if(ev) x[cle] = ev; else delete x[cle];
+  };
+  const mv = mouvements(x);
+  ecrire("tel", mv.find(m => m.f === FLECHE_D));
+  ecrire("tel2", mv.find(m => m.f === FLECHE_A));
+  if(x.tel || x.tel2) x.telCal = String(cal); else delete x.telCal;
+}
+
 function pousserTel(x){
   const cal = sortieDe(x);
   if(!cal || !NET.agendaTel.dispo || !NET.agendaTel.ecritAutorise()) return;
+  if(x.type === "logi") return pousserLogi(x, cal);
   const r = momentTel(x);
   if(!r) return;
   /* L'agenda de sortie a changé : l'ancien rendez-vous s'en va. */
@@ -869,15 +950,16 @@ function pousserTel(x){
 }
 
 function retirerTel(x){
-  if(!x || !x.tel || !NET.agendaTel.dispo || !NET.agendaTel.ecritAutorise()) return;
-  NET.agendaTel.retirer(x.tel);
+  if(!x || !(x.tel || x.tel2) || !NET.agendaTel.dispo || !NET.agendaTel.ecritAutorise()) return;
+  [x.tel, x.tel2].forEach(t => t && NET.agendaTel.retirer(t));
 }
 
 /* Les rendez-vous que Patch a écrits lui-même : on ne les relit pas comme des
    fiches, sinon chaque fiche apparaîtrait deux fois. */
 function evenementsEcrits(){
   const s = new Set();
-  logTout().forEach(x => { if(x.tel && !x.supprime) s.add(String(x.tel)); });
+  logTout().forEach(x => { if(x.supprime) return;
+    [x.tel, x.tel2].forEach(t => t && s.add(String(t))); });
   return s;
 }
 
@@ -1048,7 +1130,7 @@ function carteSortie(){
     aussitôt dans l'agenda choisi. Laissez « Nulle part » pour qu'un genre reste dans Patch seul.</p>`);
   const sortie = Object.assign({}, cal.sortie || {});
   const g = el("div", "lg-sorties");
-  ["ev", "pret", "stag"].forEach(t => {
+  ["ev", "pret", "stag", "logi"].forEach(t => {
     const l = el("label", "lg-sortie");
     l.innerHTML = `<span>${esc(LOG_TYPES[t].pl)}</span><select data-t="${t}"><option value="">Nulle part</option>${
       liste.map(a => `<option value="${esc(a.id)}"${String(sortie[t] || "") === String(a.id) ? " selected" : ""}>${
@@ -1127,7 +1209,7 @@ function carteEchange(){
 
 const LOG_COLS = ["id", "type", "titre", "cat", "debut", "hdebut", "fin", "hfin", "lieu", "spectacle",
                   "qte", "sens", "tiers", "formation", "service", "tuteur", "contact", "note", "fait", "source",
-                  "seances", "relache", "duree", "maj"];
+                  "seances", "relache", "duree", "depart", "arrivee", "maj"];
 
 function exportJson(){
   return JSON.stringify({ format:"patch-logistique", version:1, exporte:new Date().toISOString(),
@@ -1197,6 +1279,16 @@ function exportIcs(){
   };
   logVivants().filter(x => x.debut).forEach(x => {
     if(x.type === "spec") return specIcs(x);
+    if(x.type === "logi") return mouvements(x).forEach((m, n) => {
+      L.push("BEGIN:VEVENT", "UID:" + x.id + (n ? "~a" : "") + "@patch", "DTSTAMP:" + now, "SUMMARY:" + txt(m.f + " " + x.titre),
+             "DTSTART;VALUE=DATE:" + d8(m.j), "DTEND;VALUE=DATE:" + d8(plusJours(m.j, 1)));
+      if(x.lieu) L.push("LOCATION:" + txt(x.lieu));
+      const desc = [logSous(x), x.contact && "Contact : " + x.contact, x.note].filter(Boolean).join("\n");
+      if(desc) L.push("DESCRIPTION:" + txt(desc));
+      L.push("CATEGORIES:Logistique", "X-PATCH-TYPE:logi", "X-PATCH-TITRE:" + txt(x.titre),
+             "X-PATCH-DEBUT:" + (x.depart || ""), "X-PATCH-FIN:" + (x.arrivee || ""),
+             ...(x.tiers ? ["X-PATCH-TIERS:" + txt(x.tiers)] : []), "END:VEVENT");
+    });
     const fin = x.fin && x.fin >= x.debut ? x.fin : x.debut;
     const titre = x.type === "pret" ? "Prêt : " + logTitre(x) + " (" + (x.sens || "Prêté à").toLowerCase() + " " + (x.tiers || "?") + ")"
                 : x.type === "stag" ? "Stagiaire : " + x.titre
@@ -1236,6 +1328,7 @@ function typeLu(v){
   const s = plat(v);
   if(/^(pret|emprunt|materiel)/.test(s)) return "pret";
   if(/^stag/.test(s)) return "stag";
+  if(/^logist/.test(s)) return "logi";
   return "ev";
 }
 
@@ -1373,6 +1466,10 @@ function lireIcs(t){
     const x = { id:nous ? o.uid.replace(/@patch$/, "") : o.uid ? "ics-" + o.uid : "", type,
                 titre:o.brut || o.titre || "", debut:o.debut, fin:o.fin !== o.debut ? o.fin : "",
                 hdebut:o.hdebut, hfin:o.hfin, lieu:o.lieu, note:o.note, maj:1 };
+    if(type === "logi"){
+      Object.assign(x, { depart:o.xdebut || "", arrivee:o.xfin || "", tiers:o.tiers, hdebut:"", hfin:"", note:"" });
+      x.debut = x.depart || x.arrivee || o.debut; x.fin = x.arrivee && x.arrivee !== x.debut ? x.arrivee : "";
+    }
     if(type === "spec"){
       Object.assign(x, { debut:o.xdebut || o.debut, fin:o.xfin && o.xfin !== (o.xdebut || o.debut) ? o.xfin : "",
                          seances:o.seances, relache:o.relache, duree:o.duree, tiers:o.tiers, hfin:"" });
@@ -1419,7 +1516,7 @@ function vLogFiche(){
   const c = el("div", "card");
   const champ = f => {
     const id = "lg-" + f.c;
-    const v = src ? src[f.c] : (f.c === "debut" ? r.p || logAuj() : f.sel ? f.sel[0] : "");
+    const v = src ? src[f.c] : (f.c === "debut" || f.c === "arrivee" ? r.p || logAuj() : f.sel ? f.sel[0] : "");
     if(f.coche) return `<label class="lg-coche"><input type="checkbox" id="${id}"${src && src.fait ? " checked" : ""}>
       <span>${esc(f.l)}</span></label>`;
     /* Peu de choix : des boutons côte à côte plutôt qu'un menu à ouvrir. */
@@ -1491,6 +1588,7 @@ function vLogFiche(){
   ann.onclick = () => retour({ v:"log" });
   const val = el("button", "val", neuf ? "Ajouter" : "Enregistrer");
   val.onclick = () => {
+    if(val.disabled) return;                     // un second toucher pendant l'enregistrement
     const o = { id:src ? src.id : logId(), type, maj:Date.now() }, manque = [];
     champsPlats(type).forEach(f => {
       const n = c.querySelector("#lg-" + f.c);
@@ -1505,15 +1603,28 @@ function vLogFiche(){
       o.hdebut = r.defaut[0] || Object.values(r.jours).flat().sort()[0] || "";
       if(!o.hdebut){ delete o.hdebut; manque.push("Heures de jeu, comme 20:30"); }
     }
+    /* Logistique : l'une des deux dates suffit, et elles font debut et fin. */
+    if(type === "logi"){
+      if(!o.depart && !o.arrivee) manque.push(FLECHE_D + " Départ ou " + FLECHE_A + " Arrivée");
+      if(o.depart && o.arrivee && o.arrivee < o.depart) manque.push("Arrivée après le départ");
+      o.debut = o.depart || o.arrivee;
+      if(o.depart && o.arrivee && o.arrivee !== o.depart) o.fin = o.arrivee;
+    }
     if(o.fin && o.debut && o.fin < o.debut) manque.push(def.fin + " après " + def.debut.toLowerCase());
     if(manque.length){
       err.textContent = "À remplir : " + manque.join(", ") + ".";
       err.hidden = false;
       return;
     }
+    val.disabled = true;
     const tout = logTout();
+    /* La même fiche déjà notée : on n'en fait pas une deuxième. */
+    if(neuf && tout.some(x => !x.supprime && !/^cal-/.test(x.id) && empreinte(x) === empreinte(o))){
+      toucher(); retour({ v:"log" }); return;
+    }
     const i = tout.findIndex(x => x.id === o.id);
-    if(i >= 0 && tout[i].tel){ o.tel = tout[i].tel; o.telCal = tout[i].telCal; }
+    if(i >= 0 && (tout[i].tel || tout[i].tel2)){ o.tel = tout[i].tel; o.tel2 = tout[i].tel2; o.telCal = tout[i].telCal;
+      if(!o.tel) delete o.tel; if(!o.tel2) delete o.tel2; }
     pousserTel(o);                               // l'agenda du téléphone, si un genre y est relié
     if(i < 0) tout.push(o); else tout[i] = o;
     sauverLog();

@@ -1,11 +1,11 @@
 /* ------------------------------ logistique ------------------------------- */
 /* Une couleur par carnet, reprise par la pastille de la rangée et le bouton
    d'ajout : on reconnaît un prêt d'un stagiaire avant d'avoir lu. */
-:root{--log:#5E4AE3; --pret:#A35A00; --stag:#1F7A4D; --spec:#B0246F}
+:root{--log:#5E4AE3; --pret:#A35A00; --stag:#1F7A4D; --logi:#0E7490; --spec:#B0246F}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A; --spec:#F37BBE}
+  :root:not([data-theme="light"]){--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A; --logi:#5CC8E0; --spec:#F37BBE}
 }
-:root[data-theme="dark"]{--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A; --spec:#F37BBE}
+:root[data-theme="dark"]{--log:#9D8CFF; --pret:#F2A94B; --stag:#5FD39A; --logi:#5CC8E0; --spec:#F37BBE}
 
 /* Le point du jour : quatre chiffres, le retard en rouge s'il y en a. */
 .lg-point{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--sur);
@@ -15,7 +15,7 @@
 .lg-point span{display:block;margin-top:5px;font-size:11px;line-height:1.2;color:var(--ink2)}
 .lg-point .ko b{color:var(--ko)}
 
-.lg-ajouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.lg-ajouts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
 .lg-ajouts .ajout{margin-top:0;padding:12px 6px;border-color:var(--c);color:var(--c);min-height:48px}
 
 .lg .pill i{font-style:normal;font-family:var(--mono);opacity:.7;margin-left:3px}
