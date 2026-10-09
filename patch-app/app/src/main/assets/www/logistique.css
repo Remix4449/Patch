@@ -121,12 +121,12 @@
    la colonne, comme dans l'agenda ; toucher la pastille ouvre la fiche. */
 .cal-ev{cursor:pointer;align-self:stretch;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:clip;
   background:var(--c);color:#fff;border-radius:4px;padding:0 3px;margin:0 1px;
-  font:500 10.5px/17px var(--body);position:relative;z-index:1}
+  font:500 calc(var(--lh, 17px) * .62 + .5px)/var(--lh, 17px) var(--body);position:relative;z-index:1}
 .cal-ev.long{margin:0}
 .cal-ev.avant{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-2px}
 .cal-ev.apres{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:-2px}
 .cal-ev.fait{opacity:.5;text-decoration:line-through}
-.cal-plus{cursor:pointer;text-align:center;font:700 10.5px/17px var(--mono);color:var(--ink2);z-index:1}
+.cal-plus{cursor:pointer;text-align:center;font:700 10px/var(--lh, 17px) var(--mono);color:var(--ink2);z-index:1}
 /* Le texte blanc tient sur les couleurs sombres du thème clair ; en sombre,
    les couleurs s'éclaircissent et le texte passe au noir. */
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .cal-ev{color:#0B0C10} }
