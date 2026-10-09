@@ -135,7 +135,8 @@ n'en font plus qu'un.
 gradateurs. La rangée est la même pour les deux — badge, désignation, adresse
 DMX à droite, une pastille. Toucher la pastille ouvre la fiche de l'élément :
 changer son numéro de circuit, corriger son repère, ou le retirer de la
-feuille. Toucher la rangée l'allume : un gradateur à son canal, un appareil à
+feuille. Au-dessus des appareils, **N° / Univers / Repère** regroupe la liste,
+avec un intertitre par univers ou par perche. Toucher la rangée l'allume : un gradateur à son canal, un appareil à
 son adresse — le premier canal à fond, ce qui suffit à la plupart des
 projecteurs, et « tous les canaux » dans sa fiche pour les autres.
 
@@ -213,14 +214,19 @@ la remplacer : on voit la rangée se remplir pendant qu'on écrit.
   empreinte, la quantité, **l'univers et la première adresse**, chaque champ
   sous son libellé — avec l'étendue calculée en regard. Écrire un univers ou une
   adresse impose le départ de la ligne ; l'appui sur l'étendue bascule entre
-  « à la suite » et départ imposé. Une ligne neuve arrive d'emblée sur la
-  **première adresse libre** : la première plage assez large qui ne croise ni un
-  appareil déjà posé, ni un gradateur de la feuille. Les chevauchements sont
+  « à la suite » et départ imposé. Une ligne neuve se pose dans l'**univers
+  choisi** au-dessus de la recherche (par défaut celui du dernier appareil),
+  **juste après le dernier appareil** qui s'y trouve : en U3, après un appareil
+  qui finit à 211, elle part de 212. Si elle n'y tient plus, elle prend le
+  premier trou assez large, sans croiser ni un appareil ni un gradateur de la
+  feuille. Changer l'univers d'une ligne, ou d'un appareil dans sa fiche, le
+  pose de la même façon au lieu de garder l'ancienne adresse. Les chevauchements sont
   comptés, la ligne fautive signalée, et « adresse libre » la repose ailleurs
   d'une touche.
 
 Toucher une rangée ouvre sa **fiche**. Celle d'un appareil porte son circuit,
-son **type**, son **mode** et son **adresse** — univers et canal de départ, qui
+son **repère** (une liste : p1 à p40, pont, face, loge cour, loge jardin, lat
+cour, lat jardin, sol), son **type**, son **mode** et son **adresse** — univers et canal de départ, qui
 se changent là, appareil par appareil : la ligne se scinde toute seule pour que
 les autres exemplaires gardent le leur et leur adresse. Celle d'un gradateur ne
 porte pas d'adresse à écrire — elle se déduit de la plage, univers et première

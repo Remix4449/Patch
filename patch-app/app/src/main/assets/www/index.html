@@ -562,6 +562,14 @@
        padding:0 12px;min-height:44px;font:600 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;
        color:var(--ink2);cursor:pointer}
   .pile .rien{padding:14px;font-size:13px;color:var(--ink3);margin:0}
+  .pile .vue{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--line)}
+  .pile .vue button{flex:1;min-height:44px;border:1.5px solid var(--line);background:var(--bg);border-radius:99px;
+       font:600 12px/1 var(--body);color:var(--ink2);cursor:pointer}
+  .pile .vue button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+  .pile .sg{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:14px 14px 6px;
+       border-top:1px solid var(--line);background:var(--sur2)}
+  .pile .sg b{font:700 14px/1.2 var(--body);color:var(--ink)}
+  .pile .sg span{font:500 11px/1 var(--mono);color:var(--ink3)}
   /* Le circuit en tête de rangée, en grand : c'est ce qu'on cherche dans la
      liste. L'ampoule, au bout, est le seul geste qui allume. */
   .rg{display:grid;grid-template-columns:54px minmax(0,1fr) auto 44px;gap:10px;align-items:center;
@@ -834,6 +842,11 @@
       text-align:left;cursor:pointer;color:var(--ink)}
   .add .choix .res b{font:700 14.5px/1.2 var(--body)}
   .add .choix .res span{font:500 12px/1.2 var(--body);color:var(--ink3);white-space:nowrap}
+  .add .choix .ou{display:flex;align-items:center;gap:8px;margin-top:8px;font:500 13px/1.2 var(--body);color:var(--ink2)}
+  .add .choix .ou input{width:64px;min-height:44px;border:1.5px solid var(--line);border-radius:11px;
+      background:var(--sur);padding:0 10px;font:600 15px/1 var(--mono);outline:none;text-align:center}
+  .add .choix .ou input:focus{border-color:var(--tel)}
+  .add .choix .ou b{font-family:var(--mono);color:var(--ink)}
 
   /* Les patchs. */
   .pat .nom{font-family:var(--body)!important}
@@ -2499,8 +2512,8 @@ const REG_DEFAUT = { proto:"sACN", u:1, adr:1, premier:1, nb:0, prio:100,
                      cible:"", pas:5, solo:true, hlTout:false };
 
 function patchVide(nom){
-  return { nom:nom || "", lignes:[], fiches:{}, grada:{}, reperes:{},
-           reg:{ ...REG_DEFAUT }, exclus:[], garde:[] };
+  return { nom:nom || "", lignes:[], fiches:{}, repA:{}, grada:{}, reperes:{},
+           reg:{ ...REG_DEFAUT }, exclus:[], garde:[], vue:"" };
 }
 
 let PATCHS = [], iPatch = 0, P = null;
@@ -2621,6 +2634,29 @@ function premiereLibre(foot, liste){
   return { u:uMax + 1, adr:1 };
 }
 
+/* Dans un univers donné, l'adresse qui suit le dernier appareil (ou le dernier
+   gradateur de la feuille) qui s'y trouve : en U3, après un appareil qui finit
+   à 211, c'est 212. Si l'appareil n'y tient plus, le premier trou où il tient ;
+   null s'il n'y a de place nulle part. Changer d'univers gardait l'adresse
+   d'avant, et l'appareil se posait sur celui qui l'occupait déjà. */
+function libreDans(u, foot, liste){
+  const f = Math.min(512, Math.max(1, foot || 1));
+  const pris = new Set();
+  let fin = 0;
+  const prendre = c => { pris.add(c); fin = Math.max(fin, c); };
+  (liste || []).forEach(x => { if(x.u === u) for(let c = x.adr; c <= x.fin; c++) prendre(c); });
+  gradas().forEach(n => { const a = adrGrada(n); if(a && a.u === u) prendre(a.canal); });
+  if(fin + f <= 512) return fin + 1;
+  let a = 1;
+  while(a + f - 1 <= 512){
+    let bute = 0;
+    for(let c = a; c <= a + f - 1; c++) if(pris.has(c)) bute = c;
+    if(!bute) return a;
+    a = bute + 1;
+  }
+  return null;
+}
+
 let nLigne = 0;
 const idLigne = () => "l" + Date.now().toString(36) + (nLigne++).toString(36);
 
@@ -2704,6 +2740,10 @@ const ficheGrada = n => P.grada[n] || (P.grada[n] = { circuit:"", note:"" });
 const circuitGrada = n => String((P.grada[n] || {}).circuit || "").trim();
 const noteGrada = n => String((P.grada[n] || {}).note || "");
 const circuitApp = n => String(P.fiches[n] || "").trim();
+/* Le repère d'un appareil : la perche ou la position où il est accroché. */
+const REPERES = [...Array.from({ length:40 }, (_, i) => "p" + (i + 1)),
+  "pont", "face", "loge cour", "loge jardin", "lat cour", "lat jardin", "sol"];
+const repApp = n => String((P.repA || {})[n] || "").trim();
 /* Les gradateurs qui comptent sont ceux de la liste : un circuit, ou gardés sans
    circuit. Le reste de la plage n'est qu'un chemin que les flèches ont tracé. */
 const listesG = () => gradas().filter(n => circuitGrada(n) || gardes().includes(n)).length;
@@ -2720,12 +2760,21 @@ const pl = (n, un, plusieurs) => n + " " + (n > 1 ? plusieurs || un + "s" : un);
    dans la ligne avant la modification, et on le repose au nouveau numéro
    après. Sans ça, le circuit 14 du troisième Titan passait au quatrième. */
 function garderCircuits(modifier){
-  const avant = new Map();
-  appareils().forEach(x => { const c = P.fiches[x.n]; if(c != null && c !== "") avant.set(x.ligne + ":" + x.i, c); });
+  const avant = new Map(), repAvant = new Map();
+  appareils().forEach(x => {
+    const c = P.fiches[x.n], r = repApp(x.n), k = x.ligne + ":" + x.i;
+    if(c != null && c !== "") avant.set(k, c);
+    if(r) repAvant.set(k, r);
+  });
   modifier();
-  const suite = {};
-  appareils().forEach(x => { const c = avant.get(x.ligne + ":" + x.i); if(c != null) suite[x.n] = c; });
+  const suite = {}, reps = {};
+  appareils().forEach(x => {
+    const k = x.ligne + ":" + x.i, c = avant.get(k), r = repAvant.get(k);
+    if(c != null) suite[x.n] = c;
+    if(r) reps[x.n] = r;
+  });
   P.fiches = suite;
+  P.repA = reps;
   HL = null;
 }
 
@@ -2886,6 +2935,7 @@ let PAVE = null;         // frappe du pavé numérique ; null = pavé fermé
 let ABC = false;         // le circuit se tape au clavier du téléphone (« 12b », « face »)
 let IA = 0;              // rang de l'appareil en cours d'attribution
 let CHOIX = null;        // recherche dans le parc du volet Ajouter ; null = fermée
+let CHOIXU = null;       // univers où poser la ligne neuve ; null = celui du dernier appareil
 let NOUVEAU = null;      // le formulaire d'un nouveau patch, quand il est ouvert
 let TU = 0;              // univers de l'adresse courante ; 0 = Pupitre jamais ouvert
 let TC = 1;              // canal de l'adresse courante
@@ -3283,7 +3333,8 @@ function pileApps(){
       cle:"a" + x.n,
       circuit:c,
       titre:`${courtNom(x.app)} n° ${x.n}`,
-      sous:`${x.mode || x.ch + " ch"}${ko.has(x.n) ? " · chevauchement" : ""}`,
+      sous:[repApp(x.n), x.mode || x.ch + " ch", ko.has(x.n) ? "chevauchement" : ""]
+        .filter(Boolean).join(" · "),
       u:x.u, adr:x.adr,
       allume:!!(HL && HL.n === x.n), nomLampe:`${courtNom(x.app)} n° ${x.n}`,
       onFiche:focus => ouvrirVolet("fiche", { t:"a", n:x.n, focus }),
@@ -3293,8 +3344,52 @@ function pileApps(){
     if(x.n === vise) r.classList.add("pointe");
     return r;
   });
-  return pile("Appareils", `${relevesA()} sur ${liste.length} avec circuit · ${puissanceTotale(liste)}`,
-              rangs, "Aucun appareil : touchez « Ajouter » en bas.", liste.length ? boutonChoix("a") : null);
+  const p = pile("Appareils", `${relevesA()} sur ${liste.length} avec circuit · ${puissanceTotale(liste)}`,
+                 grouperApps(liste, rangs), "Aucun appareil : touchez « Ajouter » en bas.",
+                 liste.length ? boutonChoix("a") : null);
+  if(liste.length > 1) p.querySelector("h4").after(choixVue());
+  return p;
+}
+
+/* Lire la liste par univers ou par repère : un intertitre par groupe, et dans
+   chaque groupe les appareils dans l'ordre de leur numéro. */
+const VUES = [["", "N°"], ["u", "Univers"], ["rep", "Repère"]];
+function choixVue(){
+  const d = el("div", "vue");
+  d.setAttribute("role", "group");
+  d.setAttribute("aria-label", "Regrouper les appareils");
+  VUES.forEach(([k, lib]) => {
+    const b = el("button", null, lib);
+    b.setAttribute("aria-pressed", (P.vue || "") === k ? "true" : "false");
+    b.onclick = () => { P.vue = k; majListe(); };
+    d.append(b);
+  });
+  return d;
+}
+function grouperApps(liste, rangs){
+  const vue = P.vue || "";
+  if(!vue || liste.length < 2) return rangs;
+  const cle = x => vue === "u" ? x.u : repApp(x.n);
+  const rang = k => {
+    if(vue === "u") return k;
+    if(!k) return Infinity;
+    const i = REPERES.indexOf(k);
+    return i < 0 ? REPERES.length : i;
+  };
+  const groupes = new Map();
+  liste.forEach((x, i) => {
+    const k = cle(x);
+    if(!groupes.has(k)) groupes.set(k, []);
+    groupes.get(k).push(rangs[i]);
+  });
+  const out = [];
+  [...groupes.keys()].sort((a, b) => rang(a) - rang(b) || String(a).localeCompare(String(b)))
+    .forEach(k => {
+      const g = groupes.get(k);
+      const nom = vue === "u" ? "Univers " + k : (k || "Sans repère");
+      out.push(el("div", "sg", `<b>${esc(nom)}</b><span>${pl(g.length, "appareil")}</span>`), ...g);
+    });
+  return out;
 }
 
 /* Mettre un appareil en évidence : le geste des gradateurs, appliqué au patch. */
@@ -4216,8 +4311,13 @@ function majVoletFiche(){
     volet.querySelector(".tete h3").textContent = courtNom(x.app);
     volet.querySelector(".tete .cpt").textContent = `appareil ${x.n} · U${x.u} · ${x.adr}`;
     const modes = BIB[x.app] || [];
+    const rp = repApp(x.n);
     d.innerHTML = `<div class="f"><label>Circuit</label>
         ${champCircuit(circuitApp(x.n), "Circuit de l'appareil " + x.n, true)}</div>
+      <div class="f"><label>Repère</label>
+        <select class="rp" aria-label="Repère de l'appareil ${x.n}">
+          <option value="">—</option>${(rp && !REPERES.includes(rp) ? [rp] : []).concat(REPERES).map(v =>
+            `<option value="${esc(v)}"${v === rp ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
       <div class="f"><label>Type d'appareil</label>
         <select class="sa" aria-label="Type de l'appareil ${x.n}">${marques().map(m =>
           `<optgroup label="${esc(m)}">${PROJECTEURS.filter(y => y.marque === m).map(y =>
@@ -4238,6 +4338,11 @@ function majVoletFiche(){
       <div class="kv"><span>Empreinte</span><b>${x.ch} canaux · U${x.u}·${x.adr} → ${x.fin}</b></div>`;
     d.querySelector(".cir").oninput = e => {
       P.fiches[x.n] = e.target.value; majListe(); majCompteurs(); };
+    d.querySelector(".rp").onchange = e => {
+      if(!P.repA) P.repA = {};
+      if(e.target.value) P.repA[x.n] = e.target.value; else delete P.repA[x.n];
+      majListe();
+    };
 
     /* ◀ ▶ : l'appareil d'avant ou d'après, pour passer les circuits de proche
        en proche sans refermer la fiche. Le clavier reste ouvert, et la mise en
@@ -4265,8 +4370,11 @@ function majVoletFiche(){
     /* L'adresse se choisit ici, appareil par appareil : la ligne se scinde comme
        pour un changement de mode, et les autres exemplaires gardent la leur. */
     const placer = (u, adr) => { placerAppareil(x, u, adr); peindre(); };
-    d.querySelector(".au").onchange = e =>
-      placer(+e.target.value.replace(/\D/g, "") || 1, x.adr);
+    d.querySelector(".au").onchange = e => {
+      const u = +e.target.value.replace(/\D/g, "") || 1;
+      if(u === x.u){ placer(u, x.adr); return; }
+      placer(u, libreDans(u, x.ch, appareils().filter(y => y.n !== x.n)) || x.adr);
+    };
     d.querySelector(".aa").onchange = e =>
       placer(x.u, +e.target.value.replace(/\D/g, "") || 1);
 
@@ -4358,13 +4466,17 @@ function retirerAppareil(x){
   const l = isolerAppareil(x);
   if(l) P.lignes = P.lignes.filter(y => y.id !== l.id);
   /* Les circuits sont attachés au rang de l'appareil : ce qui suit remonte. */
-  const suite = {};
-  Object.keys(P.fiches).forEach(k => {
-    const i = +k;
-    if(i < x.n) suite[i] = P.fiches[k];
-    else if(i > x.n) suite[i - 1] = P.fiches[k];
-  });
-  P.fiches = suite;
+  const remonter = m => {
+    const suite = {};
+    Object.keys(m || {}).forEach(k => {
+      const i = +k;
+      if(i < x.n) suite[i] = m[k];
+      else if(i > x.n) suite[i - 1] = m[k];
+    });
+    return suite;
+  };
+  P.fiches = remonter(P.fiches);
+  P.repA = remonter(P.repA);
 }
 
 /* ---------------------- volet : ajouter des appareils --------------------- */
@@ -4461,8 +4573,14 @@ function majVoletAjouter(){
       l.adr = Math.max(1, Math.min(512, adr || 1));
       peindre();
     };
-    r.querySelector(".qu").onchange = e =>
-      imposer(+e.target.value.replace(/\D/g, "") || 1, dep.adr);
+    /* Un autre univers : la ligne se pose après ce qui s'y trouve déjà, au lieu
+       de garder son adresse et de recouvrir un appareil. */
+    r.querySelector(".qu").onchange = e => {
+      const u = +e.target.value.replace(/\D/g, "") || 1;
+      if(u === dep.u){ imposer(u, dep.adr); return; }
+      const span = Math.min(512, Math.max(1, l.ch || 1) * Math.max(1, l.nb || 1));
+      imposer(u, libreDans(u, span, liste.filter(x => x.ligne !== l.id)) || dep.adr);
+    };
     r.querySelector(".qa").onchange = e =>
       imposer(dep.u, +e.target.value.replace(/\D/g, "") || 1);
     r.querySelector(".et").onclick = () => {
@@ -4490,7 +4608,7 @@ function majVoletAjouter(){
   const pied = el("div", "pied");
   if(PROJECTEURS.length && CHOIX === null){
     const add = el("button", null, "+ Ligne d'appareils");
-    add.onclick = () => { CHOIX = ""; majVoletAjouter();
+    add.onclick = () => { CHOIX = ""; CHOIXU = null; majVoletAjouter();
       const q = volet && volet.querySelector(".choix input"); if(q) q.focus(); };
     pied.append(add);
   }
@@ -4512,7 +4630,8 @@ function majVoletAjouter(){
   }
   d.append(aideRepliee("Les modes viennent de la bibliothèque : la fiche d'un appareil "
     + "permet de les saisir à la main ou de les importer d'un fichier GDTF. Une ligne neuve "
-    + "arrive sur la première adresse libre ; « départ imposé » la fixe là où elle est, "
+    + "se pose dans l'univers choisi, après le dernier appareil qui s'y trouve ; changer "
+    + "l'univers d'une ligne la pose de même. « Départ imposé » la fixe là où elle est, "
     + "« à la suite » la chaîne sur la ligne d'avant. Retirer une ligne ou changer une "
     + "quantité renumérote les appareils suivants, et leurs circuits les suivent."));
   const fin = el("button", "act", "Terminer");
@@ -4529,9 +4648,32 @@ function majVoletAjouter(){
    dans une liste de toute la salle. */
 function choixParc(liste){
   const b = el("div", "choix");
+  /* L'univers de la ligne neuve se choisit avant l'appareil : par défaut celui
+     du dernier appareil du patch. La ligne s'y pose après ce qui s'y trouve. */
+  const uDef = () => CHOIXU || (liste.length ? liste[liste.length - 1].u : null);
+  const ou = foot => {
+    const u = uDef();
+    if(!u) return premiereLibre(foot, liste);
+    for(let v = u; v < u + 64; v++){
+      const a = libreDans(v, foot, liste);
+      if(a) return { u:v, adr:a };
+    }
+    return premiereLibre(foot, liste);
+  };
   b.innerHTML = `<div class="q"><input data-focus="aj-q" placeholder="Chercher dans le parc : spiider, pc…"
       autocomplete="off" enterkeyhint="search" aria-label="Chercher un projecteur du parc"
-      value="${esc(CHOIX)}"><button class="ann">Annuler</button></div><div class="res"></div>`;
+      value="${esc(CHOIX)}"><button class="ann">Annuler</button></div>
+    <div class="ou"><span>Univers</span><input class="cu" data-focus="aj-u" inputmode="numeric"
+      value="${ou(1).u}" aria-label="Univers où poser l'appareil"><span class="dep"></span></div>
+    <div class="res"></div>`;
+  const dep = b.querySelector(".dep");
+  const montrer = () => { const o = ou(1); dep.innerHTML = `1re adresse libre : <b>U${o.u}·${o.adr}</b>`; };
+  montrer();
+  const cu = b.querySelector(".cu");
+  cu.onchange = () => {
+    const u = Math.max(1, Math.min(63999, +cu.value.replace(/\D/g, "") || 1));
+    CHOIXU = u; cu.value = u; montrer();
+  };
   const res = b.querySelector(".res");
   const lister = () => {
     const q = plat(CHOIX.trim());
@@ -4545,9 +4687,10 @@ function choixParc(liste){
         modes.length ? " · " + pl(modes.length, "mode") : ""}</span>`);
       o.onclick = () => {
         const foot = modes.length ? modes[0].ch : 1;
-        /* La ligne neuve se pose sur la première adresse qui ne gêne personne —
-           ni un appareil déjà posé, ni un gradateur de la feuille. */
-        const libre = premiereLibre(foot, liste);
+        /* La ligne neuve se pose dans l'univers choisi, après le dernier
+           appareil qui s'y trouve — sans gêner ni un appareil déjà posé, ni un
+           gradateur de la feuille. */
+        const libre = ou(foot);
         P.lignes.push({ id:idLigne(), app:cleApp(p),
                         mode:modes.length ? modes[0].nom : "", ch:foot,
                         nb:1, suite:false, u:libre.u, adr:libre.adr });
@@ -4769,7 +4912,7 @@ function exporterFeuille(){
 
   const tCircuits = circuits.map(c => `<tr>
       <td class="n f">${esc(c.circuit)}</td>
-      <td>${esc([P.reperes[c.circuit], ...c.gradas.map(noteGrada)].filter(Boolean)
+      <td>${esc([P.reperes[c.circuit], ...c.gradas.map(noteGrada), ...c.apps.map(x => repApp(x.n))].filter(Boolean)
         .filter((x, i, l) => l.indexOf(x) === i).join(", "))}</td>
       <td class="n">${c.gradas.join(", ") || "—"}</td>
       <td>${c.apps.map(x => esc(courtNom(x.app)) + " (U" + x.u + "·" + x.adr + ")").join(", ") || "—"}</td>
@@ -4777,7 +4920,7 @@ function exporterFeuille(){
 
   const tApps = liste.map(x => `<tr>
       <td class="n">${x.n}</td><td class="n c">${esc(circuitApp(x.n))}</td>
-      <td>${esc(courtNom(x.app))}</td><td class="g">${esc(x.mode || "")}</td>
+      <td>${esc(courtNom(x.app))}</td><td>${esc(repApp(x.n))}</td><td class="g">${esc(x.mode || "")}</td>
       <td class="n">${x.ch}</td><td class="n">${x.u}</td>
       <td class="n f">${x.adr}</td><td class="n g">${x.fin}</td></tr>`).join("");
 
@@ -4823,10 +4966,10 @@ function exporterFeuille(){
 
 <h2>Appareils</h2>
 <table><thead><tr>
-  <th>N°</th><th>Circuit</th><th>Appareil</th><th>Mode</th><th>Ch.</th>
+  <th>N°</th><th>Circuit</th><th>Appareil</th><th>Repère</th><th>Mode</th><th>Ch.</th>
   <th>Univ.</th><th>Adresse</th><th>Fin</th>
 </tr></thead><tbody>${tApps
-  || `<tr><td colspan="8">Aucun appareil.</td></tr>`}</tbody></table>
+  || `<tr><td colspan="9">Aucun appareil.</td></tr>`}</tbody></table>
 
 <h2>Réseau</h2>
 <div class="recap">${univ.length ? univ.map(u => {
