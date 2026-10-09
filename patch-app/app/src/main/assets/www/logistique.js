@@ -21,8 +21,28 @@ function logTout(){
   if(!LOG_DATA){
     const d = lireLocal(CLE_LOG, null);
     LOG_DATA = Array.isArray(d && d.elements) ? d.elements : [];
+    if(dedoublonner(LOG_DATA)) ecrireLocal(CLE_LOG, { version:1, elements:LOG_DATA });
   }
   return LOG_DATA;
+}
+/* Deux fiches de Patch identiques en tout sauf l'identifiant sont une même
+   fiche notée deux fois (un « Ajouter » touché deux fois pendant que
+   l'agenda du téléphone répondait) : la seconde est retirée, avec son
+   rendez-vous dans l'agenda. Le parc ne compte ainsi le prêt qu'une fois. */
+const empreinte = x => JSON.stringify(Object.keys(x).filter(k => !["id", "maj", "tel", "telCal"].includes(k))
+  .sort().map(k => [k, x[k]]));
+function dedoublonner(t){
+  const vus = new Set();
+  let n = 0;
+  t.forEach((x, i) => {
+    if(x.supprime || /^cal-/.test(x.id)) return;
+    const e = empreinte(x);
+    if(!vus.has(e)){ vus.add(e); return; }
+    try { if(typeof retirerTel === "function") retirerTel(x); } catch(err){}
+    t[i] = { id:x.id, type:x.type, supprime:true, maj:Date.now() };
+    n++;
+  });
+  return n;
 }
 const logVivants = () => logTout().filter(x => !x.supprime);
 const sauverLog = () => ecrireLocal(CLE_LOG, { version:1, elements:logTout() });
@@ -1491,6 +1511,7 @@ function vLogFiche(){
   ann.onclick = () => retour({ v:"log" });
   const val = el("button", "val", neuf ? "Ajouter" : "Enregistrer");
   val.onclick = () => {
+    if(val.disabled) return;                     // un second toucher pendant l'enregistrement
     const o = { id:src ? src.id : logId(), type, maj:Date.now() }, manque = [];
     champsPlats(type).forEach(f => {
       const n = c.querySelector("#lg-" + f.c);
@@ -1511,7 +1532,12 @@ function vLogFiche(){
       err.hidden = false;
       return;
     }
+    val.disabled = true;
     const tout = logTout();
+    /* La même fiche déjà notée : on n'en fait pas une deuxième. */
+    if(neuf && tout.some(x => !x.supprime && !/^cal-/.test(x.id) && empreinte(x) === empreinte(o))){
+      toucher(); retour({ v:"log" }); return;
+    }
     const i = tout.findIndex(x => x.id === o.id);
     if(i >= 0 && tout[i].tel){ o.tel = tout[i].tel; o.telCal = tout[i].telCal; }
     pousserTel(o);                               // l'agenda du téléphone, si un genre y est relié
