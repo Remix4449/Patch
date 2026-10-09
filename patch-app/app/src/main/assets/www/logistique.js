@@ -256,11 +256,11 @@ function logTitre(x){
 const compact = t => plat(t).replace(/[^a-z0-9]/g, "");
 function materielLu(texte){
   const parc = [
-    ...PROJECTEURS.map(p => ({ nom:p.marque + " " + p.nom, court:p.nom, cles:[p.nom, p.marque + p.nom], nb:p.nb })),
-    ...MACHINERIE.map(m => ({ nom:m.nom, court:m.nom, cles:[m.nom], nb:m.nb })),
-    ...HAUTEURS.map(h => ({ nom:h.nom, court:h.nom, cles:[h.nom], nb:h.nb })),
+    ...PROJECTEURS.map(p => ({ nom:p.marque + " " + p.nom, court:p.nom, cles:[p.nom, p.marque + p.nom], nb:p.nb, ref:p })),
+    ...MACHINERIE.map(m => ({ nom:m.nom, court:m.nom, cles:[m.nom], nb:m.nb, ref:m })),
+    ...HAUTEURS.map(h => ({ nom:h.nom, court:h.nom, cles:[h.nom], nb:h.nb, ref:h })),
     ...(typeof DIVERS !== "undefined" ? DIVERS : []).map(x => ({ nom:x.nom, court:x.nom,
-        cles:[x.nom, (x.marque || "") + x.nom], nb:x.nb }))
+        cles:[x.nom, (x.marque || "") + x.nom], nb:x.nb, ref:x }))
   ].sort((a, b) => b.cles[0].length - a.cles[0].length);    // « 614 SX » avant « 614 S »
   const trouver = q => {
     const c = compact(q);
@@ -279,10 +279,40 @@ function materielLu(texte){
       else if((r = t.match(/^(.+?)\s*[x×*]\s*(\d{1,3})$/i))){ q = +r[2]; t = r[1]; }
       else if((r = t.match(/^(\d{1,3})\s+(\D.*)$/))){ q = +r[1]; t = r[2]; }
       const p = trouver(t);
-      out.push({ q, texte:t.trim(), nom:p ? p.nom : "", court:p ? p.court : "", nb:p && p.nb !== "" && p.nb != null ? +p.nb : null });
+      out.push({ q, texte:t.trim(), nom:p ? p.nom : "", court:p ? p.court : "", nb:p && p.nb !== "" && p.nb != null ? +p.nb : null,
+                ref:p ? p.ref : null });
     });
   });
   return out.filter(o => o.texte);
+}
+
+/* Ce qui manque au parc aujourd'hui : le matériel des prêts sortis et pas
+   encore rendus, retards compris. Un prêt à venir ne compte pas encore, un
+   emprunt jamais. Le compte se fait une fois par rendu (`render` le remet à
+   zéro) et se range par fiche du parc. */
+let SORTIS = null;
+function sortisDuParc(){
+  if(SORTIS) return SORTIS;
+  const j = logAuj(), m = new Map();
+  logVivants().forEach(x => {
+    if(x.type !== "pret" || x.fait || !x.debut || x.debut > j) return;
+    if((x.sens || "Prêté à") !== "Prêté à") return;
+    const fois = x.qte ? Math.max(1, +x.qte || 1) : 1;      // fiches d'avant, champ quantité
+    materielLu(x.titre).forEach(o => {
+      if(!o.ref) return;
+      const s = m.get(o.ref) || { q:0, prets:[] };
+      s.q += o.q * fois;
+      if(!s.prets.includes(x)) s.prets.push(x);
+      m.set(o.ref, s);
+    });
+  });
+  return SORTIS = m;
+}
+/* Le nombre restant d'une fiche du parc, ou null si rien n'est sorti. */
+function parcActuel(obj){
+  const s = sortisDuParc().get(obj);
+  if(!s || obj.nb === "" || obj.nb == null) return null;
+  return Math.max(0, +obj.nb - s.q);
 }
 
 /* ------------------------------- la liste ------------------------------- */
