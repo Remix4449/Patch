@@ -463,7 +463,9 @@ function couleurLog(x, e){
   }
   return (LOG_TYPES[x.type] || LOG_TYPES.ev).c;
 }
-const etiquette = x => (x.type === "ev" && x.hdebut ? heureCourte(x.hdebut) + " " : "") + logTitre(x);
+/* Un prêt dit à qui il part : « Chabrol · 2 × 613 SX · 4 × F1 ». */
+const etiquette = x => (x.type === "ev" && x.hdebut ? heureCourte(x.hdebut) + " " : "")
+  + (x.type === "pret" && x.tiers ? x.tiers + " · " : "") + logTitre(x);
 /* Un spectacle n'occupe que ses jours de jeu ; le reste, tout son intervalle. */
 const surJour = (x, j) => x.type === "spec" ? seancesDu(x, j).length > 0
   : x.type === "logi" ? mouvements(x).some(m => m.j === j)
@@ -903,7 +905,8 @@ function momentTel(x){
   const debut = journee ? Date.UTC(a, m - 1, j) : new Date(a, m - 1, j, h1, m1).getTime();
   const fin = journee ? Date.UTC(fj[0], fj[1] - 1, fj[2] + 1)
                       : new Date(fj[0], fj[1] - 1, fj[2], h2, m2).getTime();
-  const titre = type === "pret" ? "Prêt : " + logTitre(x)
+  const titre = type === "pret" ? (/^emprunt/i.test(x.sens || "") ? "Emprunt" : "Prêt")
+                                  + (x.tiers ? " " + x.tiers : "") + " : " + logTitre(x)
               : type === "stag" ? "Stagiaire : " + x.titre : x.titre;
   return { titre, lieu:x.lieu || "", note:[logSous(x), x.contact, x.note].filter(Boolean).join("\n"),
            debut, fin, journee };
