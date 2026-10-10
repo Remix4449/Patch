@@ -379,6 +379,11 @@ function vRdm(){
     peindreFiche(e);
   });
   NET.rdm.decouvrir(false);
-  poser(() => { arret(); arretBroker(); if(arretLlrp) arretLlrp(); });
+  /* Quitter l'écran arrête aussi l'identification : le projecteur clignotait
+     encore, et il fallait revenir le chercher pour l'éteindre. */
+  poser(() => {
+    dernier.filter(a => a.identifie).forEach(a => NET.rdm.regler(a.cle, "identifier", "0"));
+    arret(); arretBroker(); if(arretLlrp) arretLlrp();
+  });
   return d;
 }
