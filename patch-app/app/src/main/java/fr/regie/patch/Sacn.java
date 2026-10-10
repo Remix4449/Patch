@@ -80,6 +80,11 @@ public class Sacn {
             // Sans cela nos propres trames reviennent et se recensent comme une source.
             try { sock.setLoopbackMode(true); } catch (Exception ignore) { }
             rejoindre(groupe(UNIVERS_DECOUVERTE));
+            // Un univers demandé avant l'ouverture de la prise a été noté sans
+            // être rejoint : suivre() ne le refera pas, c'est ici qu'on le rejoint.
+            synchronized (this) {
+                if (rejoint > 0) try { rejoindre(groupe(rejoint)); } catch (Exception ignore) { }
+            }
         } catch (Exception e) { actif = false; return; }
 
         byte[] tampon = new byte[1400];
