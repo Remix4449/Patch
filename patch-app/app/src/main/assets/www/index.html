@@ -1323,8 +1323,10 @@ const memeRoute = (a, b) => a.v === b.v && a.k === b.k && a.i === b.i && a.p ===
    vérifier une gélatine, et tout retombait sans un mot. */
 function peutQuitterPatch(v){
   if(!VUES_PATCH.includes(S.route.v) || VUES_PATCH.includes(v)) return true;
+  /* L'émetteur reste démarré après « Tout éteindre » : il envoie du noir. On
+     ne demande que si quelque chose sort vraiment. */
   let actif = false;
-  try { actif = !!(NET.emissionEtat() || {}).actif; } catch(e){ }
+  try { actif = !!(NET.emissionEtat() || {}).actif && adressesAllumees() > 0; } catch(e){ }
   return !actif || confirm("Une émission DMX tourne. Quitter l'écran relâche "
     + "tous les circuits. Quitter quand même ?");
 }
@@ -1343,6 +1345,14 @@ const retour = defaut => { if(PILE.length) history.back(); else go(defaut || { v
 
 window.addEventListener("popstate", () => {
   if(FEUILLE){ fermerFeuille(); render(); return; }
+  /* Un volet de l'écran Patch (Relevé, Pupitre, fiche…) se ferme au retour
+     d'Android, au lieu de quitter tout l'écran. On repose l'entrée retirée :
+     les volets n'en posent pas, ils se ferment de vingt façons. */
+  if(volet){
+    fermerVolet();
+    try { history.pushState({ n:PILE.length }, ""); } catch(e){ }
+    return;
+  }
   const p = PILE[PILE.length - 1];
   if(!p) return;                    // pile vide : la coque laisse Android fermer
   if(!peutQuitterPatch(p.r.v)){     // refusé : on repose l'entrée qu'Android vient de retirer
@@ -1529,11 +1539,12 @@ function home(){
 
   /* Le patch en cours, avec ce qu'il reste à faire. */
   d.insertAdjacentHTML("beforeend", `<h2 class="sec">En cours</h2>`);
-  const reste = restantsG();
+  /* Un patch neuf n'a aucun gradateur : il n'a rien de « tout relevé ». */
+  const reste = restantsG(), faits = relevesG();
   const cur = el("button", "encours");
   cur.innerHTML = `<span class="g"><b>${esc(nom || "Patch sans titre")}</b>
-      <span>${nb} appareil${nb > 1 ? "s" : ""} · ${reste ? reste + " gradateur" + (reste > 1 ? "s" : "") + " à relever"
-        : "tous les gradateurs relevés"}</span></span><i>Reprendre</i>`;
+      <span>${nb} appareil${nb > 1 ? "s" : ""} · ${reste ? pl(reste, "gradateur") + " à relever"
+        : faits ? "tous les gradateurs relevés" : "aucun gradateur relevé"}</span></span><i>Reprendre</i>`;
   cur.onclick = () => { toucher(); go({ v:"dmx" }); };
   d.append(cur);
 
@@ -1822,12 +1833,6 @@ function vFiche(p){
   d.append(h);
   d.append(cartePrets(p));
   d.append(carteModes(p));
-  const a = el("div", "card");
-  a.innerHTML = `<h4>Accroche</h4>
-    <div class="kv"><span>Collier</span><b>Double Doughty</b></div>
-    <div class="kv"><span>Charge collier</span><b>750 kg</b></div>
-    <div class="kv"><span>Perche basse</span><b>7,75 m</b></div>`;
-  d.append(a);
   const i = PROJECTEURS.indexOf(p);
   if(i >= 0){
     const mod = el("button", "ajout", ic("crayon") + "<span>Modifier cette fiche</span>");
@@ -1900,7 +1905,11 @@ function carteModes(p){
         if(r.erreur){ imp.textContent = "Échec : " + r.erreur; return; }
         if(!r.pret) return;
         if(!r.modes || !r.modes.length){ imp.textContent = "Aucun mode trouvé dans ce fichier"; return; }
-        BIB[k] = r.modes.map(m => ({ nom:m.nom, ch:m.ch }));
+        /* Les modes saisis à la main restent, sauf ceux que le fichier redonne
+           sous le même nom ; les modes de démonstration partent. */
+        const neufs = r.modes.map(m => ({ nom:m.nom, ch:m.ch }));
+        const gardes = (BIB[k] || []).filter(m => !m.demo && !neufs.some(n => n.nom === m.nom));
+        BIB[k] = [...neufs, ...gardes];
         sauverBib(); render();
       });
     };
@@ -2228,6 +2237,17 @@ function viderParc(){ remplacerParc({}); sauverInv(); }
 /* Recalculés à la demande : `MARQUES` et `FAMILLES` de common.js ont été figés
    au chargement, avant que l'inventaire local ne soit relu. */
 const marques = () => [...new Set(PROJECTEURS.map(p => p.marque))].sort();
+/* Les types du parc, par marque. Un type sorti du parc (vidé, importé) reste
+   affiché en tête : sinon la liste montrait le premier projecteur, et
+   enregistrer sans y toucher changeait vraiment le type. */
+function optionsTypes(app){
+  const hors = app && !PROJECTEURS.some(p => cleApp(p) === app)
+    ? `<option value="${esc(app)}" selected>${esc(app)} (hors parc)</option>` : "";
+  return hors + marques().map(m =>
+    `<optgroup label="${esc(m)}">${PROJECTEURS.filter(p => p.marque === m).map(p =>
+      `<option value="${esc(cleApp(p))}"${cleApp(p) === app ? " selected" : ""}>${
+        esc(p.nom)}</option>`).join("")}</optgroup>`).join("");
+}
 const familles = () => [...new Set(PROJECTEURS.map(p => p.fam))].sort();
 const typesMach = () => [...new Set(MACHINERIE.map(m => m.type))];
 const typesHaut = () => [...new Set(HAUTEURS.map(h => h.type))];
@@ -2292,10 +2312,12 @@ const CHAMPS = {
 /* La recherche traverse tous les champs de la fiche : « 1000 W », « 2 m » ou
    « Doughty » trouvent aussi bien qu'un nom. */
 function filtrer(k, garde){
-  const q = (S.qs[k] || "").trim().toLowerCase();
+  /* Sans les accents, comme la recherche de l'accueil : « decoupe » y trouvait
+     les découpes, et « Voir les N projecteurs » ouvrait ici une liste vide. */
+  const q = plat((S.qs[k] || "").trim());
   return INV[k].liste.map((x, i) => ({ x, i })).filter(({ x }) =>
     (!garde || garde(x)) && (!q || Object.keys(x).some(c =>
-      x[c] != null && typeof x[c] !== "object" && String(x[c]).toLowerCase().includes(q))));
+      x[c] != null && typeof x[c] !== "object" && plat(x[c]).includes(q))));
 }
 function recherche(k, ph){
   const lab = el("label", "sbar inv");
@@ -2443,9 +2465,19 @@ function ouvrirAjout(k){
 /* ------------------------- la fiche : ajout, édition, retrait ------------- */
 /* Valider empilait la liste par-dessus la fiche : le retour y ramenait. On
    revient d'où l'on vient, ou l'on remplace la fiche sans empiler. */
-function quitterFiche(k){
+/* Venue de la fiche d'un projecteur, on y revient : avec la fiche neuve si on
+   l'a modifiée (l'ancienne n'est plus au parc), droit à la liste si on l'a
+   retirée. `apres` : absent pour annuler, la fiche enregistrée, ou null. */
+function quitterFiche(k, apres){
   const p = PILE[PILE.length - 1];
-  if(p && p.r.v === k) retour();
+  if(p && p.r.v === "fiche" && k === "proj"){
+    const q = PILE[PILE.length - 2];
+    if(apres === null && q && q.r.v === k){ PILE.pop(); history.go(-2); return; }
+    if(apres === null){ p.r = { v:k }; retour(); return; }
+    if(apres) p.r = { ...p.r, p:apres };
+    retour();
+  }
+  else if(p && p.r.v === k) retour();
   else { S.route = { v:k }; window.scrollTo(0, 0); render(); }
 }
 function vEdit(k, i){
@@ -2497,7 +2529,7 @@ function vEdit(k, i){
     if(k === "proj" && !neuf) renommerApp(cleApp(src), cleApp(fiche));
     if(neuf) def.liste.push(fiche); else def.liste[i] = fiche;
     sauverInv();
-    quitterFiche(k);
+    quitterFiche(k, fiche);
   };
   fin.append(ann, val);
   d.append(fin);
@@ -2515,7 +2547,7 @@ function vEdit(k, i){
       if(k === "proj") oublierApp(cleApp(src));
       def.liste.splice(i, 1);
       sauverInv();
-      quitterFiche(k);
+      quitterFiche(k, null);
     };
     d.append(sup);
   }
@@ -2734,8 +2766,12 @@ function placerAppareil(x, u, adr){
   if(!l) return;
   l.suite = false;
   l.u = Math.max(1, Math.min(63999, u || 1));
-  l.adr = Math.max(1, Math.min(512, adr || 1));
+  l.adr = adresseQuiTient(adr, l.ch);
 }
+/* Une adresse imposée où l'appareil ne tient pas (510 pour 20 canaux) partait
+   sans un mot en U+1·1, sur ce qui s'y trouvait. Il recule jusqu'à tenir. */
+const adresseQuiTient = (adr, ch) =>
+  Math.max(1, Math.min(513 - Math.min(512, Math.max(1, ch || 1)), adr || 1));
 
 /* Poser cet appareil à la première adresse qui ne gêne personne. */
 function placerAppareilLibre(x){
@@ -3422,7 +3458,10 @@ function evidence(x){
    fois, le geste se fait et un bandeau propose de revenir en arrière. */
 let MINUT_ANNUL = null;
 function annulable(message, faire){
+  /* Les niveaux et la sélection reviennent avec le patch : sans eux, l'écran
+     montrait allumé ce qui ne sortait plus, ou l'inverse. */
   const copie = JSON.stringify(P), i = iPatch;
+  const etat = { NIV:{ ...NIV }, SEL, HL };
   faire();
   const vieux = document.querySelector(".p-annul");
   if(vieux) vieux.remove();
@@ -3432,7 +3471,8 @@ function annulable(message, faire){
   const a = el("button", null, "Annuler");
   a.onclick = () => {
     PATCHS[i] = JSON.parse(copie);
-    if(iPatch === i) P = PATCHS[i];
+    if(iPatch === i){ P = PATCHS[i]; NIV = etat.NIV; SEL = etat.SEL; HL = etat.HL;
+      if(Object.keys(NIV).length || HL) envoyer(); }
     b.remove();
     peindre();
   };
@@ -3736,7 +3776,9 @@ function majVoletRelever(){
   const r2 = el("div", "rang");
   const plus = el("button", "mini", "+ un gradateur");
   const sup = el("button", "mini sup", "Supprimer");
-  plus.onclick = () => { P.reg.nb++; allerA(gradas().length - 1, 100, true); };
+  /* Un numéro supprimé plus tôt revient vierge, comme sous les flèches : resté
+     exclu, le curseur tombait sur le gradateur d'avant. */
+  plus.onclick = () => { elargirG(P.reg.premier + P.reg.nb); allerA(gradas().length - 1, 100, true); };
   sup.onclick = () => supprimerGrada(n);
   r2.append(plus, sup);
   d.append(r2);
@@ -4336,10 +4378,7 @@ function majVoletFiche(){
           <option value="">—</option>${(rp && !REPERES.includes(rp) ? [rp] : []).concat(REPERES).map(v =>
             `<option value="${esc(v)}"${v === rp ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
       <div class="f"><label>Type d'appareil</label>
-        <select class="sa" aria-label="Type de l'appareil ${x.n}">${marques().map(m =>
-          `<optgroup label="${esc(m)}">${PROJECTEURS.filter(y => y.marque === m).map(y =>
-            `<option value="${esc(cleApp(y))}"${cleApp(y) === x.app ? " selected" : ""}>${
-              esc(y.nom)}</option>`).join("")}</optgroup>`).join("")}</select></div>
+        <select class="sa" aria-label="Type de l'appareil ${x.n}">${optionsTypes(x.app)}</select></div>
       <div class="f"><label>${modes.length ? "Mode" : "Empreinte en canaux"}</label>${modes.length
         ? `<select class="sm" aria-label="Mode de l'appareil ${x.n}">${modes.map(m =>
             `<option value="${esc(m.nom)}"${m.nom === x.mode ? " selected" : ""}>${
@@ -4534,10 +4573,7 @@ function majVoletAjouter(){
               : { u:Math.max(1, l.u || 1), adr:Math.min(512, Math.max(1, l.adr || 1)) };
     const r = el("div", "lg");
     r.innerHTML = `<span class="cf c-app"><i>type d'appareil</i>
-        <select class="sa" aria-label="Type d'appareil">${marques().map(m =>
-          `<optgroup label="${esc(m)}">${PROJECTEURS.filter(p => p.marque === m).map(p =>
-            `<option value="${esc(cleApp(p))}"${cleApp(p) === l.app ? " selected" : ""}>${
-              esc(p.nom)}</option>`).join("")}</optgroup>`).join("")}</select></span>
+        <select class="sa" aria-label="Type d'appareil">${optionsTypes(l.app)}</select></span>
       <span class="cf c-mode"><i>${modes.length ? "mode" : "canaux par appareil"}</i>${modes.length
         ? `<select class="sm" aria-label="Mode">${modes.map(m =>
             `<option value="${esc(m.nom)}"${m.nom === l.mode ? " selected" : ""}>${
@@ -4587,7 +4623,7 @@ function majVoletAjouter(){
       figerSuivante(l, liste);
       l.suite = false;
       l.u = Math.max(1, Math.min(63999, u || 1));
-      l.adr = Math.max(1, Math.min(512, adr || 1));
+      l.adr = adresseQuiTient(adr, l.ch);
       peindre();
     };
     /* Un autre univers : la ligne se pose après ce qui s'y trouve déjà, au lieu
@@ -4742,12 +4778,18 @@ function majVoletPatchs(){
   const z = el("div", "liste2");
   PATCHS.forEach((p, i) => {
     const l = adresser(p.lignes);
-    const rel = Object.keys(p.grada || {})
-      .filter(n => String((p.grada[n] || {}).circuit || "").trim()).length;
+    /* Les mêmes comptes que l'écran du patch : la plage moins les exclus, et
+       les gradateurs de la liste (un circuit, ou gardés sans), pas toute la plage. */
+    const plage = [];
+    for(let n = p.reg.premier; n < p.reg.premier + p.reg.nb; n++)
+      if(!(p.exclus || []).includes(n)) plage.push(n);
+    const aCir = n => String(((p.grada || {})[n] || {}).circuit || "").trim();
+    const rel = plage.filter(aCir).length;
+    const nG = plage.filter(n => aCir(n) || (p.garde || []).includes(n)).length;
     const r = el("div", "p" + (i === iPatch ? " ici" : ""));
     r.innerHTML = `<span><b>${esc(p.nom || "Sans titre")}</b>
       <span>${pl(l.length, "appareil")} · ${pl(rel, "circuit relevé", "circuits relevés")} · ${
-        pl(p.reg.nb, "gradateur")}</span></span>`;
+        pl(nG, "gradateur")}</span></span>`;
     const ouv = el("button", "ouv", i === iPatch ? "en cours" : "ouvrir");
     ouv.onclick = () => { if(i !== iPatch) chargerPatch(i); };
     const sup = el("button", "sup", "✕");
@@ -4847,7 +4889,14 @@ function majVoletPatchs(){
   pla.querySelector(".r-proto").onchange = e => { P.reg.proto = e.target.value; envoyer(); peindre(); };
   pla.querySelector(".r-u").onchange = e => { P.reg.u = nbre(e.target.value, 1, 63999, 1); peindre(); };
   pla.querySelector(".r-a").onchange = e => { P.reg.adr = nbre(e.target.value, 1, 512, 1); peindre(); };
-  pla.querySelector(".r-p").onchange = e => { P.reg.premier = nbre(e.target.value, 1, 9999, 1); peindre(); };
+  /* La fin de la plage ne bouge pas : la décaler avec le début sortait de la
+     liste les gradateurs déjà relevés en haut de plage. */
+  pla.querySelector(".r-p").onchange = e => {
+    const v = nbre(e.target.value, 1, 9999, 1), fin = P.reg.premier + P.reg.nb - 1;
+    P.reg.premier = v;
+    if(fin >= v) P.reg.nb = fin - v + 1;
+    peindre();
+  };
   const pr = pla.querySelector(".r-prio");
   if(pr) pr.onchange = e => { P.reg.prio = nbre(e.target.value, 1, 200, 100); envoyer(); };
   pla.querySelector(".r-cible").onchange = e => { P.reg.cible = e.target.value.trim(); envoyer(); };
@@ -4929,7 +4978,7 @@ function exporterFeuille(){
 
   const tCircuits = circuits.map(c => `<tr>
       <td class="n f">${esc(c.circuit)}</td>
-      <td>${esc([P.reperes[c.circuit], ...c.gradas.map(noteGrada), ...c.apps.map(x => repApp(x.n))].filter(Boolean)
+      <td>${esc([(P.reperes || {})[c.circuit], ...c.gradas.map(noteGrada), ...c.apps.map(x => repApp(x.n))].filter(Boolean)
         .filter((x, i, l) => l.indexOf(x) === i).join(", "))}</td>
       <td class="n">${c.gradas.join(", ") || "—"}</td>
       <td>${c.apps.map(x => esc(courtNom(x.app)) + " (U" + x.u + "·" + x.adr + ")").join(", ") || "—"}</td>
@@ -4970,7 +5019,7 @@ function exporterFeuille(){
 <header>
   <div><h1>${esc(P.nom || "Patch")}</h1>
     <p class="sous">${pl(releves.length, "gradateur")} ·
-      ${circuits.length} circuits · ${liste.length} appareils · ${puissanceTotale(liste)} ·
+      ${pl(circuits.length, "circuit")} · ${pl(liste.length, "appareil")} · ${puissanceTotale(liste)} ·
       ${esc(P.reg.proto)} univers ${P.reg.u}</p></div>
   <div class="meta">${date}<br>Patch — inventaire régie</div>
 </header>
