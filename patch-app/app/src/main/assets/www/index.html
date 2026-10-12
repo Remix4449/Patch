@@ -570,6 +570,20 @@
        border-top:1px solid var(--line);background:var(--sur2)}
   .pile .sg b{font:700 14px/1.2 var(--body);color:var(--ink)}
   .pile .sg span{font:500 11px/1 var(--mono);color:var(--ink3)}
+  .pile .sg em{font-style:normal;font-weight:700;color:var(--ink2)}
+  .pile .tots{display:flex;gap:6px;padding:0 10px 8px}
+  .pile .tots div{flex:1;min-width:0;background:var(--bg);border-radius:11px;padding:8px 10px}
+  .pile .tots b{display:block;font:700 17px/1.15 var(--mono);color:var(--ink)}
+  .pile .tots span{font:600 10px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .pile .manq{padding:0 14px 8px;font-size:12.5px;line-height:1.5;color:var(--ko)}
+  .pile .manq button{border:0;background:none;padding:0;font:inherit;color:inherit;text-decoration:underline;
+       text-underline-offset:2px;cursor:pointer;min-height:24px}
+  .pile .types{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border-top:1px solid var(--line)}
+  .pile .types button{min-height:40px;border:1.5px solid var(--line);background:var(--bg);border-radius:99px;
+       padding:0 12px;font:600 12.5px/1 var(--body);color:var(--ink2);cursor:pointer}
+  .pile .types button i{font:600 11px/1 var(--mono);font-style:normal;color:var(--ink3);margin-left:5px}
+  .pile .types button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+  .pile .types button[aria-pressed="true"] i{color:var(--bg);opacity:.75}
   /* Le circuit en tête de rangée, en grand : c'est ce qu'on cherche dans la
      liste. L'ampoule, au bout, est le seul geste qui allume. */
   .rg{display:grid;grid-template-columns:54px minmax(0,1fr) auto 44px;gap:10px;align-items:center;
@@ -2821,19 +2835,35 @@ function courtNom(nomComplet){
   return p ? p.nom : nomComplet;
 }
 
-function puissanceTotale(liste){
-  let w = 0, sur = false;
-  liste.forEach(x => {
-    const p = PROJECTEURS.find(y => cleApp(y) === x.app);
-    if(!p){ sur = true; return; }
-    const m = String(p.w).replace(",", ".").match(/([\d.]+)\s*(k?)/i);
-    if(!m){ sur = true; return; }
-    w += parseFloat(m[1]) * (m[2] ? 1000 : 1);
-  });
-  if(!liste.length) return "—";
-  return (w >= 1000 ? (w / 1000).toFixed(1).replace(".", ",") + " kW" : Math.round(w) + " W")
-       + (sur ? "*" : "");
+/* Watts et kilos d'une liste d'appareils, lus dans les fiches du Parc. Un
+   modèle sans la valeur est compté à part : le total porte alors un
+   astérisque, et la liste dit lequel compléter. */
+function ficheApp(x){ return PROJECTEURS.find(y => cleApp(y) === x.app); }
+function lireW(v){
+  const m = String(v ?? "").replace(",", ".").match(/([\d.]+)\s*(k?)/i);
+  return m ? parseFloat(m[1]) * (m[2] ? 1000 : 1) : null;
 }
+function lireKg(v){
+  const m = String(v ?? "").replace(",", ".").match(/[\d.]+/);
+  return m ? parseFloat(m[0]) : null;
+}
+function bilanApps(liste){
+  const b = { w:0, kg:0, sansW:new Set(), sansKg:new Set() };
+  liste.forEach(x => {
+    const p = ficheApp(x), w = p ? lireW(p.w) : null, kg = p ? lireKg(p.kg) : null;
+    if(w == null) b.sansW.add(x.app); else b.w += w;
+    if(kg == null) b.sansKg.add(x.app); else b.kg += kg;
+  });
+  return b;
+}
+const texteW = (b, n) => !n ? "—" : (b.sansW.size && !b.w ? "?" :
+  b.w >= 1000 ? (b.w / 1000).toFixed(1).replace(".", ",") + " kW" : Math.round(b.w) + " W")
+  + (b.sansW.size ? "*" : "");
+const texteKg = (b, n) => !n ? "—" : (b.sansKg.size && !b.kg ? "?" :
+  b.kg >= 1000 ? (b.kg / 1000).toFixed(2).replace(".", ",") + " t" : Math.round(b.kg) + " kg")
+  + (b.sansKg.size ? "*" : "");
+const puissanceTotale = liste => texteW(bilanApps(liste), liste.length);
+const poidsTotal = liste => texteKg(bilanApps(liste), liste.length);
 
 /* ------------------------------- émission -------------------------------- */
 /* L'émission est tenue, pas envoyée une fois : le natif répète les trames à
@@ -3350,7 +3380,7 @@ function pileApps(){
       cle:"a" + x.n,
       circuit:c,
       titre:`${courtNom(x.app)} n° ${x.n}`,
-      sous:[repApp(x.n), x.mode || x.ch + " ch", ko.has(x.n) ? "chevauchement" : ""]
+      sous:[repApp(x.n), x.mode || x.ch + " ch", valeursApp(x), ko.has(x.n) ? "chevauchement" : ""]
         .filter(Boolean).join(" · "),
       u:x.u, adr:x.adr,
       allume:!!(HL && HL.n === x.n), nomLampe:`${courtNom(x.app)} n° ${x.n}`,
@@ -3361,10 +3391,19 @@ function pileApps(){
     if(x.n === vise) r.classList.add("pointe");
     return r;
   });
-  const p = pile("Appareils", `${relevesA()} sur ${liste.length} avec circuit · ${puissanceTotale(liste)}`,
-                 grouperApps(liste, rangs), "Aucun appareil : touchez « Ajouter » en bas.",
+  const types = typesFiltres(liste);
+  const garde = liste.map(x => !types || types.has(x.app));
+  const vis = liste.filter((x, i) => garde[i]);
+  const p = pile("Appareils", `${relevesA()} sur ${liste.length} avec circuit`,
+                 grouperApps(vis, rangs.filter((r, i) => garde[i])),
+                 "Aucun appareil : touchez « Ajouter » en bas.",
                  liste.length ? boutonChoix("a") : null);
-  if(liste.length > 1) p.querySelector("h4").after(choixVue());
+  const h = p.querySelector("h4");
+  const plus = [];
+  if(liste.length) plus.push(...totauxApps(vis));
+  if(new Set(liste.map(x => x.app)).size > 1) plus.push(choixType(liste, types));
+  if(liste.length > 1) plus.push(choixVue());
+  h.after(...plus);
   return p;
 }
 
@@ -3397,16 +3436,71 @@ function grouperApps(liste, rangs){
   liste.forEach((x, i) => {
     const k = cle(x);
     if(!groupes.has(k)) groupes.set(k, []);
-    groupes.get(k).push(rangs[i]);
+    groupes.get(k).push(i);
   });
   const out = [];
   [...groupes.keys()].sort((a, b) => rang(a) - rang(b) || String(a).localeCompare(String(b)))
     .forEach(k => {
-      const g = groupes.get(k);
+      const g = groupes.get(k), apps = g.map(i => liste[i]), b = bilanApps(apps);
       const nom = vue === "u" ? "Univers " + k : (k || "Sans repère");
-      out.push(el("div", "sg", `<b>${esc(nom)}</b><span>${pl(g.length, "appareil")}</span>`), ...g);
+      out.push(el("div", "sg", `<b>${esc(nom)}</b><span>${pl(g.length, "app.", "app.")} · <em>${
+        texteW(b, g.length)}</em> · <em>${texteKg(b, g.length)}</em></span>`), ...g.map(i => rangs[i]));
     });
   return out;
+}
+
+/* Filtrer la liste par modèle : une pastille par modèle présent, avec son
+   nombre. Le choix est gardé dans le patch ; un modèle qui n'y est plus
+   n'est plus filtré. */
+function typesFiltres(liste){
+  const la = new Set(liste.map(x => x.app));
+  const t = (P.filtreA || []).filter(a => la.has(a));
+  return t.length ? new Set(t) : null;
+}
+function choixType(liste, types){
+  const d = el("div", "types");
+  d.setAttribute("role", "group");
+  d.setAttribute("aria-label", "Filtrer par modèle");
+  const nb = new Map();
+  liste.forEach(x => nb.set(x.app, (nb.get(x.app) || 0) + 1));
+  const bouton = (lib, n, actif, faire) => {
+    const b = el("button", null, `${esc(lib)}<i>${n}</i>`);
+    b.setAttribute("aria-pressed", actif ? "true" : "false");
+    b.onclick = () => { faire(); majListe(); };
+    d.append(b);
+  };
+  bouton("Tous", liste.length, !types, () => { P.filtreA = []; });
+  nb.forEach((n, a) => bouton(courtNom(a), n, !!(types && types.has(a)), () => {
+    const t = new Set(types || []);
+    t.has(a) ? t.delete(a) : t.add(a);
+    P.filtreA = [...t];
+  }));
+  return d;
+}
+/* Le bandeau des totaux suit le filtre : nombre, puissance, poids. */
+function totauxApps(vis){
+  const b = bilanApps(vis);
+  const t = el("div", "tots");
+  t.innerHTML = `<div><b>${vis.length}</b><span>${vis.length > 1 ? "appareils" : "appareil"}</span></div>
+    <div><b>${texteW(b, vis.length)}</b><span>Puissance</span></div>
+    <div><b>${texteKg(b, vis.length)}</b><span>Poids</span></div>`;
+  const manque = [...new Set([...b.sansW, ...b.sansKg])];
+  if(!manque.length) return [t];
+  const m = el("div", "manq");
+  m.append(document.createTextNode("Fiche à compléter au Parc : "));
+  manque.forEach((a, i) => {
+    if(i) m.append(document.createTextNode(", "));
+    const quoi = [b.sansW.has(a) ? "puissance" : "", b.sansKg.has(a) ? "poids" : ""].filter(Boolean).join(" et ");
+    const p = PROJECTEURS.find(y => cleApp(y) === a);
+    const lien = el(p ? "button" : "span", null, `${esc(courtNom(a))} (${quoi})`);
+    if(p) lien.onclick = () => go({ v:"fiche", p });
+    m.append(lien);
+  });
+  return [t, m];
+}
+function valeursApp(x){
+  const p = ficheApp(x);
+  return p ? [p.w, p.kg].filter(v => String(v ?? "").trim()).join(" · ") : "";
 }
 
 /* Mettre un appareil en évidence : le geste des gradateurs, appliqué au patch. */
@@ -4970,7 +5064,7 @@ function exporterFeuille(){
 <header>
   <div><h1>${esc(P.nom || "Patch")}</h1>
     <p class="sous">${pl(releves.length, "gradateur")} ·
-      ${circuits.length} circuits · ${liste.length} appareils · ${puissanceTotale(liste)} ·
+      ${circuits.length} circuits · ${liste.length} appareils · ${puissanceTotale(liste)} · ${poidsTotal(liste)} ·
       ${esc(P.reg.proto)} univers ${P.reg.u}</p></div>
   <div class="meta">${date}<br>Patch — inventaire régie</div>
 </header>
@@ -5002,8 +5096,9 @@ function exporterFeuille(){
 
 <footer>${sansCirc ? `${pl(sansCirc, "gradateur")} sans circuit ne figurent pas dans le
 premier tableau.` : ""}${puissanceTotale(liste).endsWith("*")
-  ? " L'astérisque signale une puissance incomplète : un appareil du patch n'a pas de puissance"
-    + " renseignée à l'inventaire." : ""}</footer>
+  || poidsTotal(liste).endsWith("*")
+  ? " L'astérisque signale un total incomplet : un appareil du patch n'a pas de puissance ou de"
+    + " poids renseigné à l'inventaire." : ""}</footer>
 </body></html>`;
 
   if(NET.imprimer(html, "feuille")) return;
