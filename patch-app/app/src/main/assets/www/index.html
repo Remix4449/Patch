@@ -5101,27 +5101,46 @@ function exporterFeuille(){
   const releves = gradas().filter(n => circuitGrada(n));
   const sansCirc = gradas().filter(n => !circuitGrada(n) && gardes().includes(n)).length;
   const circuits = parCircuit();
-  const univ = [...new Set(liste.map(x => x.u))];
 
-  const tGradas = releves.map(n => {
-    const a = adrGrada(n) || { u:"", canal:"" };
-    return `<tr><td class="n f">${n}</td><td class="n">${a.u}</td><td class="n">${a.canal}</td>
-      <td class="n c">${esc(circuitGrada(n))}</td><td>${esc(noteGrada(n))}</td></tr>`;
+  /* Une bande par univers, et dessous ses circuits dans l'ordre : ce qu'on
+     allume en tapant le circuit, gradateurs d'un côté, appareils de l'autre.
+     Un circuit qui a plusieurs gradateurs porte un badge ×n et un fond gris.
+     Une colonne vide pour tout l'univers est retirée. */
+  const z3 = v => String(v).padStart(3, "0");
+  const adr = (u, v) => `<span class="adr"><u>${u}·</u>${z3(v)}</span>`;
+  const pill = c => `<span class="pc">${esc(c)}</span>`;
+  const uG = n => (adrGrada(n) || {}).u;
+  const univers = [...new Set([...releves.map(uG), ...liste.map(x => x.u)])]
+    .filter(u => u != null).sort((a, b) => a - b);
+  const blocs = univers.map(u => {
+    const lc = circuits.map(c => ({ circuit:c.circuit,
+      gradas:c.gradas.filter(n => uG(n) === u), apps:c.apps.filter(x => x.u === u) }))
+      .filter(c => c.gradas.length || c.apps.length);
+    const ng = lc.reduce((s, c) => s + c.gradas.length, 0);
+    const na = lc.reduce((s, c) => s + c.apps.length, 0);
+    const nm = lc.filter(c => c.gradas.length > 1).length;
+    const cols = "grid-template-columns:76pt 80pt " + (ng && na ? "1fr 1.5fr" : "1fr");
+    const a = artnet(u), sa = sacn(u);
+    const rangs = lc.map(c => {
+      const plus = c.gradas.length > 1;
+      const rep = [(P.reperes || {})[c.circuit], ...c.gradas.map(noteGrada), ...c.apps.map(x => repApp(x.n))]
+        .filter(Boolean).filter((x, i, l) => l.indexOf(x) === i).join(", ");
+      return `<div class="lg${plus ? " multi" : ""}" style="${cols}">
+        <span>${pill(c.circuit)}${plus ? `<span class="fois">×${c.gradas.length}</span>` : ""}</span>
+        <span class="g">${esc(rep)}</span>
+        ${ng ? `<span class="${plus ? "pile" : ""}">${c.gradas.map(n =>
+          `<span class="puce"><b>G${n}</b> ${adr(u, adrGrada(n).canal)}</span>`).join("") || '<span class="g">—</span>'}</span>` : ""}
+        ${na ? `<span class="pile">${c.apps.map(x => `<span class="puce"><b>${esc(courtNom(x.app))}</b>
+          <span class="g">${esc(x.mode || "")}</span> ${adr(u, x.adr)}<u> → ${z3(x.fin)}</u></span>`).join("")
+          || '<span class="g">—</span>'}</span>` : ""}
+      </div>`;
+    }).join("");
+    return `<div class="bande"><b>U${u}</b><span>Art-Net ${a.net}.${a.sub}.${a.uni} · sACN ${sa.ip}</span>
+      <i>${[pl(lc.length, "circuit"), ng && pl(ng, "gradateur"), na && pl(na, "appareil"),
+        nm && pl(nm, "circuit") + " à plusieurs gradateurs"].filter(Boolean).join(" · ")}</i></div>
+      <div class="lg tete" style="${cols}"><span>Circuit</span><span>Repère</span>${ng
+        ? "<span>Gradateurs</span>" : ""}${na ? "<span>Appareils</span>" : ""}</div>${rangs}`;
   }).join("");
-
-  const tCircuits = circuits.map(c => `<tr>
-      <td class="n f">${esc(c.circuit)}</td>
-      <td>${esc([(P.reperes || {})[c.circuit], ...c.gradas.map(noteGrada), ...c.apps.map(x => repApp(x.n))].filter(Boolean)
-        .filter((x, i, l) => l.indexOf(x) === i).join(", "))}</td>
-      <td class="n">${c.gradas.join(", ") || "—"}</td>
-      <td>${c.apps.map(x => esc(courtNom(x.app)) + " (U" + x.u + "·" + x.adr + ")").join(", ") || "—"}</td>
-    </tr>`).join("");
-
-  const tApps = liste.map(x => `<tr>
-      <td class="n">${x.n}</td><td class="n c">${esc(circuitApp(x.n))}</td>
-      <td>${esc(courtNom(x.app))}</td><td>${esc(repApp(x.n))}</td><td class="g">${esc(x.mode || "")}</td>
-      <td class="n">${x.ch}</td><td class="n">${x.u}</td>
-      <td class="n f">${x.adr}</td><td class="n g">${x.fin}</td></tr>`).join("");
 
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <title>${esc(P.nom || "Patch")}</title><style>
@@ -5133,57 +5152,51 @@ function exporterFeuille(){
   h1{font-size:18pt;margin:0;letter-spacing:-.3pt}
   .sous{font-size:9pt;color:#555;margin:2pt 0 0}
   .meta{font-size:9pt;color:#555;text-align:right;line-height:1.5}
-  table{border-collapse:collapse;width:100%}
-  th{font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;color:#555;
-     text-align:left;border-bottom:1px solid #111;padding:4pt 5pt}
-  td{padding:3.6pt 5pt;border-bottom:.5pt solid #ccc;font-size:10pt}
-  td.n{text-align:right;font-variant-numeric:tabular-nums}
-  td.f{font-weight:700}
-  td.g{color:#555}
-  td.c{background:#f2f2f2}
-  tr{break-inside:avoid}
-  thead{display:table-header-group}
-  h2{font-size:9pt;letter-spacing:.06em;text-transform:uppercase;color:#555;
-     margin:14pt 0 5pt;border-bottom:1px solid #111;padding-bottom:4pt}
-  .recap{display:flex;flex-wrap:wrap;gap:4pt 18pt;font-size:10pt}
-  .recap div{white-space:nowrap}
+  .chiffres{display:flex;gap:6pt;flex-wrap:wrap;margin:0 0 4pt}
+  .chiffres div{border:1pt solid #bbb;border-radius:4pt;padding:3pt 7pt;font-size:8.5pt;color:#555}
+  .chiffres b{display:block;font-size:13pt;color:#111}
+  .legende{font-size:8pt;color:#666;margin:3pt 0 0}
+  h2{font-size:12pt;margin:14pt 0 2pt}
+  .bande{display:flex;align-items:center;gap:8pt;background:#111;color:#fff;border-radius:3pt;
+         padding:4pt 8pt;margin:10pt 0 0;break-after:avoid;
+         -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .bande b{font-size:12pt}
+  .bande span,.bande i{font-size:8.5pt;opacity:.85}
+  .bande i{margin-left:auto;font-style:normal;text-align:right}
+  .lg{display:grid;gap:8pt;align-items:center;padding:2.6pt 4pt;border-bottom:.5pt solid #ddd;break-inside:avoid}
+  .lg.tete{font-size:7pt;letter-spacing:.08em;text-transform:uppercase;color:#666;
+           border-bottom:1pt solid #111;break-after:avoid}
+  .lg.multi{background:#f1f1f1;box-shadow:inset 3pt 0 0 #111;
+            -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pc{display:inline-block;min-width:30pt;text-align:center;border:1.4pt solid #111;border-radius:3pt;
+      font-weight:800;font-size:12pt;padding:0 4pt;font-variant-numeric:tabular-nums}
+  .fois{display:inline-block;margin-left:4pt;background:#111;color:#fff;border-radius:99pt;font-size:8pt;
+        font-weight:800;padding:1pt 5pt;vertical-align:middle;
+        -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pile{display:flex;flex-direction:column;gap:1pt}
+  .puce{font-variant-numeric:tabular-nums}
+  .adr{font-weight:600;font-variant-numeric:tabular-nums}
+  .adr u,.puce u{text-decoration:none;color:#999;font-weight:400}
+  .g{color:#666}
   footer{margin-top:12pt;font-size:8pt;color:#777;border-top:.5pt solid #ccc;padding-top:5pt}
 </style></head><body>
 <header>
   <div><h1>${esc(P.nom || "Patch")}</h1>
-    <p class="sous">${pl(releves.length, "gradateur")} ·
-      ${pl(circuits.length, "circuit")} · ${pl(liste.length, "appareil")} · ${puissanceTotale(liste)} · ${poidsTotal(liste)} ·
-      ${esc(P.reg.proto)} univers ${P.reg.u}</p></div>
-  <div class="meta">${date}<br>Patch — inventaire régie</div>
+    <p class="legende"><span class="fois" style="margin:0 3pt 0 0">×2</span> et fond gris : circuit à
+      plusieurs gradateurs. Adresse : <span class="adr"><u>1·</u>012</span> = univers 1, adresse 12.</p></div>
+  <div class="meta">${date}<br>Patch — inventaire régie<br>${esc(P.reg.proto)}</div>
 </header>
-
-<h2>Gradateurs relevés</h2>
-<table><thead><tr>
-  <th>Gradateur</th><th>Univ.</th><th>Adresse</th><th>Circuit</th><th>Repère</th>
-</tr></thead><tbody>${tGradas
-  || `<tr><td colspan="5">Aucun gradateur relevé.</td></tr>`}</tbody></table>
-
-<h2>Appareils</h2>
-<table><thead><tr>
-  <th>N°</th><th>Circuit</th><th>Appareil</th><th>Repère</th><th>Mode</th><th>Ch.</th>
-  <th>Univ.</th><th>Adresse</th><th>Fin</th>
-</tr></thead><tbody>${tApps
-  || `<tr><td colspan="9">Aucun appareil.</td></tr>`}</tbody></table>
-
-<h2>Réseau</h2>
-<div class="recap">${univ.length ? univ.map(u => {
-  const a = artnet(u), sa = sacn(u);
-  return `<div>U${u} — Art-Net <b>${a.net}.${a.sub}.${a.uni}</b> · sACN <b>${sa.ip}</b></div>`;
-}).join("") : "<div>Aucun univers.</div>"}</div>
+<div class="chiffres"><div><b>${releves.length}</b>${releves.length > 1 ? "gradateurs" : "gradateur"}</div>
+  <div><b>${circuits.length}</b>${circuits.length > 1 ? "circuits" : "circuit"}</div>
+  <div><b>${liste.length}</b>${liste.length > 1 ? "appareils" : "appareil"}</div>
+  <div><b>${univers.length}</b>univers</div>
+  <div><b>${puissanceTotale(liste)}</b>puissance</div><div><b>${poidsTotal(liste)}</b>poids</div></div>
 
 <h2>Par circuit</h2>
-<table><thead><tr>
-  <th>Circuit</th><th>Repère</th><th>Gradateurs</th><th>Appareils</th>
-</tr></thead><tbody>${tCircuits
-  || `<tr><td colspan="4">Aucun circuit.</td></tr>`}</tbody></table>
+${blocs || "<p>Aucun circuit.</p>"}
 
-<footer>${sansCirc ? `${pl(sansCirc, "gradateur")} sans circuit ne figurent pas dans le
-premier tableau.` : ""}${puissanceTotale(liste).endsWith("*")
+<footer>${sansCirc ? `${pl(sansCirc, "gradateur")} sans circuit ne figurent pas dans la
+liste.` : ""}${univers.length > 1 ? " Un circuit présent sur plusieurs univers apparaît sous chacun." : ""}${puissanceTotale(liste).endsWith("*")
   || poidsTotal(liste).endsWith("*")
   ? " L'astérisque signale un total incomplet : un appareil du patch n'a pas de puissance ou de"
     + " poids renseigné à l'inventaire." : ""}</footer>
