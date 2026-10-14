@@ -1920,7 +1920,7 @@ function carteModes(p){
         if(!r.modes || !r.modes.length){ imp.textContent = "Aucun mode trouvé dans ce fichier"; return; }
         /* Les modes saisis à la main restent, sauf ceux que le fichier redonne
            sous le même nom ; les modes de démonstration partent. */
-        const neufs = r.modes.map(m => ({ nom:m.nom, ch:m.ch, ...(m.dim ? { dim:m.dim, def:m.def || {} } : {}) }));
+        const neufs = r.modes.map(m => ({ nom:m.nom, ch:m.ch, ...(m.dim ? { dim:m.dim, def:m.def || {}, plein:m.plein || [] } : {}) }));
         const gardes = (BIB[k] || []).filter(m => !m.demo && !neufs.some(n => n.nom === m.nom));
         BIB[k] = [...neufs, ...gardes];
         sauverBib(); render();
@@ -2969,7 +2969,7 @@ function trames(){
     if(HL.prof && !P.reg.hlTout){
       const pr = HL.prof, def = pr.def || {};
       Object.keys(def).forEach(o => { const c = HL.adr + (+o) - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = def[o] | 0; });
-      pr.dim.forEach(o => { const c = HL.adr + o - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = 255; });
+      [...pr.dim, ...(pr.plein || [])].forEach(o => { const c = HL.adr + o - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = 255; });
     } else {
       const fin = P.reg.hlTout ? HL.fin : HL.adr;
       for(let c = HL.adr; c <= fin && c <= 512; c++) trame[c - 1] = 255;
