@@ -52,9 +52,11 @@ public class Gdtf {
         // défaut de chaque canal (pan au centre, shutter ouvert…), par mode.
         Map<String, Map<Integer, Integer>> defauts = new LinkedHashMap<String, Map<Integer, Integer>>();
         Map<String, JSONArray> dims = new LinkedHashMap<String, JSONArray>();
+        // Les couleurs additives (R, G, B, W, ambre…) : à fond, l'appareil sort blanc.
+        Map<String, JSONArray> pleins = new LinkedHashMap<String, JSONArray>();
         int[] decal = null;             // décalages du canal en cours, octet fort d'abord
         String defCanal = null, fnInit = null, defInit = null, defPremier = null;
-        boolean dimmer = false;
+        boolean dimmer = false, couleur = false;
 
         int ev = p.getEventType();
         while (ev != XmlPullParser.END_DOCUMENT) {
@@ -71,6 +73,7 @@ public class Gdtf {
                         modes.put(modeCourant, 0);
                         defauts.put(modeCourant, new LinkedHashMap<Integer, Integer>());
                         dims.put(modeCourant, new JSONArray());
+                        pleins.put(modeCourant, new JSONArray());
                     }
                 } else if ("DMXChannel".equals(t) && modeCourant != null
                         && modes.containsKey(modeCourant)) {
@@ -80,9 +83,11 @@ public class Gdtf {
                     defCanal = attr(p, "Default");
                     String ini = attr(p, "InitialFunction");
                     fnInit = ini == null ? null : ini.substring(ini.lastIndexOf('.') + 1);
-                    defInit = null; defPremier = null; dimmer = false;
+                    defInit = null; defPremier = null; dimmer = false; couleur = false;
                 } else if ("LogicalChannel".equals(t) && decal != null) {
-                    if ("Dimmer".equals(attr(p, "Attribute"))) dimmer = true;
+                    String at = attr(p, "Attribute");
+                    if ("Dimmer".equals(at)) dimmer = true;
+                    else if (at != null && (at.startsWith("ColorAdd_") || at.startsWith("ColorRGB_"))) couleur = true;
                 } else if ("ChannelFunction".equals(t) && decal != null) {
                     String d = attr(p, "Default");
                     if (defPremier == null) defPremier = d;
@@ -92,6 +97,8 @@ public class Gdtf {
                 if (decal != null && decal.length > 0 && modeCourant != null) {
                     if (dimmer) {
                         for (int o : decal) dims.get(modeCourant).put(o);
+                    } else if (couleur) {
+                        for (int o : decal) pleins.get(modeCourant).put(o);
                     } else {
                         String d = defCanal != null ? defCanal : defInit != null ? defInit : defPremier;
                         long v = valeur(d, decal.length);
@@ -117,6 +124,7 @@ public class Gdtf {
             JSONArray dim = dims.get(e.getKey());
             if (dim.length() > 0) {
                 j.put("dim", dim);
+                j.put("plein", pleins.get(e.getKey()));
                 JSONObject def = new JSONObject();
                 for (Map.Entry<Integer, Integer> x : defauts.get(e.getKey()).entrySet())
                     def.put(String.valueOf(x.getKey()), x.getValue());
