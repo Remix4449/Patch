@@ -1920,7 +1920,7 @@ function carteModes(p){
         if(!r.modes || !r.modes.length){ imp.textContent = "Aucun mode trouvé dans ce fichier"; return; }
         /* Les modes saisis à la main restent, sauf ceux que le fichier redonne
            sous le même nom ; les modes de démonstration partent. */
-        const neufs = r.modes.map(m => ({ nom:m.nom, ch:m.ch }));
+        const neufs = r.modes.map(m => ({ nom:m.nom, ch:m.ch, ...(m.dim ? { dim:m.dim, def:m.def || {} } : {}) }));
         const gardes = (BIB[k] || []).filter(m => !m.demo && !neufs.some(n => n.nom === m.nom));
         BIB[k] = [...neufs, ...gardes];
         sauverBib(); render();
@@ -2905,7 +2905,13 @@ const poidsTotal = liste => texteKg(bilanApps(liste), liste.length);
    30 Hz tant qu'elles sont posées. Quitter l'écran relâche. */
 let NIV = {};        // n° de gradateur → niveau en %, le temps de la session
 let SEL = 0;         // gradateur tenu par la télécommande
-let HL = null;       // appareil en évidence : { n, u, adr, fin, ch, nom }
+let HL = null;       // appareil en évidence : { n, u, adr, fin, ch, nom, prof }
+/* Le mode d'un appareil importé d'un fichier GDTF sait où est son intensité
+   (dim, décalages en base 1) et la valeur de repos de ses autres canaux (def) :
+   pan au centre, shutter ouvert. Sans lui, on retombe sur le canal 1. */
+const profilApp = x => { const m = (BIB[x.app] || []).find(y => y.nom === x.mode);
+                         return m && m.dim && m.dim.length ? m : null; };
+const hlDe = x => ({ n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x.app), prof:profilApp(x) });
 /* La télécommande DMX tient des canaux, pas des gradateurs : « univers:canal »
    → niveau de 0 à 255. Un canal relâché reste dans la table à zéro, sinon son
    univers sortirait de la trame et le récepteur garderait la dernière valeur
@@ -2933,8 +2939,14 @@ function trames(){
        canaux » existe dans sa fiche pour les autres — c'est plus brutal, une
        lyre y répondra en ouvrant tout ce qu'elle a. */
     const trame = poser512(HL.u);
-    const fin = P.reg.hlTout ? HL.fin : HL.adr;
-    for(let c = HL.adr; c <= fin && c <= 512; c++) trame[c - 1] = 255;
+    if(HL.prof && !P.reg.hlTout){
+      const pr = HL.prof, def = pr.def || {};
+      Object.keys(def).forEach(o => { const c = HL.adr + (+o) - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = def[o] | 0; });
+      pr.dim.forEach(o => { const c = HL.adr + o - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = 255; });
+    } else {
+      const fin = P.reg.hlTout ? HL.fin : HL.adr;
+      for(let c = HL.adr; c <= fin && c <= 512; c++) trame[c - 1] = 255;
+    }
   }
   /* La télécommande DMX écrit dans l'univers en clair. Là où elle croise un
      gradateur de la feuille, c'est le plus haut des deux qui sort — un pupitre
@@ -3542,7 +3554,7 @@ function valeursApp(x){
 /* Mettre un appareil en évidence : le geste des gradateurs, appliqué au patch. */
 function evidence(x){
   HL = (HL && HL.n === x.n) ? null
-     : { n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x.app) };
+     : hlDe(x);
   envoyer(); peindre();
 }
 
@@ -3954,7 +3966,7 @@ function allerApp(k){
   if(k == null || k < 0 || k >= l.length){ peindre(); return; }
   IA = k;
   const x = l[k];
-  HL = { n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x.app) };
+  HL = hlDe(x);
   envoyer();
   peindre();
   const r = $(`.rg[data-a="${x.n}"]`);
@@ -4041,8 +4053,12 @@ function adressesCircuit(de, a){
   });
   appareils().forEach(x => {
     if(!dans(circuitApp(x.n))) return;
-    const fin = P.reg.hlTout ? x.fin : x.adr;
-    for(let c = x.adr; c <= fin && c <= 512; c++) poser(x.u, c);
+    const pr = P.reg.hlTout ? null : profilApp(x);
+    if(pr) pr.dim.forEach(o => { const c = x.adr + o - 1; if(c <= x.fin && c <= 512) poser(x.u, c); });
+    else {
+      const fin = P.reg.hlTout ? x.fin : x.adr;
+      for(let c = x.adr; c <= fin && c <= 512; c++) poser(x.u, c);
+    }
     na++;
   });
   return { cles, ng, na };
@@ -4517,7 +4533,7 @@ function majVoletFiche(){
         if(!y) return;
         CIBLE = { t:"a", n:y.n };
         if(enHl){
-          HL = { n:y.n, u:y.u, adr:y.adr, fin:y.fin, ch:y.ch, nom:courtNom(y.app) };
+          HL = hlDe(y);
           envoyer();
         }
         peindre();
