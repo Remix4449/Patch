@@ -5129,7 +5129,7 @@ function exporterFeuille(){
      Une colonne vide pour tout l'univers est retirée. */
   const z3 = v => String(v).padStart(3, "0");
   const adr = (u, v) => `<span class="adr"><u>${u}·</u>${z3(v)}</span>`;
-  const pill = c => `<span class="pc">${esc(c)}</span>`;
+  const pill = c => c ? `<span class="pc">${esc(c)}</span>` : `<span class="pc vide">?</span>`;
   const uG = n => (adrGrada(n) || {}).u;
   const univers = [...new Set([...releves.map(uG), ...liste.map(x => x.u)])]
     .filter(u => u != null).sort((a, b) => a - b);
@@ -5137,9 +5137,14 @@ function exporterFeuille(){
     const lc = circuits.map(c => ({ circuit:c.circuit,
       gradas:c.gradas.filter(n => uG(n) === u), apps:c.apps.filter(x => x.u === u) }))
       .filter(c => c.gradas.length || c.apps.length);
+    /* Un appareil sans circuit garde sa ligne, en fin d'univers : sinon il
+       disparaît de la feuille. */
+    liste.filter(x => x.u === u && !circuitApp(x.n))
+      .forEach(x => lc.push({ circuit:"", gradas:[], apps:[x] }));
     const ng = lc.reduce((s, c) => s + c.gradas.length, 0);
     const na = lc.reduce((s, c) => s + c.apps.length, 0);
     const nm = lc.filter(c => c.gradas.length > 1).length;
+    const nc = lc.filter(c => c.circuit).length, ns = lc.length - nc;
     const cols = "grid-template-columns:76pt 80pt " + (ng && na ? "1fr 1.5fr" : "1fr");
     const a = artnet(u), sa = sacn(u);
     const rangs = lc.map(c => {
@@ -5157,7 +5162,8 @@ function exporterFeuille(){
       </div>`;
     }).join("");
     return `<div class="bande"><b>U${u}</b><span>Art-Net ${a.net}.${a.sub}.${a.uni} · sACN ${sa.ip}</span>
-      <i>${[pl(lc.length, "circuit"), ng && pl(ng, "gradateur"), na && pl(na, "appareil"),
+      <i>${[pl(nc, "circuit"), ng && pl(ng, "gradateur"), na && pl(na, "appareil"),
+        ns && pl(ns, "appareil") + " sans circuit",
         nm && pl(nm, "circuit") + " à plusieurs gradateurs"].filter(Boolean).join(" · ")}</i></div>
       <div class="lg tete" style="${cols}"><span>Circuit</span><span>Repère</span>${ng
         ? "<span>Gradateurs</span>" : ""}${na ? "<span>Appareils</span>" : ""}</div>${rangs}`;
@@ -5191,6 +5197,7 @@ function exporterFeuille(){
             -webkit-print-color-adjust:exact;print-color-adjust:exact}
   .pc{display:inline-block;min-width:30pt;text-align:center;border:1.4pt solid #111;border-radius:3pt;
       font-weight:800;font-size:12pt;padding:0 4pt;font-variant-numeric:tabular-nums}
+  .pc.vide{border-style:dashed;border-color:#999;color:#999}
   .fois{display:inline-block;margin-left:4pt;background:#111;color:#fff;border-radius:99pt;font-size:8pt;
         font-weight:800;padding:1pt 5pt;vertical-align:middle;
         -webkit-print-color-adjust:exact;print-color-adjust:exact}
