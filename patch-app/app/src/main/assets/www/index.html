@@ -722,7 +722,6 @@
   .cpad button{border:0;border-radius:12px;min-height:50px;background:var(--sur2);
       font:600 21px/1 var(--mono);color:var(--ink);cursor:pointer}
   .cpad button.fn{background:var(--bg);border:1.5px solid var(--line);font:600 13px/1 var(--body);color:var(--ink2)}
-  .cpad.avec-grada button.ok{grid-column:span 1}
   .cpad button.ok{grid-column:span 2;background:var(--tel);color:var(--on);font:700 15px/1 var(--body)}
   .cpad button:active{transform:scale(.97)}
   .rel .ecr .n{grid-row:1/3;font:600 42px/1 var(--mono);color:var(--tel);border:0;background:none;
@@ -3008,9 +3007,10 @@ let REPLIEE = true;
 let VOLET = null;        // null | relever | attr | dmx | ajouter | fiche | patchs
 let CIBLE = null;        // élément ouvert dans la fiche : { t:"g"|"a", n, focus }
 let POINTE = null;       // gradateur ou appareil repéré dans la liste
-/* Circuit du gradateur pointé à son arrivée : la touche Grada s'en sert pour
-   rendre ce que le pavé a tapé, puisque les chiffres vont d'abord au circuit. */
-let CIR0 = { n:null, v:"" };
+/* Le switch du pavé du Relevé : « cir », les chiffres écrivent le circuit ;
+   « grada », ils tapent un numéro de gradateur, et OK y va. */
+let MODEP = "cir";
+let GBUF = "";
 /* Sélection pour supprimer : null = hors sélection, sinon l'ensemble des
    rangées cochées ("g12" pour un gradateur, "a3" pour un appareil). */
 let SELM = null;
@@ -3580,7 +3580,7 @@ function ouvrirVolet(quoi, arg){
   SELM = null;
   if(VOLET === quoi && arg == null){ fermerVolet(); return; }
   fermerVolet(true);
-  VOLET = quoi; CIR0 = { n:null, v:"" }; PAVE = null; ABC = false; DCMD = []; DOUV = false; DMSG = ""; CONFIRME = null;
+  VOLET = quoi; MODEP = "cir"; GBUF = ""; PAVE = null; ABC = false; DCMD = []; DOUV = false; DMSG = ""; CONFIRME = null;
   if(quoi === "relever") INDICE = arg != null ? arg : debutReleve();
   if(quoi === "attr") IA = arg != null ? arg : (prochainApp() ?? 0);
   /* Le Pupitre s'ouvre là où on en était : sur le gradateur appelé la
@@ -3644,10 +3644,10 @@ function aideRepliee(texte){
    champ, attendre le clavier, taper, viser « Noté » sous le clavier. Le pavé
    reste dans le volet, sous le pouce. « Abc » ouvre le clavier du téléphone
    pour les circuits en lettres (« 12b », « face »). */
-function afficheCircuit(valeur, cle, ecrire, noter){
+function afficheCircuit(valeur, cle, ecrire, noter, titre = "Circuit"){
   const d = el("div", "cval");
-  d.innerHTML = `<small>Circuit</small>`;
-  if(ABC){
+  d.innerHTML = `<small>${esc(titre)}</small>`;
+  if(ABC && titre === "Circuit"){
     const i = el("input", "cir txt");
     i.dataset.focus = cle;
     i.value = valeur;
@@ -3667,21 +3667,20 @@ function afficheCircuit(valeur, cle, ecrire, noter){
 
 /* Deux flèches pour se balader dans la liste, « OK » pour en sortir. Écrire un
    circuit l'enregistre tout de suite : ▶ passe au suivant, OK referme. */
-function padCircuit({ valeur, ecrire, ok, prec, suiv, grada, garder }){
-  const d = el("div", "cpad" + (grada ? " avec-grada" : ""));
+function padCircuit({ valeur, ecrire, ok, prec, suiv, garder }){
+  const d = el("div", "cpad");
   d.setAttribute("role", "group");
   d.setAttribute("aria-label", "Pavé du circuit");
   /* « Garder » ajoute le gradateur à la liste puis passe au suivant : posé juste
      sous ▶, un appui un peu bas l'ajoutait sans qu'on le voie. Il descend en bas
      à gauche, et ⌫, sans effet sur un circuit vide, prend sa place sous ▶. */
   ["1", "2", "3", "◀", "4", "5", "6", "▶", "7", "8", "9", "⌫",
-   garder ? "Garder" : ABC ? "123" : "Abc", "0", ...(grada ? ["Grada"] : []), "OK"].forEach(x => {
+   garder ? "Garder" : ABC ? "123" : "Abc", "0", "OK"].forEach(x => {
     const chiffre = /^\d$/.test(x);
-    const b = el("button", chiffre ? null : x === "OK" ? "ok" : "fn",
-                 x === "Grada" && valeur ? "Grada " + valeur : x);
+    const b = el("button", chiffre ? null : x === "OK" ? "ok" : "fn", x);
     const aides = { "◀":"Précédent", "▶":"Suivant", "⌫":"Effacer le dernier caractère",
                     Abc:"Taper le circuit au clavier", "123":"Revenir au pavé",
-                    OK:"Terminer", Garder:"Ajouter ce gradateur à la liste sans circuit et passer au suivant", Grada:"Aller au gradateur dont le numéro est tapé" };
+                    OK:"Terminer", Garder:"Ajouter ce gradateur à la liste sans circuit et passer au suivant" };
     if(aides[x]) b.setAttribute("aria-label", aides[x]);
     b.onclick = () => {
       if(chiffre){ if(String(valeur).length < 6) ecrire(String(valeur) + x); return; }
@@ -3689,7 +3688,6 @@ function padCircuit({ valeur, ecrire, ok, prec, suiv, grada, garder }){
       if(x === "◀"){ prec(); return; }
       if(x === "▶"){ suiv(); return; }
       if(x === "OK"){ ok(); return; }
-      if(x === "Grada"){ grada(); return; }
       if(x === "Garder"){ garder(); return; }
       ABC = !ABC;
       rafraichirVolet();
@@ -3819,7 +3817,6 @@ function majVoletRelever(){
     return;
   }
 
-  if(CIR0.n !== n) CIR0 = { n, v:f.circuit };
   const ecrire = (v, depuisSaisie) => {
     f.circuit = v; majRangG(n); majCompteurs(); sauverPatchs();
     if(!depuisSaisie) majVoletRelever();
@@ -3829,24 +3826,39 @@ function majVoletRelever(){
   const num = el("button", "n", `${n}<small>changer</small>`);
   num.setAttribute("aria-label", `Gradateur ${n}, appeler un autre gradateur par son numéro`);
   num.onclick = () => { PAVE = ""; majVoletRelever(); };
-  ecr.append(num, afficheCircuit(f.circuit, "rel-cir", ecrire, validerRelever));
+  const gr = MODEP === "grada";
+  ecr.append(num, gr ? afficheCircuit(GBUF, "rel-gr", null, null, "Aller au gradateur")
+                     : afficheCircuit(f.circuit, "rel-cir", ecrire, validerRelever));
   ecr.insertAdjacentHTML("beforeend",
     `<span class="ad">${a ? `U${a.u} · canal ${a.canal}` : "hors plage DMX"} · ${lv} %</span>`);
   d.append(ecr);
+  /* Le switch Grada / Circuit : en Grada, le pavé tape un numéro de gradateur
+     et OK y va, puis le pavé revient au circuit pour le relever. */
+  const sw = el("div", "tri");
+  sw.setAttribute("role", "group");
+  sw.setAttribute("aria-label", "Ce que tape le pavé");
+  [["grada", "Grada"], ["cir", "Circuit"]].forEach(([k, lib]) => {
+    const b = el("button", null, lib);
+    b.setAttribute("aria-pressed", String(MODEP === k));
+    b.onclick = () => { MODEP = k; GBUF = ""; majVoletRelever(); };
+    sw.append(b);
+  });
+  d.append(sw);
   d.append(padCircuit({
-    valeur:f.circuit, ecrire, ok:validerRelever,
+    valeur:gr ? GBUF : f.circuit,
+    ecrire:gr ? v => { GBUF = v; majVoletRelever(); } : ecrire,
+    ok:gr ? () => {
+      const m = parseInt(GBUF, 10);
+      if(!m || m > MAX_GRADA) return;
+      MODEP = "cir"; GBUF = "";
+      elargirG(m);
+      allerA(gradas().indexOf(m), 100, true);
+    } : validerRelever,
     prec:() => pasG(-1),
     suiv:() => pasG(1),
     garder:() => {
       if(!gardes().includes(n)) gardes().push(n);
       pasG(1);
-    },
-    grada:() => {
-      const m = parseInt(f.circuit, 10);
-      if(!m || m > MAX_GRADA) return;
-      f.circuit = CIR0.v; sauverPatchs();
-      elargirG(m);
-      allerA(gradas().indexOf(m), 100, true);
     }
   }));
 
