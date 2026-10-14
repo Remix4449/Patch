@@ -2720,8 +2720,8 @@ function libreDans(u, foot, liste){
 }
 
 /* Changer d'univers garde l'adresse si elle est libre dans le nouvel univers ;
-   sinon une alerte le dit, et l'appareil prend la première adresse libre où il
-   tient (en partant de 1). */
+   sinon l'app propose la première adresse libre où il tient (en partant de 1).
+   Refuser laisse l'appareil dans son univers : null. */
 function adresseEnUnivers(u, adr, foot, liste){
   const f = Math.min(512, Math.max(1, foot || 1));
   const pris = new Set();
@@ -2730,12 +2730,10 @@ function adresseEnUnivers(u, adr, foot, liste){
   const libre = a => { if(a < 1 || a + f - 1 > 512) return false;
                        for(let c = a; c < a + f; c++) if(pris.has(c)) return false; return true; };
   if(libre(adr)) return adr;
-  for(let a = 1; a + f - 1 <= 512; a++) if(libre(a)){
-    alert(`L'adresse ${adr} est déjà prise en U${u}. L'appareil passe à la première adresse libre : U${u}·${a}.`);
-    return a;
-  }
-  alert(`Plus de place en U${u} : l'adresse ${adr} est gardée, elle chevauche un autre appareil.`);
-  return adr;
+  for(let a = 1; a + f - 1 <= 512; a++) if(libre(a))
+    return confirm(`L'adresse ${adr} est déjà prise en U${u}.\nPasser à la première adresse libre, U${u}·${a} ?`) ? a : null;
+  alert(`Plus de place en U${u} pour cet appareil : il reste où il est.`);
+  return null;
 }
 
 let nLigne = 0;
@@ -4581,7 +4579,9 @@ function majVoletFiche(){
     d.querySelector(".au").onchange = e => {
       const u = +e.target.value.replace(/\D/g, "") || 1;
       if(u === x.u){ placer(u, x.adr); return; }
-      placer(u, adresseEnUnivers(u, x.adr, x.ch, appareils().filter(y => y.n !== x.n)));
+      const a = adresseEnUnivers(u, x.adr, x.ch, appareils().filter(y => y.n !== x.n));
+      if(a == null){ peindre(); return; }
+      placer(u, a);
     };
     d.querySelector(".aa").onchange = e =>
       placer(x.u, +e.target.value.replace(/\D/g, "") || 1);
@@ -4779,12 +4779,14 @@ function majVoletAjouter(){
       peindre();
     };
     /* Un autre univers : la ligne garde son adresse si elle y est libre, sinon
-       l'alerte le dit et elle prend la première adresse libre. */
+       l'app propose la première adresse libre. */
     r.querySelector(".qu").onchange = e => {
       const u = +e.target.value.replace(/\D/g, "") || 1;
       if(u === dep.u){ imposer(u, dep.adr); return; }
       const span = Math.min(512, Math.max(1, l.ch || 1) * Math.max(1, l.nb || 1));
-      imposer(u, adresseEnUnivers(u, dep.adr, span, liste.filter(x => x.ligne !== l.id)));
+      const a = adresseEnUnivers(u, dep.adr, span, liste.filter(x => x.ligne !== l.id));
+      if(a == null){ peindre(); return; }
+      imposer(u, a);
     };
     r.querySelector(".qa").onchange = e =>
       imposer(dep.u, +e.target.value.replace(/\D/g, "") || 1);
