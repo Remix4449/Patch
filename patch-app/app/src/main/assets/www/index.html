@@ -5154,8 +5154,10 @@ function exporterFeuille(){
       return `<div class="lg${plus ? " multi" : ""}" style="${cols}">
         <span>${pill(c.circuit)}${plus ? `<span class="fois">×${c.gradas.length}</span>` : ""}</span>
         <span class="g">${esc(rep)}</span>
-        ${ng ? `<span class="${plus ? "pile" : ""}">${c.gradas.map(n =>
-          `<span class="puce"><b>G${n}</b> ${adr(u, adrGrada(n).canal)}</span>`).join("") || '<span class="g">—</span>'}</span>` : ""}
+        ${ng ? `<span class="${plus ? "pile" : ""}">${c.gradas.map(n => { const a = adrGrada(n);
+          /* L'adresse suffit ; le numéro ne s'ajoute que s'il en diffère. */
+          return `<span class="puce">${adr(u, a.canal)}${(a.u - P.reg.u) * 512 + a.canal === n ? ""
+            : ` <span class="g">G${n}</span>`}</span>`; }).join("") || '<span class="g">—</span>'}</span>` : ""}
         ${na ? `<span class="pile">${c.apps.map(x => `<span class="puce"><b>${esc(courtNom(x.app))}</b>
           <span class="g">${esc(x.mode || "")}</span> ${adr(u, x.adr)}<u> → ${z3(x.fin)}</u></span>`).join("")
           || '<span class="g">—</span>'}</span>` : ""}
