@@ -3052,6 +3052,7 @@ let POINTE = null;       // gradateur ou appareil repéré dans la liste
 /* Le switch du pavé du Relevé : « cir », les chiffres écrivent le circuit ;
    « grada », ils tapent un numéro de gradateur, et OK y va. */
 let MODEP = "cir";
+let MODED = "grada";   // switch du Pupitre : adresses (Grada) ou circuits
 let GBUF = "";
 /* Sélection pour supprimer : null = hors sélection, sinon l'ensemble des
    rangées cochées ("g12" pour un gradateur, "a3" pour un appareil). */
@@ -4285,10 +4286,24 @@ function majVoletDmx(){
 
   const j = d.querySelector(".jauge input");
   j.oninput = e => {
+    /* « Circ 12 At » puis la jauge : la ligne désigne, la jauge donne le niveau. */
+    if(DCMD.length){
+      const r = lireCommande(DCMD);
+      if(r.sel.length){
+        DSEL = r.sel.slice().sort((a, b) => absCle(a) - absCle(b));
+        const t = deAbs(absCle(DSEL[0]));
+        TU = t.u; TC = t.c;
+      }
+      DCMD = []; DOUV = false; DMSG = motBilan(r.bilan);
+      if(r.vise && !r.sel.length) return;
+      const ln = d.querySelector(".cmd .ln");
+      if(ln) ln.textContent = "adresse · Thru · At · niveau";
+    }
     niveauSelection(+e.target.value);
-    d.querySelector(".jauge b").textContent = pcent(DMX[cle]) + " %";
+    const k = DSEL[0] || cle;
+    d.querySelector(".jauge b").textContent = pcent(DMX[k]) + " %";
     d.querySelector(".ecr .lv").innerHTML =
-      `${pcent(DMX[cle])} %<small>${DMX[cle] | 0} sur 255</small>`;
+      `${pcent(DMX[k])} %<small>${DMX[k] | 0} sur 255</small>`;
     majBarre();
   };
   /* Le glissement fini, le volet se refait : les adresses tenues ont changé. */
@@ -4296,6 +4311,17 @@ function majVoletDmx(){
 
   d.append(ligneCommande());
   if(DMSG) d.append(el("p", "msg", esc(DMSG)));
+  /* Comme au Relevé : en Circuit, un chiffre tapé sur une ligne vide ouvre « Circ ». */
+  const sw = el("div", "tri");
+  sw.setAttribute("role", "group");
+  sw.setAttribute("aria-label", "Ce que tape le clavier");
+  [["grada", "Grada"], ["cir", "Circuit"]].forEach(([k, lib]) => {
+    const b = el("button", null, lib);
+    b.setAttribute("aria-pressed", String(MODED === k));
+    b.onclick = () => { MODED = k; majVoletDmx(); };
+    sw.append(b);
+  });
+  d.append(sw);
   d.append(clavierEos());
 
   const r1 = el("div", "rang");
@@ -4315,10 +4341,7 @@ function majVoletDmx(){
   const tout = el("button", "mini", "Tout relâcher");
   prec.onclick = () => allerAdresse(-1);
   suiv.onclick = () => allerAdresse(1);
-  tout.onclick = () => {
-    Object.keys(DMX).forEach(k => DMX[k] = 0);
-    envoyer(); majVoletDmx(); majBarre();
-  };
+  tout.onclick = () => sneak(Object.keys(DMX));
   r2.append(prec, suiv, tout);
   d.append(r2);
 
@@ -4354,10 +4377,11 @@ function majVoletDmx(){
    Une adresse reprise pendant le fondu (niveau changé à la main) en sort. */
 const SNEAK_MS = 5000;
 let FONDU = null;
-function sneak(){
-  if(DCMD.length) poserCommande();
+function sneak(cles){
+  /* Sans liste, la sélection ; « Tout relâcher » passe toutes les adresses. */
+  if(!Array.isArray(cles)){ if(DCMD.length) poserCommande(); cles = DSEL; }
   const depart = {};
-  DSEL.forEach(k => { if(DMX[k] > 0) depart[k] = DMX[k]; });
+  cles.forEach(k => { if(DMX[k] > 0) depart[k] = DMX[k]; });
   /* Un second Sneak pendant le fondu reprend celles qui descendent déjà, d'où elles en sont. */
   if(FONDU) Object.keys(FONDU.pose).forEach(k => { if(DMX[k] > 0 && DMX[k] === FONDU.pose[k]) depart[k] = DMX[k]; });
   if(FONDU) clearInterval(FONDU.t);
@@ -4442,7 +4466,10 @@ function clavierEos(){
     const chiffre = /^\d$/.test(x);
     const b = el("button", chiffre ? null : x === "Enter" ? "fn acc" : "fn", x);
     if(aides[x]) b.setAttribute("aria-label", aides[x]);
-    b.onclick = chiffre ? () => tapeChiffre(x) : actes[x];
+    b.onclick = chiffre ? () => {
+      if(MODED === "cir" && !DCMD.length) DCMD.push("Circ");
+      tapeChiffre(x);
+    } : actes[x];
     d.append(b);
   });
   return d;
@@ -4489,7 +4516,10 @@ function majVoletFiche(){
     volet.querySelector(".tete h3").textContent = "Gradateur " + n;
     volet.querySelector(".tete .cpt").textContent =
       `U${a.u} · canal ${a.canal}`;
-    d.innerHTML = `<div class="f"><label>Circuit</label>
+    d.innerHTML = `<div class="f"><label>Gradateur</label>
+        <input class="txt ngr" inputmode="numeric" value="${n}" enterkeyhint="done"
+               aria-label="Numéro du gradateur ${n}"></div>
+      <div class="f"><label>Circuit</label>
         ${champCircuit(f.circuit, "Circuit du gradateur " + n, true, "Gradateur")}</div>
       <div class="f"><label>Repère</label>
         <input class="txt rep" value="${esc(f.note)}" placeholder="face jardin, contre 2…"
@@ -4498,6 +4528,23 @@ function majVoletFiche(){
       <div class="kv"><span>Niveau</span><b>${lv} %</b></div>`;
     d.querySelector(".cir").oninput = e => { f.circuit = e.target.value; majListe(); majCompteurs(); };
     d.querySelector(".rep").oninput = e => { f.note = e.target.value; majListe(); };
+    /* Changer le numéro déplace circuit, repère et niveau sur l'autre gradateur. */
+    const ng = d.querySelector(".ngr");
+    ng.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); ng.blur(); } };
+    ng.onchange = () => {
+      const m = parseInt(ng.value, 10);
+      if(!m || m === n || m > MAX_GRADA){ ng.value = n; return; }
+      if(circuitGrada(m) && !confirm(`Le gradateur ${m} a déjà le circuit ${circuitGrada(m)}. Le remplacer ?`)){
+        ng.value = n; return;
+      }
+      if(!elargirG(m)){ ng.value = n; return; }
+      P.grada[m] = f; delete P.grada[n];
+      if(gardes().includes(n)){ oublierGarde(n); if(!gardes().includes(m)) P.garde.push(m); }
+      if(NIV[n]){ NIV[m] = NIV[n]; delete NIV[n]; }
+      if(SEL === n) SEL = m;
+      CIBLE = { t:"g", n:m };
+      sauverPatchs(); envoyer(); peindre(); majVoletFiche();
+    };
 
     /* ◀ ▶ : le numéro d'avant ou d'après, comme au Relevé, pour noter les
        circuits de proche en proche sans refermer la fiche. Le gradateur allumé
@@ -5145,8 +5192,10 @@ function majCompteurs(){
 /* Une seule feuille là où il en fallait deux : les gradateurs relevés, le
    récapitulatif par circuit — avec ce qui est branché dessus — et le patch. */
 function exporterFeuille(){
-  const date = new Date().toLocaleDateString("fr-FR",
-    { day:"2-digit", month:"long", year:"numeric" });
+  const maint = new Date();
+  const date = maint.toLocaleDateString("fr-FR",
+    { day:"2-digit", month:"long", year:"numeric" }) + " à "
+    + maint.toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" });
   const liste = appareils();
   const releves = gradas().filter(n => circuitGrada(n));
   const sansCirc = gradas().filter(n => !circuitGrada(n) && gardes().includes(n)).length;
@@ -5243,7 +5292,7 @@ function exporterFeuille(){
   <div><h1>${esc(P.nom || "Patch")}</h1>
     <p class="legende"><span class="fois" style="margin:0 3pt 0 0">×2</span> et fond gris : circuit à
       plusieurs gradateurs. Adresse : <span class="adr"><u>1·</u>012</span> = univers 1, adresse 12.</p></div>
-  <div class="meta">${date}<br>Patch — inventaire régie<br>${esc(P.reg.proto)}</div>
+  <div class="meta">Spectacle : <b>${esc(P.nom || "Sans titre")}</b><br>Exporté le ${date}<br>Patch — inventaire régie<br>${esc(P.reg.proto)}</div>
 </header>
 <div class="chiffres"><div><b>${releves.length}</b>${releves.length > 1 ? "gradateurs" : "gradateur"}</div>
   <div><b>${circuits.length}</b>${circuits.length > 1 ? "circuits" : "circuit"}</div>
