@@ -486,6 +486,8 @@
        text-overflow:ellipsis;white-space:nowrap}
   .pecr .p-cor{flex:none;width:44px;height:44px;border:1.5px solid var(--line);background:var(--bg);
        border-radius:99px;color:var(--ink2);cursor:pointer;display:grid;place-items:center;padding:0}
+  .pecr .p-sal{flex:none;height:44px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);
+    border-radius:12px;padding:0 6px;font:inherit;font-size:13px}
   .pecr .p-cor .ic{width:20px;height:20px}
   .pecr .p-cor.on{background:var(--ko);border-color:var(--ko);color:var(--on)}
   .pecr .p-pdf{flex:none;min-width:52px;min-height:44px;border:1.5px solid var(--line);background:var(--bg);
@@ -2947,6 +2949,16 @@ const hlDe = x => ({ n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x
    univers sortirait de la trame et le récepteur garderait la dernière valeur
    reçue. */
 let DMX = {};
+/* Circuits de salle, en U1. Les globes de secours n'ont pas encore d'adresse : la mettre ici. */
+const CIRC_SALLE = [["lustre", [217]], ["globes", [218]], ["déco", [219, 220]],
+               ["PC fosse", [221]], ["globes de secours", []]];
+let SALLE_NIV = null;
+function poserSalle(pc){
+  SALLE_NIV = pc;
+  CIRC_SALLE.forEach(([, adrs]) => adrs.forEach(a => { DMX[cleAdr(1, a)] = Math.round(pc * 2.55); }));
+  envoyer(); peindre();
+}
+const texteSalle = () => CIRC_SALLE.map(([nom, adrs]) => `${nom} ${adrs.join(", ") || "—"}`).join(" · ");
 const adressesTenues = () => Object.keys(DMX).filter(k => DMX[k] > 0);
 
 /* Ce qui sort, univers par univers : les gradateurs appelés, l'appareil en
@@ -3118,7 +3130,13 @@ function peindre(){
   cor.setAttribute("aria-label", SELM ? "Quitter la sélection" : "Choisir des gradateurs ou des appareils à supprimer");
   cor.setAttribute("aria-pressed", SELM ? "true" : "false");
   cor.onclick = () => SELM ? sortirSel() : entrerSel(null);
-  rang.append(bk, t, cor, pdf);
+  /* La salle en un geste : 0, 50 ou 100 % sur ses circuits (adresses U1). */
+  const sal = el("select", "p-sal");
+  sal.setAttribute("aria-label", "Lumière de la salle");
+  sal.innerHTML = `<option value="">Salle${SALLE_NIV == null ? "" : " " + SALLE_NIV + " %"}</option>`
+    + [0, 50, 100].map(v => `<option value="${v}">Salle ${v} %</option>`).join("");
+  sal.onchange = () => { if(sal.value !== "") poserSalle(+sal.value); };
+  rang.append(bk, t, sal, cor, pdf);
   h.append(rang);
   h.append(barreTele());
 
@@ -5291,7 +5309,8 @@ function exporterFeuille(){
 <header>
   <div><h1>${esc(P.nom || "Patch")}</h1>
     <p class="legende"><span class="fois" style="margin:0 3pt 0 0">×2</span> et fond gris : circuit à
-      plusieurs gradateurs. Adresse : <span class="adr"><u>1·</u>012</span> = univers 1, adresse 12.</p></div>
+      plusieurs gradateurs. Adresse : <span class="adr"><u>1·</u>012</span> = univers 1, adresse 12.</p>
+  <p class="legende">Salle (U1) : ${esc(texteSalle())}</p></div>
   <div class="meta">Spectacle : <b>${esc(P.nom || "Sans titre")}</b><br>Exporté le ${date}<br>Patch — inventaire régie<br>${esc(P.reg.proto)}</div>
 </header>
 <div class="chiffres"><div><b>${releves.length}</b>${releves.length > 1 ? "gradateurs" : "gradateur"}</div>
