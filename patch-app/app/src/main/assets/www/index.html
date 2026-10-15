@@ -660,6 +660,9 @@
       box-shadow:0 -14px 40px rgba(8,9,12,.22);max-height:min(72vh,620px);
       display:flex;flex-direction:column;transform:translateY(102%);transition:transform .2s ease-out}
   .p-volet.on{transform:translateY(0)}
+  /* Le Pupitre prend toute la page : clavier, niveaux et adresses tenues d'un coup d'œil. */
+  .p-volet.tcd{top:0;max-height:none;border-radius:0;border-top:0;
+      padding-top:env(safe-area-inset-top)}
   @media (prefers-reduced-motion:reduce){ .p-volet,.p-fond{transition:none} }
   .p-volet .poignee{flex:none;padding:9px 16px 4px;cursor:pointer}
   .p-volet .poignee .barre{display:block;width:38px;height:4px;border-radius:99px;
@@ -4263,6 +4266,23 @@ function majVoletDmx(){
     <div class="jauge"><input type="range" min="0" max="255" value="${v}"
       aria-label="Niveau de la sélection"><b>${pcent(v)} %</b></div>`;
 
+  /* Les adresses tenues passent en tête : ce qui sort se voit avant le clavier. */
+  if(tenus.length){
+    const bloc = el("div");
+    bloc.append(el("h5", null, "Adresses tenues"));
+    const liste = el("div", "tenus");
+    tenus.slice().sort((a, b) => absCle(a) - absCle(b)).forEach(k => {
+      const [u, canal] = k.split(":").map(Number);
+      const b = el("button", DSEL.includes(k) ? "ici" : null,
+                   `${u}/${canal} · ${pcent(DMX[k])} %`);
+      b.setAttribute("aria-label", `Reprendre l'adresse ${canal} de l'univers ${u}`);
+      b.onclick = () => { DSEL = [k]; TU = u; TC = canal; majVoletDmx(); };
+      liste.append(b);
+    });
+    bloc.append(liste);
+    d.prepend(bloc);
+  }
+
   const j = d.querySelector(".jauge input");
   j.oninput = e => {
     niveauSelection(+e.target.value);
@@ -4281,7 +4301,7 @@ function majVoletDmx(){
   const r1 = el("div", "rang");
   const moins = el("button", "mini", `− ${PAS_POURCENT} %`);
   const plus = el("button", "mini", `+ ${PAS_POURCENT} %`);
-  const sn = el("button", "mini", "Sneak");
+  const sn = el("button", "mini", FONDU ? "Sneak…" : "Sneak");
   moins.onclick = () => bousculer(-1);
   plus.onclick = () => bousculer(1);
   sn.setAttribute("aria-label", "Relâcher la sélection");
@@ -4302,20 +4322,6 @@ function majVoletDmx(){
   r2.append(prec, suiv, tout);
   d.append(r2);
 
-  if(tenus.length){
-    d.append(el("h5", null, "Adresses tenues"));
-    const liste = el("div", "tenus");
-    tenus.slice().sort((a, b) => absCle(a) - absCle(b)).forEach(k => {
-      const [u, canal] = k.split(":").map(Number);
-      const b = el("button", DSEL.includes(k) ? "ici" : null,
-                   `${u}/${canal} · ${pcent(DMX[k])} %`);
-      b.setAttribute("aria-label", `Reprendre l'adresse ${canal} de l'univers ${u}`);
-      b.onclick = () => { DSEL = [k]; TU = u; TC = canal; majVoletDmx(); };
-      liste.append(b);
-    });
-    d.append(liste);
-  }
-
   const etat = NET.emissionEtat();
   d.append(el("p", "route", esc(routeEmission(etat))));
   d.append(aideRepliee("La ligne de commande se tape comme sur un Eos : "
@@ -4330,7 +4336,7 @@ function majVoletDmx(){
     + "touche dans la liste : le clavier n'a que des chiffres. « At » attend "
     + "un pourcentage, un seul chiffre valant des dizaines : « At 5 » fait 50 %, « At 05 » "
     + "fait 5 %. « Full » et « Out » terminent la ligne tout seuls, « Clear » reprend un "
-    + "cran, « Sneak » relâche la sélection. Ce qui manque par rapport au vrai pupitre tient "
+    + "cran, « Sneak » relâche la sélection en fondu de 5 secondes. Ce qui manque par rapport au vrai pupitre tient "
     + "à ce qu'on adresse ici : des sorties DMX, sans bibliothèque derrière — ni groupes, ni "
     + "palettes, ni mémoires. Une adresse "
     + "reste tenue tant qu'elle n'est pas relâchée, et quitter l'écran relâche tout. Là où "
@@ -4344,11 +4350,34 @@ function majVoletDmx(){
 }
 
 /* « Sneak » rend la main : sur un pupitre il relâche le contrôle manuel, ici il
-   relâche les adresses tenues — elles retombent et sortent de la liste. */
+   relâche les adresses tenues — elles retombent en 5 s et sortent de la liste.
+   Une adresse reprise pendant le fondu (niveau changé à la main) en sort. */
+const SNEAK_MS = 5000;
+let FONDU = null;
 function sneak(){
   if(DCMD.length) poserCommande();
-  DSEL.forEach(k => DMX[k] = 0);
-  envoyer(); majVoletDmx(); majBarre();
+  const depart = {};
+  DSEL.forEach(k => { if(DMX[k] > 0) depart[k] = DMX[k]; });
+  /* Un second Sneak pendant le fondu reprend celles qui descendent déjà, d'où elles en sont. */
+  if(FONDU) Object.keys(FONDU.pose).forEach(k => { if(DMX[k] > 0 && DMX[k] === FONDU.pose[k]) depart[k] = DMX[k]; });
+  if(FONDU) clearInterval(FONDU.t);
+  if(!Object.keys(depart).length){ FONDU = null; envoyer(); if(VOLET === "dmx") majVoletDmx(); majBarre(); return; }
+  const t0 = performance.now();
+  FONDU = { depart, pose:{ ...depart }, t:null };
+  const pas = () => {
+    const f = Math.min(1, (performance.now() - t0) / SNEAK_MS);
+    Object.keys(FONDU.pose).forEach(k => {
+      if(DMX[k] !== FONDU.pose[k]){ delete FONDU.pose[k]; return; }
+      DMX[k] = FONDU.pose[k] = Math.round(FONDU.depart[k] * (1 - f));
+    });
+    envoyer(); majBarre();
+    if(f >= 1 || !Object.keys(FONDU.pose).length){
+      clearInterval(FONDU.t); FONDU = null;
+      if(VOLET === "dmx") majVoletDmx();
+    }
+  };
+  FONDU.t = setInterval(pas, 40);
+  if(VOLET === "dmx") majVoletDmx();
 }
 
 /* Le coup de pouce d'un Eos : dix pour cent par appui, sur la sélection. */
