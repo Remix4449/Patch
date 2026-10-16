@@ -2953,10 +2953,28 @@ let DMX = {};
 const CIRC_SALLE = [["lustre", [217]], ["globes", [218]], ["déco", [219, 220]],
                ["PC fosse", [221]], ["globes de secours", []]];
 let SALLE_NIV = null;
-function poserSalle(pc){
-  SALLE_NIV = pc;
-  CIRC_SALLE.forEach(([, adrs]) => adrs.forEach(a => { DMX[cleAdr(1, a)] = Math.round(pc * 2.55); }));
-  envoyer(); peindre();
+/* « Réglages » : lustre, déco et globes de secours coupés, globes à 40 % ; PC fosse ne bouge pas. */
+const REGLAGES = { lustre:0, globes:40, "déco":0, "globes de secours":0 };
+let SALLE_T = null;
+/* Fondu de 5 s (SNEAK_MS) depuis le niveau en cours vers la cible. */
+function poserSalle(v){
+  SALLE_NIV = v;
+  const cible = {};
+  CIRC_SALLE.forEach(([nom, adrs]) => {
+    const pc = v === "reg" ? REGLAGES[nom] : v;
+    if(pc != null) adrs.forEach(a => { cible[cleAdr(1, a)] = Math.round(pc * 2.55); });
+  });
+  const dep = {};
+  Object.keys(cible).forEach(k => dep[k] = DMX[k] | 0);
+  if(SALLE_T) clearInterval(SALLE_T);
+  const t0 = performance.now();
+  SALLE_T = setInterval(() => {
+    const f = Math.min(1, (performance.now() - t0) / SNEAK_MS);
+    Object.keys(cible).forEach(k => { DMX[k] = Math.round(dep[k] + (cible[k] - dep[k]) * f); });
+    envoyer();
+    if(f >= 1){ clearInterval(SALLE_T); SALLE_T = null; }
+  }, 40);
+  peindre();
 }
 const texteSalle = () => CIRC_SALLE.map(([nom, adrs]) => `${nom} ${adrs.join(", ") || "—"}`).join(" · ");
 const adressesTenues = () => Object.keys(DMX).filter(k => DMX[k] > 0);
@@ -3133,9 +3151,10 @@ function peindre(){
   /* La salle en un geste : 0, 50 ou 100 % sur ses circuits (adresses U1). */
   const sal = el("select", "p-sal");
   sal.setAttribute("aria-label", "Lumière de la salle");
-  sal.innerHTML = `<option value="">Salle${SALLE_NIV == null ? "" : " " + SALLE_NIV + " %"}</option>`
-    + [0, 50, 100].map(v => `<option value="${v}">Salle ${v} %</option>`).join("");
-  sal.onchange = () => { if(sal.value !== "") poserSalle(+sal.value); };
+  const libS = v => v === "reg" ? "Réglages" : v + " %";
+  sal.innerHTML = `<option value="">Salle${SALLE_NIV == null ? "" : " " + libS(SALLE_NIV)}</option>`
+    + [0, 50, 100, "reg"].map(v => `<option value="${v}">Salle ${libS(v)}</option>`).join("");
+  sal.onchange = () => { if(sal.value !== "") poserSalle(sal.value === "reg" ? "reg" : +sal.value); };
   rang.append(bk, t, sal, cor, pdf);
   h.append(rang);
   h.append(barreTele());
