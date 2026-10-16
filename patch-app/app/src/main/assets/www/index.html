@@ -7025,6 +7025,14 @@ function vArt(){
   const choix = el("div", "pills");
   d.append(choix);
 
+  /* Un univers sACN au-delà de 16 n'est entendu que si la console émet la
+     découverte : on peut alors le demander à la main. */
+  const main = el("div", "ff");
+  main.innerHTML = `<div class="f"><label for="u-main">Univers sACN</label>
+      <input id="u-main" type="number" inputmode="numeric" min="1" max="63999" placeholder="ex. 17"></div>
+    <button class="pill" id="u-main-ok" style="padding:12px">Écouter</button>`;
+  d.append(main);
+
   const grille = el("div", "card");
   grille.innerHTML = `<h4>Univers <span id="u-titre"></span></h4><div class="u512" id="u512"></div>
     <div id="u-info"></div>`;
@@ -7062,7 +7070,14 @@ function vArt(){
      puis rejoignant son groupe, et la grille passait au noir le temps de la
      trame suivante. C'était le clignotement, et le choix de l'univers sautait. */
   const cleU = u => u.proto + ":" + u.univers;
-  let vus = null, choisi = null;
+  let vus = null, choisi = null, manuel = false;
+  $("#u-main-ok", main).onclick = () => {
+    const u = Math.round(+$("#u-main", main).value);
+    if(!(u >= 1 && u <= 63999)) return;
+    manuel = true; choisi = "sACN:" + u;
+    choix.querySelectorAll(".pill").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.cle === choisi)));
+    ecouter("sACN", u);
+  };
   poser(() => { if(arretDmx) arretDmx(); arretUniv(); arretNoeuds(); });
   const arretUniv = NET.univers(e => {
     const list = (e.univers || []).slice()
@@ -7077,16 +7092,18 @@ function vArt(){
       choix.replaceChildren(el("p", "muted", "Aucun univers entendu sur ce réseau."));
       return;
     }
-    if(!list.some(u => cleU(u) === choisi)){
+    if(!manuel && !list.some(u => cleU(u) === choisi)){
       choisi = cleU(list[0]);
       ecouter(list[0].proto, list[0].univers);
     }
     choix.replaceChildren(...list.map(u => {
       const b = el("button", "pill", `U${u.univers} · ${u.proto}`);
+      b.dataset.cle = cleU(u);
       b.setAttribute("aria-pressed", String(cleU(u) === choisi));
       b.onclick = () => {
         choix.querySelectorAll(".pill").forEach(x => x.setAttribute("aria-pressed", "false"));
         b.setAttribute("aria-pressed", "true");
+        manuel = false;
         if(cleU(u) === choisi) return;
         choisi = cleU(u);
         ecouter(u.proto, u.univers);

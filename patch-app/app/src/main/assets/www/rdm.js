@@ -204,7 +204,8 @@ function vRdm(){
     if(!vus.length){
       liste.replaceChildren(el("p", "muted", e.noeuds
         ? "Aucun appareil RDM rendu par les nœuds. Essayez « Relancer la découverte »."
-        : "Aucun nœud Art-Net n'a répondu. Vérifiez que le téléphone est sur le Wi-Fi du plateau."));
+        : "Aucun nœud Art-Net n'a répondu. En sACN, les projecteurs passent par RDMnet (carte plus bas) : "
+          + "activez le RDMnet sur les passerelles."));
       return;
     }
     liste.replaceChildren(...vus.map(a => {
@@ -337,11 +338,22 @@ function vRdm(){
       toucher();
       if(e.actif){
         if(e.mode !== "interne" || confirm("Arrêter le broker du téléphone ? Les appareils RDMnet "
-          + "qui y sont connectés devront en retrouver un autre.")) NET.rdm.rdmnetArreter();
-      } else NET.rdm.rdmnetDemarrer();
+          + "qui y sont connectés devront en retrouver un autre.")){
+          NET.rdm.rdmnetArreter(); memRdmnet(false);
+        }
+      } else { NET.rdm.rdmnetDemarrer(); memRdmnet(true); }
     };
   };
-  const arretBroker = NET.rdm.rdmnet(peindreBroker);
+  /* sACN ne transporte pas le RDM : sans Art-Net, le chemin est RDMnet. Il
+     démarre donc tout seul à l'ouverture de l'écran, sauf si on l'a arrêté. */
+  const memRdmnet = on => { try { localStorage.setItem("rdm.rdmnet", on ? "1" : "0"); } catch(e){} };
+  let rdmnetVoulu = true;
+  try { rdmnetVoulu = localStorage.getItem("rdm.rdmnet") !== "0"; } catch(e){}
+  let lance = false;
+  const arretBroker = NET.rdm.rdmnet(e => {
+    if(!lance){ lance = true; if(rdmnetVoulu && !e.actif && !e.demo) NET.rdm.rdmnetDemarrer(); }
+    peindreBroker(e);
+  });
 
   let arretLlrp = null;
   const peindreLlrp = e => {
@@ -362,6 +374,7 @@ function vRdm(){
     };
   };
   peindreLlrp(null);
+  $("#llrp-go", net).click();
 
   /* ------------------------------ relevé ------------------------------ */
   const arret = NET.rdm.suivre(e => {

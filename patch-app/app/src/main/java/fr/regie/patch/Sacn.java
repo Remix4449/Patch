@@ -79,13 +79,11 @@ public class Sacn {
             else erreur = "aucune interface reseau";
             // Sans cela nos propres trames reviennent et se recensent comme une source.
             try { sock.setLoopbackMode(true); } catch (Exception ignore) { }
-            rejoindre(groupe(UNIVERS_DECOUVERTE));
-            // Un univers demandé avant l'ouverture de la prise a été noté sans
-            // être rejoint : suivre() ne le refera pas, c'est ici qu'on le rejoint.
-            synchronized (this) {
-                if (rejoint > 0) try { rejoindre(groupe(rejoint)); } catch (Exception ignore) { }
-            }
         } catch (Exception e) { actif = false; return; }
+        // Une adhésion refusée (Wi-Fi pas encore là) ne coupe plus l'écoute :
+        // avant, l'exception arrêtait la boucle pour de bon et plus aucune
+        // trame sACN n'était lue. reglerInterface() reprendra les adhésions.
+        synchronized (this) { rejoindreTout(); }
 
         byte[] tampon = new byte[1400];
         while (actif) {
@@ -105,13 +103,28 @@ public class Sacn {
     /** Rejoint le groupe de l'univers demandé et quitte le précédent. */
     public synchronized void suivre(int universBase1) {
         if (universBase1 == rejoint) { ecoute = universBase1; return; }
-        try {
-            if (rejoint > 0 && sock != null) quitter(groupe(rejoint));
-            if (universBase1 > 0 && sock != null) rejoindre(groupe(universBase1));
-            rejoint = universBase1;
-            ecoute = universBase1;
-            synchronized (niveaux) { java.util.Arrays.fill(niveaux, (byte) 0); flux.clear(); }
-        } catch (Exception ignore) { }
+        // Quitter et rejoindre séparément : un départ refusé empêchait l'arrivée.
+        // Les univers sondés restent rejoints en permanence.
+        if (rejoint > SONDE && sock != null) try { quitter(groupe(rejoint)); } catch (Exception ignore) { }
+        if (universBase1 > SONDE && sock != null) try { rejoindre(groupe(universBase1)); } catch (Exception ignore) { }
+        rejoint = universBase1;
+        ecoute = universBase1;
+        synchronized (niveaux) { java.util.Arrays.fill(niveaux, (byte) 0); flux.clear(); }
+    }
+
+    /**
+     * Les univers 1 à SONDE sont rejoints d'office. Sans cela, un univers sACN
+     * n'apparaissait que si la console émettait la découverte (64214), ce que
+     * beaucoup ne font pas : la liste restait vide et on ne pouvait rien choisir.
+     * 16 + découverte + l'univers suivi reste sous la limite de 20 adhésions.
+     */
+    private static final int SONDE = 16;
+
+    private void rejoindreTout() {
+        if (sock == null || sock.isClosed()) return;
+        try { rejoindre(groupe(UNIVERS_DECOUVERTE)); } catch (Exception ignore) { }
+        for (int u = 1; u <= SONDE; u++) try { rejoindre(groupe(u)); } catch (Exception ignore) { }
+        if (rejoint > SONDE) try { rejoindre(groupe(rejoint)); } catch (Exception ignore) { }
     }
 
     /**
@@ -147,8 +160,7 @@ public class Sacn {
         if (sock == null || sock.isClosed()) return;
         try { sock.setNetworkInterface(nif); } catch (Exception ignore) { }
         // Les adhésions suivent l'interface : il faut les reprendre sur la neuve.
-        try { rejoindre(groupe(UNIVERS_DECOUVERTE)); } catch (Exception ignore) { }
-        if (rejoint > 0) try { rejoindre(groupe(rejoint)); } catch (Exception ignore) { }
+        rejoindreTout();
     }
 
     /** Le nom de l'interface d'émission, vide si le noyau choisit seul. */
