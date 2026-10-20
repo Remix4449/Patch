@@ -161,10 +161,13 @@ public class Rdmnet implements Rdm.Transport {
     }
 
     private void tourner() {
+        boolean echec = false;
         while (actif) {
             boolean ouvert = false;
             try {
-                message = "Connexion à " + broker + "…";
+                // Après un échec, on garde son motif à l'écran pendant les essais
+                // suivants : « Connexion… » l'effaçait et on ne le voyait jamais.
+                if (!echec) message = "Connexion à " + broker + "…";
                 Socket s = new Socket();
                 s.setTcpNoDelay(true);
                 s.connect(new InetSocketAddress(hote, port), 4000);
@@ -183,6 +186,7 @@ public class Rdmnet implements Rdm.Transport {
                 // Le motif exact : « injoignable » couvrait aussi bien un pare-feu
                 // qu'un broker qui ferme la porte après notre demande.
                 if (actif && !message.startsWith("Refusé")) message = pourquoi(e, ouvert);
+                echec = true;
             }
             connecte = false;
             clients.clear();
