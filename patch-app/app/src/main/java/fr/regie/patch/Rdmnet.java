@@ -162,11 +162,13 @@ public class Rdmnet implements Rdm.Transport {
 
     private void tourner() {
         while (actif) {
+            boolean ouvert = false;
             try {
                 message = "Connexion à " + broker + "…";
                 Socket s = new Socket();
                 s.setTcpNoDelay(true);
                 s.connect(new InetSocketAddress(hote, port), 4000);
+                ouvert = true;
                 s.setSoTimeout(60000);
                 sock = s;
                 sortie = s.getOutputStream();
@@ -178,7 +180,9 @@ public class Rdmnet implements Rdm.Transport {
                     for (int[] p : pdus(bloc, 0, bloc.length)) recu(bloc, p);
                 }
             } catch (Exception e) {
-                if (actif) message = "Broker injoignable (" + broker + ")";
+                // Le motif exact : « injoignable » couvrait aussi bien un pare-feu
+                // qu'un broker qui ferme la porte après notre demande.
+                if (actif && !message.startsWith("Refusé")) message = pourquoi(e, ouvert);
             }
             connecte = false;
             clients.clear();
@@ -188,6 +192,22 @@ public class Rdmnet implements Rdm.Transport {
             if (!actif) break;
             try { Thread.sleep(3000); } catch (InterruptedException e) { return; }
         }
+    }
+
+    private String pourquoi(Exception e, boolean ouvert) {
+        if (!ouvert) {
+            if (e instanceof java.net.SocketTimeoutException)
+                return "Broker muet (" + broker + ") : pas de réponse en 4 s, pare-feu ou autre sous-réseau ?";
+            if (e instanceof java.net.ConnectException)
+                return "Broker injoignable (" + broker + ") : connexion refusée";
+            return "Broker injoignable (" + broker + ") : " + e.getClass().getSimpleName()
+                    + (e.getMessage() == null ? "" : " " + e.getMessage());
+        }
+        if (e instanceof java.io.EOFException)
+            return connecte ? "Le broker a coupé la connexion (" + broker + ")"
+                            : "Le broker a fermé la connexion sans répondre (" + broker + ")";
+        return "Échange interrompu avec " + broker + " : "
+                + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
     }
 
     /** Un message au moins toutes les quinze secondes, sinon le broker nous lâche. */
