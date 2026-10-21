@@ -854,6 +854,13 @@
       background:var(--bg);font:600 13.5px/1 var(--body);color:var(--ink2);cursor:pointer}
   .aj-pas button em{font:600 11.5px/1 var(--mono);font-style:normal;opacity:.7;margin-left:5px}
   .aj-pas button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+  .aj-us{display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px solid var(--line);border-radius:16px;padding:6px}
+  .aj-us .fl{flex:none;width:56px;height:48px;border:0;border-radius:12px;background:var(--sur2);
+      font:700 18px/1 var(--body);color:var(--ink);cursor:pointer}
+  .aj-us .fl:disabled{opacity:.35;cursor:default}
+  .aj-us .v{flex:1;text-align:center}
+  .aj-us .v b{display:block;font:700 22px/1.1 var(--mono)}
+  .aj-us .v small{font:500 11.5px/1 var(--body);color:var(--ink3)}
   .aj-ch{width:90px;min-height:44px;border:1.5px solid var(--line);border-radius:11px;background:var(--bg);
       text-align:center;font:600 15px/1 var(--mono);color:var(--ink);outline:none}
   .aj-ou{background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:10px}
@@ -5081,7 +5088,7 @@ function ajRegle(liste){
       <button type="button" class="bt" aria-label="Un de plus">+</button></div>
     <p class="aj-k">${modes.length ? "Mode" : "Canaux par appareil"}</p>
     <div class="aj-pas aj-modes"></div>
-    <p class="aj-k">Univers</p><div class="aj-pas aj-us"></div>
+    <p class="aj-k">Univers</p><div class="aj-us"></div>
     <p class="aj-k">Adresse</p>
     <div class="aj-ou"><div class="l"><b>${adr == null ? "plus de place"
         : `U${AJ.u}·${adr} → U${fin.u}·${fin.fin}`}</b><span class="et${ko || adr == null ? " ko" : ""}"></span></div>
@@ -5114,28 +5121,27 @@ function ajRegle(liste){
     zm.append(i);
   }
 
-  /* Les univers du patch, celui-ci, et le suivant pour en ouvrir un neuf.
-     Changer d'univers garde l'adresse choisie si elle y tient, sinon repart
-     après le dernier. */
-  const us = [...new Set(liste.map(x => x.u).concat(gradas().map(n => (adrGrada(n) || {}).u), AJ.u))]
-    .filter(Boolean).sort((a, b) => a - b);
+  /* L'univers se règle aux flèches, ◀ U1 ▶ : les pastilles débordaient, et
+     les premiers univers sortaient de l'écran. Changer d'univers garde
+     l'adresse choisie si elle y tient, sinon repart après le dernier. */
   const zu = d.querySelector(".aj-us");
-  us.concat(Math.max(...us) + 1).forEach((v, k, t) => {
-    const o = el("button", null, k === t.length - 1 && !liste.some(x => x.u === v) && v !== AJ.u ? "U" + v + " +" : "U" + v);
-    o.type = "button";
-    o.setAttribute("aria-pressed", v === AJ.u ? "true" : "false");
-    o.onclick = () => {
-      if(AJ.adr != null){
-        const p = prisDans(v, autres);
-        const libre = blocDe(v, AJ.adr, ch, nb).every(b => {
-          if(b.u !== v) return true;
-          for(let c = b.adr; c <= b.fin; c++) if(p.has(c)) return false; return true; });
-        if(!libre) AJ.adr = null;
-      }
-      AJ.u = v; majVoletAjouter();
-    };
-    zu.append(o);
-  });
+  const nbU = liste.filter(x => x.u === AJ.u).length;
+  zu.innerHTML = `<button type="button" class="fl" aria-label="Univers précédent"${AJ.u <= 1 ? " disabled" : ""}>◀</button>
+    <span class="v"><b>U${AJ.u}</b><small>${nbU ? pl(nbU, "appareil") : "vide"}</small></span>
+    <button type="button" class="fl" aria-label="Univers suivant"${AJ.u >= 63999 ? " disabled" : ""}>▶</button>`;
+  const allerU = v => {
+    if(AJ.adr != null){
+      const p = prisDans(v, autres);
+      const libre = blocDe(v, AJ.adr, ch, nb).every(b => {
+        if(b.u !== v) return true;
+        for(let c = b.adr; c <= b.fin; c++) if(p.has(c)) return false; return true; });
+      if(!libre) AJ.adr = null;
+    }
+    AJ.u = v; majVoletAjouter();
+  };
+  const [ug, ud] = zu.querySelectorAll(".fl");
+  ug.onclick = () => allerU(Math.max(1, AJ.u - 1));
+  ud.onclick = () => allerU(Math.min(63999, AJ.u + 1));
 
   const et = d.querySelector(".aj-ou .et");
   if(adr == null) et.textContent = `U${AJ.u} est plein`;
