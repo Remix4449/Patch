@@ -4815,8 +4815,12 @@ function majVoletFiche(){
       if(a == null){ peindre(); return; }
       placer(u, a);
     };
-    d.querySelector(".aa").onchange = e =>
-      placer(x.u, +e.target.value.replace(/\D/g, "") || 1);
+    d.querySelector(".aa").onchange = e => {
+      const adr = +e.target.value.replace(/\D/g, "") || 1;
+      const a = adresseEnUnivers(x.u, adr, x.ch, appareils().filter(y => y.n !== x.n));
+      if(a == null){ peindre(); return; }
+      placer(x.u, a);
+    };
 
     /* Le type et le mode se changent ici, appareil par appareil : la ligne se
        scinde toute seule pour que les autres exemplaires restent ce qu'ils
@@ -5002,7 +5006,14 @@ function majVoletAjouter(){
          la quantité reste alors ce qu'elle était. */
       const nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0);
       if(!nb){ peindre(); return; }
+      /* Plus d'appareils ne doit pas recouvrir ceux qui suivent : la ligne
+         reprend sa quantité si elle déborde sur un appareil déjà patché. */
+      const avant = l.nb, koAvant = collisions(appareils()).size;
       garderCircuits(() => { l.nb = nb; });
+      if(nb > avant && collisions(appareils()).size > koAvant){
+        garderCircuits(() => { l.nb = avant; });
+        alert(`${nb} appareils ne tiennent pas ici sans recouvrir des appareils déjà patchés : la ligne reste à ${avant}.`);
+      }
       peindre();
     };
     /* Écrire un univers ou une adresse impose le départ de la ligne : c'était
@@ -5025,8 +5036,15 @@ function majVoletAjouter(){
       if(a == null){ peindre(); return; }
       imposer(u, a);
     };
-    r.querySelector(".qa").onchange = e =>
-      imposer(dep.u, +e.target.value.replace(/\D/g, "") || 1);
+    /* Une adresse tapée sur des appareils déjà patchés ne les recouvre plus :
+       comme pour l'univers, l'app propose la première adresse libre. */
+    r.querySelector(".qa").onchange = e => {
+      const adr = +e.target.value.replace(/\D/g, "") || 1;
+      const span = Math.min(512, Math.max(1, l.ch || 1) * Math.max(1, l.nb || 1));
+      const a = adresseEnUnivers(dep.u, adr, span, liste.filter(x => x.ligne !== l.id));
+      if(a == null){ peindre(); return; }
+      imposer(dep.u, a);
+    };
     /* Le repère de la ligne se pose sur tous ses appareils ; il s'affiche quand
        ils partagent le même. */
     const reps = [...new Set(mes.map(x => repApp(x.n)))];
