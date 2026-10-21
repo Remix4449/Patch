@@ -803,36 +803,8 @@
       font:600 11px/1 var(--mono);font-variant-numeric:tabular-nums}
   .tcd .tenus button.ici{background:var(--tel);color:var(--on)}
 
-  /* Le tableau d'ajout de lignes. */
-  .pf{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px;
-      background:var(--bg)}
-  .pf .lg{display:grid;grid-template-columns:minmax(0,1fr) 84px 30px;gap:7px;
-      grid-template-areas:"app app x" "mode qte qte" "ua ua ua" "rep rep rep" "et et et";
-      padding:9px 12px;border-top:1px solid var(--line)}
-  .pf .lg:first-of-type{border-top:0}
-  .pf select,.pf .lg input{background:var(--sur);border:1.5px solid var(--line);border-radius:9px;
-      padding:8px 9px;outline:none;width:100%;font:500 13px/1.2 var(--body);min-width:0}
-  .pf .lg input{font-family:var(--mono);text-align:center}
-  /* Chaque champ porte son libellé : deux nombres nus côte à côte ne disaient
-     pas lequel était l'empreinte et lequel la quantité. */
-  .pf .lg .cf{display:flex;flex-direction:column;gap:4px;min-width:0}
-  .pf .lg .cf i{font:700 9.5px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;
-      color:var(--ink3);font-style:normal;padding-left:3px;white-space:nowrap;
-      overflow:hidden;text-overflow:ellipsis}
-  .pf .lg .c-app{grid-area:app}
-  .pf .lg .c-mode{grid-area:mode}
-  .pf .lg .c-qte{grid-area:qte}
-  /* L'univers et la première adresse s'écrivent : basculer « à la suite » ne
-     laissait pas le choix de l'endroit. */
-  .pf .lg .c-ua{grid-area:ua;display:grid;grid-template-columns:1fr 1fr;gap:7px;min-width:0}
-  .pf .lg .c-rep{grid-area:rep}
   /* Carte d'un univers, façon Eos : les 512 adresses, 20 par rang (25 ne se lisaient plus sur un téléphone), les prises
-     en couleur. Deux teintes alternent pour séparer deux appareils voisins. */
-  .cu-carte{border:1.5px solid var(--line);border-radius:14px;padding:10px;margin-bottom:12px;background:var(--bg)}
-  .cu-carte .us{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}
-  .cu-carte .us button{flex:none;min-height:36px;min-width:44px;padding:0 12px;border:1.5px solid var(--line);
-      border-radius:18px;background:var(--sur);font:600 13px/1 var(--body);color:var(--ink);cursor:pointer}
-  .cu-carte .us button[aria-pressed="true"]{background:var(--proj);border-color:var(--proj);color:var(--on)}
+     en couleur. Deux teintes alternent pour séparer deux appareils voisins ; le groupe qu'on pose est en orange. */
   .cu-grille{display:grid;grid-template-columns:repeat(20,minmax(0,1fr));gap:1px;
       font:600 8.5px/1 var(--mono);font-variant-numeric:tabular-nums;user-select:none}
   .cu-grille i{font-style:normal;text-align:center;padding:4px 0;border-radius:2px;color:var(--ink2);
@@ -841,11 +813,7 @@
   .cu-grille i.a.b{background:color-mix(in srgb,var(--proj) 62%,var(--bg))}
   .cu-grille i.g{background:var(--tel);color:var(--on)}
   .cu-grille i.k{background:var(--ko);color:var(--on)}
-  .cu-grille i.v{outline:2px solid var(--ink);outline-offset:-1px}
-  .cu-carte .leg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:12px;color:var(--ink2)}
-  .cu-carte .leg b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
-  .cu-carte .info{margin-top:6px;font-size:13px;color:var(--ink);min-height:18px}
-  .pf .lg .crp input{text-align:left;font-family:var(--body)}
+  .cu-grille i.n{background:var(--dmx);color:var(--on)}
   /* Repère en saisie libre : les suggestions suivent ce qu'on tape (« p1 » donne
      p1, p10 à p19) et ne se montrent que pendant la saisie. */
   .crp .sug{display:none;gap:6px;overflow-x:auto;padding:7px 1px 2px;scrollbar-width:none}
@@ -854,46 +822,77 @@
   .crp .sug button{flex:none;min-height:36px;min-width:44px;padding:0 12px;border:1.5px solid var(--line);
       border-radius:18px;background:var(--sur);font:600 13px/1 var(--body);color:var(--ink);cursor:pointer}
   .crp.ouv .sug{flex-wrap:wrap;overflow:visible}
-  .pf .lg .x{grid-area:x;align-self:center;border:0;background:none;color:var(--ink3);
-      font-size:15px;padding:8px 2px;cursor:pointer}
-  .pf .lg .rg{grid-area:et;display:flex;gap:7px;align-items:stretch}
-  .pf .lg .et{flex:1;min-width:0;text-align:left;border:1px solid var(--line);background:var(--sur);
-      border-radius:9px;padding:7px 10px;display:flex;justify-content:space-between;
-      align-items:baseline;gap:10px;font:500 11px/1.3 var(--mono);color:var(--ink3);cursor:pointer}
-  .pf .lg .et b{color:var(--ink);font-size:12px}
-  .pf .lg .et.ko b{color:var(--ko)}
-  .pf .lg .lib{flex:none;border:1px solid var(--ko);background:var(--sur);border-radius:9px;
-      padding:7px 10px;font:600 11px/1.2 var(--body);color:var(--ko);cursor:pointer;
-      white-space:nowrap}
-  .pf .pied{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;
-      background:var(--sur2);border-top:1px solid var(--line)}
-  .pf .pied button{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;
-      padding:9px 13px;font:600 12.5px/1 var(--body);color:var(--ink2);cursor:pointer}
-  .pf .pied .tot{margin-left:auto;font:500 11.5px/1.4 var(--mono);color:var(--ink3);text-align:right}
-  .pf .pied .tot b{color:var(--ink)}
-  .pf .pied .tot b.ko{color:var(--ko)}
 
   .add .vide-parc{display:flex;flex-direction:column;gap:6px;background:var(--bg);border:1.5px dashed var(--line);
       border-radius:14px;padding:14px;margin-bottom:12px;font-size:14px}
   .add .vide-parc span{color:var(--ink2)}
-  .add .choix{background:var(--bg);border:1.5px solid var(--tel);border-radius:14px;padding:10px;margin-bottom:12px}
-  .add .choix .q{display:flex;gap:8px}
-  .add .choix .q input{flex:1;min-width:0;min-height:44px;border:1.5px solid var(--line);border-radius:11px;
-      background:var(--sur);padding:0 12px;font:500 15px/1 var(--body);outline:none}
-  .add .choix .q input:focus{border-color:var(--tel)}
-  .add .choix .ann{flex:none;min-height:44px;border:0;background:none;color:var(--ink2);
-      font:600 13px/1 var(--body);cursor:pointer;padding:0 6px}
-  .add .choix .res{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:260px;overflow-y:auto}
-  .add .choix .res button{display:flex;justify-content:space-between;align-items:center;gap:10px;
-      min-height:48px;border:1.5px solid var(--line);background:var(--sur);border-radius:11px;padding:0 12px;
-      text-align:left;cursor:pointer;color:var(--ink)}
-  .add .choix .res b{font:700 14.5px/1.2 var(--body)}
-  .add .choix .res span{font:500 12px/1.2 var(--body);color:var(--ink3);white-space:nowrap}
-  .add .choix .ou{display:flex;align-items:center;gap:8px;margin-top:8px;font:500 13px/1.2 var(--body);color:var(--ink2)}
-  .add .choix .ou input{width:64px;min-height:44px;border:1.5px solid var(--line);border-radius:11px;
-      background:var(--sur);padding:0 10px;font:600 15px/1 var(--mono);outline:none;text-align:center}
-  .add .choix .ou input:focus{border-color:var(--tel)}
-  .add .choix .ou b{font-family:var(--mono);color:var(--ink)}
+
+  /* Ajouter en trois touches : le modèle en tuiles, la quantité en −/+, le
+     reste en pastilles ; puis une carte par groupe posé. */
+  .p-volet.add{max-height:min(88vh,760px)}
+  .aj-q{width:100%;min-height:46px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);
+      padding:0 13px;font:500 15px/1 var(--body);color:var(--ink);outline:none}
+  .aj-q:focus{border-color:var(--tel)}
+  .aj-res{margin-top:12px}
+  .aj-res .aj-k:first-child{margin-top:0}
+  .aj-k{font:700 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);margin:16px 2px 8px}
+  .aj-k em{font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;color:var(--ink3);margin-left:4px}
+  .aj-tuiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .aj-tuiles button{position:relative;min-height:64px;text-align:left;border:1.5px solid var(--line);background:var(--bg);
+      border-radius:13px;padding:10px 12px;color:var(--ink);cursor:pointer}
+  .aj-tuiles b{display:block;font:700 14.5px/1.2 var(--body);padding-right:26px}
+  .aj-tuiles small{display:block;margin-top:3px;font:500 12px/1.2 var(--mono);color:var(--ink3)}
+  .aj-tuiles i{position:absolute;top:9px;right:10px;font:700 11.5px/1 var(--mono);font-style:normal;color:var(--tel)}
+  .aj-qte{display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px solid var(--line);border-radius:16px;padding:8px}
+  .aj-qte .bt{flex:none;width:56px;height:56px;border:0;border-radius:12px;background:var(--sur2);
+      font:700 26px/1 var(--body);color:var(--ink);cursor:pointer}
+  .aj-qte label{flex:1;text-align:center}
+  .aj-qte input{width:100%;border:0;background:none;text-align:center;font:700 32px/1.1 var(--mono);color:var(--ink);outline:none}
+  .aj-qte small{display:block;font:600 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .aj-pas{display:flex;flex-wrap:wrap;gap:6px}
+  .aj-pas button{min-height:42px;min-width:48px;padding:0 13px;border:1.5px solid var(--line);border-radius:99px;
+      background:var(--bg);font:600 13.5px/1 var(--body);color:var(--ink2);cursor:pointer}
+  .aj-pas button em{font:600 11.5px/1 var(--mono);font-style:normal;opacity:.7;margin-left:5px}
+  .aj-pas button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+  .aj-ch{width:90px;min-height:44px;border:1.5px solid var(--line);border-radius:11px;background:var(--bg);
+      text-align:center;font:600 15px/1 var(--mono);color:var(--ink);outline:none}
+  .aj-ou{background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:10px}
+  .aj-ou .l{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+  .aj-ou .l b{font:700 16px/1.2 var(--mono)}
+  .aj-ou .et{font:700 12.5px/1.3 var(--body);color:var(--tel)}
+  .aj-ou .et.ko{color:var(--ko)}
+  .aj-ou .et button{border:0;background:none;padding:6px 0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer}
+  .aj-ou .info{margin-top:7px;font-size:12.5px;color:var(--ink2);min-height:18px}
+  .aj-rep .crp input{width:100%;min-height:44px;border:1.5px solid var(--line);border-radius:11px;background:var(--bg);
+      padding:0 12px;font:500 14px/1 var(--body);color:var(--ink);outline:none}
+  .aj-bas{position:sticky;bottom:calc(-14px - env(safe-area-inset-bottom,0px));display:flex;gap:8px;
+      margin:14px -16px 0;padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));
+      background:var(--sur);border-top:1px solid var(--line)}
+  .aj-bas .act{margin-top:0}
+  .aj-bas .act.sec{flex:0 0 auto;width:auto;padding:14px 18px}
+  .aj-bas .act.ok{flex:1;background:var(--tel)}
+  .aj-bas .act.ok:disabled{opacity:.45;cursor:default}
+  .aj-ln{display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);
+      border-radius:14px;padding:4px 4px 4px 0;margin-bottom:7px}
+  .aj-ln.ko{border-color:var(--ko)}
+  .aj-ln .m{flex:1;min-width:0;display:flex;align-items:center;gap:11px;border:0;background:none;
+      padding:6px 4px 6px 10px;text-align:left;color:var(--ink);cursor:pointer}
+  .aj-ln .nb{flex:none;width:40px;height:40px;border-radius:11px;background:var(--sur2);display:grid;place-items:center;
+      font:700 16px/1 var(--mono)}
+  .aj-ln .t{flex:1;min-width:0}
+  .aj-ln .t b{display:block;font:700 14.5px/1.2 var(--body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .aj-ln .t small{display:block;font:500 12px/1.3 var(--mono);color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .aj-ln .r{flex:none;text-align:right;font:500 12px/1.3 var(--mono);color:var(--ink2)}
+  .aj-ln .r b{display:block;font-size:13.5px;color:var(--ink)}
+  .aj-ln.ko .r b{color:var(--ko)}
+  .aj-ln .x{flex:none;width:44px;height:44px;border:0;background:none;color:var(--ink3);font-size:15px;cursor:pointer}
+  .aj-ln .lib{flex:none;border:1px solid var(--ko);background:var(--sur);border-radius:9px;padding:8px 9px;
+      font:600 11px/1.2 var(--body);color:var(--ko);cursor:pointer;white-space:nowrap}
+  .aj-tot{display:flex;gap:6px;margin-top:10px}
+  .aj-tot div{flex:1;background:var(--sur2);border-radius:11px;padding:8px 10px}
+  .aj-tot b{display:block;font:700 17px/1.1 var(--mono)}
+  .aj-tot span{font:600 10px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .aj-tot .ko b{color:var(--ko)}
 
   /* Les patchs. */
   .pat .nom{font-family:var(--body)!important}
@@ -3191,9 +3190,7 @@ let REPNS = [];
 let PAVE = null;         // frappe du pavé numérique ; null = pavé fermé
 let ABC = false;         // le circuit se tape au clavier du téléphone (« 12b », « face »)
 let IA = 0;              // rang de l'appareil en cours d'attribution
-let CHOIX = null;        // recherche dans le parc du volet Ajouter ; null = fermée
-let CHOIXU = null;       // univers où poser la ligne neuve ; null = celui du dernier appareil
-let UVIS = null;         // univers montré par la carte du volet Ajouter ; null = celui du choix
+let AJ = null;           // volet Ajouter : null = les groupes posés, {e:"choix"} le modèle, {e:"regle"} combien et où
 let NOUVEAU = null;      // le formulaire d'un nouveau patch, quand il est ouvert
 let TU = 0;              // univers de l'adresse courante ; 0 = Pupitre jamais ouvert
 let TC = 1;              // canal de l'adresse courante
@@ -3815,7 +3812,7 @@ function ouvrirVolet(quoi, arg){
   }
   if(quoi === "fiche") CIBLE = arg;
   if(quoi === "rep") REPNS = arg;
-  if(quoi === "ajouter"){ CHOIX = null; UVIS = null; }
+  if(quoi === "ajouter") AJ = P.lignes.length ? null : { e:"choix", q:"" };
   if(quoi === "patchs") NOUVEAU = null;
   fond = el("div", "p-fond");
   fond.onclick = () => fermerVolet();
@@ -4944,145 +4941,283 @@ function retirerAppareil(x){
 }
 
 /* ---------------------- volet : ajouter des appareils --------------------- */
-/* Une ligne par type d'appareil : l'appareil, son mode, la quantité, et
-   l'étendue calculée en regard. Les modes viennent de la bibliothèque, remplie
-   à la main ou par import GDTF depuis la fiche de l'appareil. */
+/* Trois touches : un modèle du parc, une quantité, « Poser ». Le mode,
+   l'univers, l'adresse et le repère ont une valeur par défaut qu'on ne touche
+   que si besoin — l'ancien tableau demandait cinq champs par ligne. Les
+   appareils posés se montrent ensuite en une carte par groupe, qu'on touche
+   pour la reprendre. Les modes viennent de la bibliothèque, remplie à la main
+   ou par import GDTF depuis la fiche de l'appareil. */
 function majVoletAjouter(){
   const liste = appareils();
-  const ko = collisions(liste);
-  volet.querySelector(".tete h3").textContent = "Ajouter des appareils";
+  if(AJ && AJ.e === "regle" && AJ.id && !P.lignes.some(l => l.id === AJ.id)) AJ = null;
+  volet.querySelector(".tete h3").textContent = !AJ ? "Ajouter des appareils"
+    : AJ.e === "choix" ? "Quel appareil ?" : courtNom(AJ.app);
   volet.querySelector(".tete .cpt").textContent = pl(liste.length, "appareil");
-
   const c = volet.querySelector(".corps");
-  const d = el("div");
-
-  /* Le parc est livré vide : sans projecteur, il n'y a rien à poser, et le
-     bouton d'ajout ne réagissait pas. On le dit, avec le chemin. */
-  if(!PROJECTEURS.length){
-    const v = el("div", "vide-parc");
-    v.innerHTML = `<b>Le parc n'a encore aucun projecteur.</b>
+  /* Un champ encore actif lance son « change » en perdant le focus : on le
+     laisse partir avant de reconstruire, pas pendant. */
+  if(c.contains(document.activeElement)) document.activeElement.blur();
+  let d;
+  /* Le parc est livré vide : sans projecteur, il n'y a rien à poser. On le
+     dit, avec le chemin. */
+  if(!PROJECTEURS.length && !P.lignes.length){
+    d = el("div", "vide-parc");
+    d.innerHTML = `<b>Le parc n'a encore aucun projecteur.</b>
       <span>Ajoute ceux de ta salle dans Parc, ils apparaîtront ici.</span>`;
     const go1 = el("button", "act", "Ouvrir les projecteurs du parc");
     go1.onclick = () => { fermerVolet(true); go({ v:"proj" }); };
-    v.append(go1);
-    d.append(v);
-  } else if(CHOIX !== null){
-    d.append(choixParc(liste));
+    d.append(go1);
+  } else d = !AJ ? ajGroupes(liste) : AJ.e === "choix" ? ajChoix(liste) : ajRegle(liste);
+  c.replaceChildren(d);
+}
+
+/* Les adresses déjà prises d'un univers : appareils et gradateurs de la feuille. */
+function prisDans(u, liste){
+  const pris = new Map();
+  (liste || []).forEach(x => { if(x.u === u) for(let c = x.adr; c <= x.fin; c++) pris.set(c, { x }); });
+  gradas().forEach(n => { const a = adrGrada(n); if(a && a.u === u && !pris.has(a.canal)) pris.set(a.canal, { g:n }); });
+  return pris;
+}
+
+/* Où tombent nb appareils de ch canaux à partir de u·adr, comme adresser() les
+   pose : un appareil qui ne tient plus passe à l'univers suivant. */
+function blocDe(u, adr, ch, nb){
+  const f = Math.min(512, Math.max(1, ch || 1)), out = [];
+  let cu = u, ca = adr;
+  for(let i = 0; i < nb; i++){
+    if(ca + f - 1 > 512){ cu++; ca = 1; }
+    out.push({ u:cu, adr:ca, fin:ca + f - 1 });
+    ca += f;
+  }
+  return out;
+}
+
+/* 1. Le modèle : une tuile par projecteur du parc, ceux du patch en tête avec
+   leur nombre. */
+function ajChoix(liste){
+  const d = el("div", "aj");
+  d.innerHTML = `<input class="aj-q" data-focus="aj-q" placeholder="Chercher dans le parc : spiider, pc…"
+      autocomplete="off" enterkeyhint="search" aria-label="Chercher un projecteur du parc"
+      value="${esc(AJ.q || "")}"><div class="aj-res"></div>`;
+  const nb = {};
+  liste.forEach(x => { nb[x.app] = (nb[x.app] || 0) + 1; });
+  const res = d.querySelector(".aj-res");
+  const lister = () => {
+    const t = plat((AJ.q || "").trim());
+    const r = PROJECTEURS.filter(p => !t || plat(p.nom + " " + p.marque + " " + (p.fam || "")).includes(t));
+    res.replaceChildren();
+    if(!r.length){ res.append(el("p", "rien", "Aucun projecteur du parc ne correspond.")); return; }
+    const ici = r.filter(p => nb[cleApp(p)]), reste = r.filter(p => !nb[cleApp(p)]);
+    [[ici, "Déjà dans ce patch"], [reste, ici.length ? "Parc" : ""]].forEach(([l, titre]) => {
+      if(!l.length) return;
+      if(titre) res.append(el("p", "aj-k", titre));
+      const g = el("div", "aj-tuiles");
+      l.forEach(p => {
+        const k = cleApp(p), modes = BIB[k] || [];
+        const o = el("button", null, `${nb[k] ? `<i>×${nb[k]}</i>` : ""}<b>${esc(p.nom)}</b><small>${
+          esc(p.marque)}${modes.length ? " · " + pl(modes.length, "mode") : ""}</small>`);
+        o.type = "button";
+        o.onclick = () => ajOuvrir(k, liste);
+        g.append(o);
+      });
+      res.append(g);
+    });
+  };
+  const q = d.querySelector("input");
+  q.oninput = () => { AJ.q = q.value; lister(); };
+  lister();
+  if(P.lignes.length){
+    const ret = el("button", "act sec", "Retour aux appareils posés");
+    ret.onclick = () => { AJ = null; majVoletAjouter(); };
+    d.append(ret);
+  }
+  return d;
+}
+
+/* Un modèle déjà dans le patch reprend le mode de son dernier groupe ; la
+   ligne neuve va dans l'univers du dernier appareil, après ce qui s'y trouve. */
+function ajOuvrir(app, liste){
+  const modes = BIB[app] || [];
+  const avant = [...P.lignes].reverse().find(l => l.app === app);
+  const m = avant && (modes.find(x => x.nom === avant.mode) || !modes.length) ? avant : null;
+  AJ = { e:"regle", id:null, app,
+         mode:m ? m.mode : modes.length ? modes[0].nom : "",
+         ch:m ? m.ch : modes.length ? modes[0].ch : 1,
+         nb:1, u:liste.length ? liste[liste.length - 1].u : 1, adr:null, rep:"", rep0:"" };
+  majVoletAjouter();
+}
+
+function ajModifier(l, liste){
+  const mes = liste.filter(x => x.ligne === l.id);
+  const reps = [...new Set(mes.map(x => repApp(x.n)))];
+  const rep = reps.length === 1 ? reps[0] : "";
+  AJ = { e:"regle", id:l.id, app:l.app, mode:l.mode, ch:l.ch, nb:l.nb,
+         u:mes.length ? mes[0].u : Math.max(1, l.u || 1),
+         adr:mes.length ? mes[0].adr : Math.max(1, l.adr || 1), rep, rep0:rep };
+  majVoletAjouter();
+}
+
+/* 2. Combien, et où. Le départ est « après le dernier » de l'univers tant
+   qu'on ne touche pas une case libre de la carte. Une case prise, ou un groupe
+   qui recouvrirait un appareil, est refusé. */
+function ajRegle(liste){
+  const modes = BIB[AJ.app] || [];
+  const autres = liste.filter(x => x.ligne !== AJ.id);
+  const ch = Math.min(512, Math.max(1, AJ.ch || 1)), nb = Math.max(1, AJ.nb || 1);
+  const span = Math.min(512, ch * nb);
+  const auto = AJ.adr == null;
+  const adr = auto ? libreDans(AJ.u, span, autres) : AJ.adr;
+  const bloc = adr == null ? [] : blocDe(AJ.u, adr, ch, nb);
+  const prises = {};
+  const pris = u => prises[u] || (prises[u] = prisDans(u, autres));
+  const ko = bloc.some(b => { for(let c = b.adr; c <= b.fin; c++) if(pris(b.u).has(c)) return true; return false; });
+  const fin = bloc[bloc.length - 1];
+  const nom = courtNom(AJ.app);
+
+  const d = el("div", "aj");
+  d.innerHTML = `<div class="aj-qte"><button type="button" class="bt" aria-label="Un de moins">−</button>
+      <label><input class="qn" data-focus="aj-nb" inputmode="numeric" value="${nb}" aria-label="Quantité d'appareils">
+      <small>${nb > 1 ? "appareils" : "appareil"}</small></label>
+      <button type="button" class="bt" aria-label="Un de plus">+</button></div>
+    <p class="aj-k">${modes.length ? "Mode" : "Canaux par appareil"}</p>
+    <div class="aj-pas aj-modes"></div>
+    <p class="aj-k">Univers</p><div class="aj-pas aj-us"></div>
+    <p class="aj-k">Adresse</p>
+    <div class="aj-ou"><div class="l"><b>${adr == null ? "plus de place"
+        : `U${AJ.u}·${adr} → U${fin.u}·${fin.fin}`}</b><span class="et${ko || adr == null ? " ko" : ""}"></span></div>
+      <div class="cu-grille"></div><div class="info">Toucher une case libre pour poser le départ ailleurs.</div></div>
+    <p class="aj-k">Repère <em>facultatif</em></p><div class="aj-rep"></div>
+    <div class="aj-bas"><button type="button" class="act sec">Annuler</button>
+      <button type="button" class="act ok"${ko || adr == null ? " disabled" : ""}>${
+        AJ.id ? "Enregistrer" : `Poser ${nb} ${esc(nom)}`}</button></div>`;
+
+  const [moins, plus] = d.querySelectorAll(".aj-qte .bt");
+  const qn = d.querySelector(".qn");
+  const mettre = v => { AJ.nb = Math.max(1, Math.min(500, v)); majVoletAjouter(); };
+  moins.onclick = () => mettre(nb - 1);
+  plus.onclick = () => mettre(nb + 1);
+  qn.onchange = () => { const v = +qn.value.replace(/\D/g, "") || 0; if(v) mettre(v); else majVoletAjouter(); };
+
+  const zm = d.querySelector(".aj-modes");
+  if(modes.length) modes.forEach(m => {
+    const o = el("button", null, `${esc(m.nom)}<em>${m.ch}</em>`);
+    o.type = "button";
+    o.setAttribute("aria-pressed", m.nom === AJ.mode ? "true" : "false");
+    o.onclick = () => { AJ.mode = m.nom; AJ.ch = m.ch; majVoletAjouter(); };
+    zm.append(o);
+  });
+  else {
+    const i = el("input", "aj-ch");
+    i.inputMode = "numeric"; i.value = ch; i.dataset.focus = "aj-ch";
+    i.setAttribute("aria-label", "Empreinte en canaux");
+    i.onchange = () => { AJ.ch = Math.max(1, Math.min(512, +i.value.replace(/\D/g, "") || 1)); majVoletAjouter(); };
+    zm.append(i);
   }
 
-  d.append(carteUnivers(liste, ko));
+  /* Les univers du patch, celui-ci, et le suivant pour en ouvrir un neuf.
+     Changer d'univers garde l'adresse choisie si elle y tient, sinon repart
+     après le dernier. */
+  const us = [...new Set(liste.map(x => x.u).concat(gradas().map(n => (adrGrada(n) || {}).u), AJ.u))]
+    .filter(Boolean).sort((a, b) => a - b);
+  const zu = d.querySelector(".aj-us");
+  us.concat(Math.max(...us) + 1).forEach((v, k, t) => {
+    const o = el("button", null, k === t.length - 1 && !liste.some(x => x.u === v) && v !== AJ.u ? "U" + v + " +" : "U" + v);
+    o.type = "button";
+    o.setAttribute("aria-pressed", v === AJ.u ? "true" : "false");
+    o.onclick = () => {
+      if(AJ.adr != null){
+        const p = prisDans(v, autres);
+        const libre = blocDe(v, AJ.adr, ch, nb).every(b => {
+          if(b.u !== v) return true;
+          for(let c = b.adr; c <= b.fin; c++) if(p.has(c)) return false; return true; });
+        if(!libre) AJ.adr = null;
+      }
+      AJ.u = v; majVoletAjouter();
+    };
+    zu.append(o);
+  });
 
-  const pf = el("div", "pf");
+  const et = d.querySelector(".aj-ou .et");
+  if(adr == null) et.textContent = `U${AJ.u} est plein`;
+  else if(auto) et.textContent = "après le dernier ✓";
+  else {
+    et.innerHTML = `${ko ? "recouvre un appareil" : "départ choisi"} · <button type="button">après le dernier</button>`;
+    et.querySelector("button").onclick = () => { AJ.adr = null; majVoletAjouter(); };
+  }
+
+  /* La carte de l'univers : ce qui est pris, et le groupe neuf par-dessus. */
+  const g = d.querySelector(".cu-grille"), info = d.querySelector(".info");
+  g.setAttribute("aria-label", "Adresses de l'univers " + AJ.u);
+  const p = pris(AJ.u), neuf = new Set();
+  bloc.forEach(b => { if(b.u === AJ.u) for(let c = b.adr; c <= b.fin; c++) neuf.add(c); });
+  let alt = 0, der = null;
+  for(let c = 1; c <= 512; c++){
+    const q = p.get(c);
+    if(q && q.x && q.x !== der){ der = q.x; alt ^= 1; }
+    const i = el("i", neuf.has(c) ? (q ? "k" : "n") : !q ? null : q.g ? "g" : "a" + (alt ? "" : " b"), String(c));
+    i.onclick = () => {
+      if(q){ info.textContent = q.g ? `U${AJ.u}·${c} · gradateur ${q.g}`
+               : `U${AJ.u}·${c} · ${courtNom(q.x.app)} n° ${q.x.n} (${q.x.adr}–${q.x.fin}) : adresse prise`; return; }
+      const ok = blocDe(AJ.u, c, ch, nb).every(b => {
+        const pb = pris(b.u);
+        for(let a = b.adr; a <= b.fin; a++) if(pb.has(a)) return false; return true; });
+      if(!ok){ info.textContent = `${nb} × ${ch} canaux ne tiennent pas à partir de U${AJ.u}·${c} sans recouvrir un appareil.`; return; }
+      AJ.adr = c; majVoletAjouter();
+    };
+    g.append(i);
+  }
+
+  d.querySelector(".aj-rep").append(champRepere(AJ.rep, v => { AJ.rep = v; }, "Repère des appareils"));
+
+  d.querySelector(".aj-bas .sec").onclick = () => {
+    AJ = AJ.id || P.lignes.length ? null : { e:"choix", q:"" };
+    majVoletAjouter();
+  };
+  d.querySelector(".aj-bas .ok").onclick = () => {
+    const a = document.activeElement;
+    if(a && a.closest && a.closest(".aj-rep")) AJ.rep = a.value.trim();
+    const cible = { app:AJ.app, mode:AJ.mode, ch, nb, suite:false, u:AJ.u, adr };
+    let id = AJ.id;
+    if(id){
+      const l = P.lignes.find(y => y.id === id);
+      figerSuivante(l, liste);
+      garderCircuits(() => { Object.assign(l, cible); });
+    } else {
+      id = idLigne();
+      P.lignes.push(Object.assign({ id }, cible));
+    }
+    if(AJ.rep !== AJ.rep0){
+      if(!P.repA) P.repA = {};
+      appareils().filter(x => x.ligne === id).forEach(x => {
+        if(AJ.rep) P.repA[x.n] = AJ.rep; else delete P.repA[x.n]; });
+    }
+    AJ = null;
+    peindre();
+  };
+  return d;
+}
+
+/* 3. Ce qui est posé : une carte par groupe. La toucher la reprend ; ✕ la
+   retire, avec Annuler. Retirer un groupe renumérote les appareils suivants,
+   et leurs circuits les suivent. */
+function ajGroupes(liste){
+  const ko = collisions(liste);
+  const d = el("div", "aj");
   P.lignes.forEach(l => {
-    const modes = BIB[l.app] || [];
     const mes = liste.filter(x => x.ligne === l.id);
     const enKo = mes.some(x => ko.has(x.n));
-    /* Le départ affiché est celui que la ligne occupe vraiment — le sien si elle
-       est imposée, celui que le chaînage lui a donné sinon. */
-    const dep = mes.length ? { u:mes[0].u, adr:mes[0].adr }
-              : { u:Math.max(1, l.u || 1), adr:Math.min(512, Math.max(1, l.adr || 1)) };
-    const r = el("div", "lg");
-    r.innerHTML = `<span class="cf c-app"><i>type d'appareil</i>
-        <select class="sa" aria-label="Type d'appareil">${optionsTypes(l.app)}</select></span>
-      <span class="cf c-mode"><i>${modes.length ? "mode" : "canaux par appareil"}</i>${modes.length
-        ? `<select class="sm" aria-label="Mode">${modes.map(m =>
-            `<option value="${esc(m.nom)}"${m.nom === l.mode ? " selected" : ""}>${
-              esc(m.nom)} · ${m.ch} ch</option>`).join("")}</select>`
-        : `<input class="sm in-ch" data-focus="${l.id}-ch" inputmode="numeric" value="${l.ch}"
-                  aria-label="Empreinte en canaux">`}</span>
-      <span class="cf c-qte"><i>quantité</i>
-        <input class="qn" data-focus="${l.id}-nb" inputmode="numeric" value="${l.nb}"
-               aria-label="Quantité d'appareils"></span>
-      <span class="c-ua">
-        <span class="cf"><i>univers</i>
-          <input class="qu" data-focus="${l.id}-u" inputmode="numeric" value="${dep.u}"
-                 aria-label="Univers de départ de la ligne"></span>
-        <span class="cf"><i>1re adresse</i>
-          <input class="qa" data-focus="${l.id}-adr" inputmode="numeric" value="${dep.adr}"
-                 aria-label="Première adresse DMX de la ligne"></span></span>
-      <span class="cf c-rep"><i>repère</i></span>
-      <button class="x" aria-label="Retirer la ligne">✕</button>
-      <div class="rg"><button class="et${enKo ? " ko" : ""}" title="Basculer le départ">${
-        l.suite ? "à la suite" : "départ imposé"}
-        <b>${mes.length ? `U${mes[0].u}·${mes[0].adr} → U${mes[mes.length - 1].u}·${mes[mes.length - 1].fin}` : "—"}</b></button>${
-        enKo ? `<button class="lib" title="Reposer la ligne sur une plage libre">adresse libre</button>` : ""}</div>`;
-    r.querySelector(".sa").onchange = e => {
-      l.app = e.target.value;
-      const m = BIB[l.app] || [];
-      l.mode = m.length ? m[0].nom : "";
-      l.ch = m.length ? m[0].ch : l.ch;
-      peindre();
-    };
-    const sm = r.querySelector(".sm");
-    if(modes.length) sm.onchange = e => {
-      l.mode = e.target.value;
-      const m = modes.find(x => x.nom === l.mode);
-      if(m) l.ch = m.ch;
-      peindre();
-    };
-    else sm.onchange = e => { l.ch = Math.max(1, +e.target.value.replace(/\D/g, "") || 1); peindre(); };
-    /* Changer la quantité renumérote ce qui suit : les circuits suivent leurs
-       appareils. */
-    r.querySelector(".qn").onchange = e => {
-      /* Un champ vidé ou un 0 faisait disparaître la ligne sans bandeau :
-         la quantité reste alors ce qu'elle était. */
-      const nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0);
-      if(!nb){ peindre(); return; }
-      /* Plus d'appareils ne doit pas recouvrir ceux qui suivent : la ligne
-         reprend sa quantité si elle déborde sur un appareil déjà patché. */
-      const avant = l.nb, koAvant = collisions(appareils()).size;
-      garderCircuits(() => { l.nb = nb; });
-      if(nb > avant && collisions(appareils()).size > koAvant){
-        garderCircuits(() => { l.nb = avant; });
-        alert(`${nb} appareils ne tiennent pas ici sans recouvrir des appareils déjà patchés : la ligne reste à ${avant}.`);
-      }
-      peindre();
-    };
-    /* Écrire un univers ou une adresse impose le départ de la ligne : c'était
-       jusqu'ici le seul réglage qu'on ne pouvait pas choisir — la ligne se posait
-       où l'application voulait bien. */
-    const imposer = (u, adr) => {
-      figerSuivante(l, liste);
-      l.suite = false;
-      l.u = Math.max(1, Math.min(63999, u || 1));
-      l.adr = adresseQuiTient(adr, l.ch);
-      peindre();
-    };
-    /* Un autre univers : la ligne garde son adresse si elle y est libre, sinon
-       l'app propose la première adresse libre. */
-    r.querySelector(".qu").onchange = e => {
-      const u = +e.target.value.replace(/\D/g, "") || 1;
-      if(u === dep.u){ imposer(u, dep.adr); return; }
-      const span = Math.min(512, Math.max(1, l.ch || 1) * Math.max(1, l.nb || 1));
-      const a = adresseEnUnivers(u, dep.adr, span, liste.filter(x => x.ligne !== l.id));
-      if(a == null){ peindre(); return; }
-      imposer(u, a);
-    };
-    /* Une adresse tapée sur des appareils déjà patchés ne les recouvre plus :
-       comme pour l'univers, l'app propose la première adresse libre. */
-    r.querySelector(".qa").onchange = e => {
-      const adr = +e.target.value.replace(/\D/g, "") || 1;
-      const span = Math.min(512, Math.max(1, l.ch || 1) * Math.max(1, l.nb || 1));
-      const a = adresseEnUnivers(dep.u, adr, span, liste.filter(x => x.ligne !== l.id));
-      if(a == null){ peindre(); return; }
-      imposer(dep.u, a);
-    };
-    /* Le repère de la ligne se pose sur tous ses appareils ; il s'affiche quand
-       ils partagent le même. */
-    const reps = [...new Set(mes.map(x => repApp(x.n)))];
-    r.querySelector(".c-rep").append(champRepere(reps.length === 1 ? reps[0] : "", v => {
-      if(!P.repA) P.repA = {};
-      mes.forEach(x => { if(v) P.repA[x.n] = v; else delete P.repA[x.n]; });
-      peindre();
-    }, "Repère des appareils de la ligne"));
-    r.querySelector(".et").onclick = () => {
-      if(l.suite){ const p = liste.find(x => x.ligne === l.id);
-                   if(p){ l.u = p.u; l.adr = p.adr; } l.suite = false; }
-      else l.suite = true;
-      peindre();
-    };
+    const reps = [...new Set(mes.map(x => repApp(x.n)).filter(Boolean))];
+    const r = el("div", "aj-ln" + (enKo ? " ko" : ""));
+    r.innerHTML = `<button type="button" class="m"><span class="nb">${l.nb}</span>
+        <span class="t"><b>${esc(courtNom(l.app))}</b><small>${esc(l.mode || l.ch + " ch")}${
+          reps.length ? " · " + esc(reps.join(", ")) : ""}</small></span>
+        <span class="r">${mes.length ? `<b>U${mes[0].u}·${mes[0].adr}</b>→ ${
+          mes[mes.length - 1].u !== mes[0].u ? "U" + mes[mes.length - 1].u + "·" : ""}${mes[mes.length - 1].fin}` : "—"}</span></button>
+      ${enKo ? `<button type="button" class="lib">adresse libre</button>` : ""}
+      <button type="button" class="x" aria-label="Retirer le groupe">✕</button>`;
+    r.querySelector(".m").onclick = () => ajModifier(l, liste);
     r.querySelector(".x").onclick = () => {
-      annulable(`Ligne ${courtNom(l.app)} retirée`, () =>
+      annulable(`${courtNom(l.app)} retirés`, () =>
         garderCircuits(() => { P.lignes = P.lignes.filter(y => y.id !== l.id); }));
       peindre();
     };
@@ -5094,24 +5229,15 @@ function majVoletAjouter(){
       l.suite = false; l.u = libre.u; l.adr = libre.adr;
       peindre();
     };
-    pf.append(r);
+    d.append(r);
   });
 
-  const pied = el("div", "pied");
-  if(PROJECTEURS.length && CHOIX === null){
-    const add = el("button", null, "+ Ligne d'appareils");
-    add.onclick = () => { CHOIX = ""; CHOIXU = null; majVoletAjouter();
-      const q = volet && volet.querySelector(".choix input"); if(q) q.focus(); };
-    pied.append(add);
-  }
-  pied.insertAdjacentHTML("beforeend",
-    `<span class="tot"><b>${liste.length}</b> ${liste.length > 1 ? "appareils" : "appareil"} · <b>${
-      [...new Set(liste.map(x => x.u))].length}</b> univers · ${puissanceTotale(liste)}<br>${
-      ko.size ? `<b class="ko">${ko.size} en chevauchement</b>` : "aucun chevauchement"}</span>`);
-  pf.append(pied);
-  d.append(pf);
-
   const univ = [...new Set(liste.map(x => x.u))];
+  const tot = el("div", "aj-tot");
+  tot.innerHTML = `<div><b>${liste.length}</b><span>${liste.length > 1 ? "appareils" : "appareil"}</span></div>
+    <div><b>${univ.length}</b><span>univers</span></div>
+    <div${ko.size ? ' class="ko"' : ""}><b>${ko.size}</b><span>chevauch.</span></div>`;
+  d.append(tot);
   if(univ.length){
     const res = el("div", "kvs");
     res.innerHTML = univ.map(u => {
@@ -5120,144 +5246,17 @@ function majVoletAjouter(){
     }).join("");
     d.append(res);
   }
-  d.append(aideRepliee("Les modes viennent de la bibliothèque : la fiche d'un appareil "
-    + "permet de les saisir à la main ou de les importer d'un fichier GDTF. Une ligne neuve "
-    + "se pose dans l'univers choisi, après le dernier appareil qui s'y trouve ; changer "
-    + "l'univers d'une ligne la pose de même. « Départ imposé » la fixe là où elle est, "
-    + "« à la suite » la chaîne sur la ligne d'avant. Retirer une ligne ou changer une "
-    + "quantité renumérote les appareils suivants, et leurs circuits les suivent."));
-  const fin = el("button", "act", "Terminer");
+  const bas = el("div", "aj-bas");
+  const add = el("button", "act sec", "+ Autre appareil");
+  add.type = "button";
+  add.onclick = () => { AJ = { e:"choix", q:"" }; majVoletAjouter(); };
+  const fin = el("button", "act ok", "Terminer");
+  fin.type = "button";
   fin.onclick = () => fermerVolet();
-  d.append(fin);
-  /* Un champ encore actif lance son « change » en perdant le focus : on le
-     laisse partir avant de reconstruire, pas pendant. */
-  if(c.contains(document.activeElement)) document.activeElement.blur();
-  c.replaceChildren(d);
-}
-
-/* Ce qui est libre dans un univers, d'un coup d'œil : les 512 adresses,
-   appareils et gradateurs en couleur, un chevauchement en rouge. Toucher une
-   adresse dit ce qui s'y trouve, ou combien d'adresses libres la suivent. */
-function carteUnivers(liste, ko){
-  const b = el("div", "cu-carte");
-  const us = [...new Set(liste.map(x => x.u).concat(gradas().map(n => (adrGrada(n) || {}).u)))]
-    .filter(Boolean).sort((a, c) => a - c);
-  const u = UVIS || CHOIXU || (liste.length ? liste[liste.length - 1].u : us[0] || 1);
-  if(!us.includes(u)) us.push(u);
-  const prochain = Math.max(...us) + 1;
-  const ch = el("div", "us");
-  us.concat(prochain).forEach(v => {
-    const o = el("button", null, "U" + v);
-    o.type = "button";
-    o.setAttribute("aria-pressed", v === u ? "true" : "false");
-    o.onclick = () => { UVIS = v; majVoletAjouter(); };
-    ch.append(o);
-  });
-  b.append(ch);
-  const qui = new Array(513).fill(null);
-  let alt = 0;
-  liste.filter(x => x.u === u).forEach(x => {
-    alt ^= 1;
-    for(let c = x.adr; c <= x.fin; c++) qui[c] = qui[c] ? { k:1, x:qui[c].x } : { x, alt, ko:ko.has(x.n) };
-  });
-  gradas().forEach(n => { const a = adrGrada(n);
-    if(a && a.u === u) qui[a.canal] = qui[a.canal] ? { k:1, x:qui[a.canal].x } : { g:n }; });
-  const g = el("div", "cu-grille");
-  g.setAttribute("aria-label", "Adresses de l'univers " + u);
-  let libres = 0;
-  const cases = [];
-  for(let c = 1; c <= 512; c++){
-    const q = qui[c];
-    if(!q) libres++;
-    const i = el("i", !q ? null : q.k || q.ko ? "k" : q.g ? "g" : "a" + (q.alt ? "" : " b"), String(c));
-    i.onclick = () => {
-      cases.forEach(y => y.classList.remove("v"));
-      i.classList.add("v");
-      let t;
-      if(!q){ let n = 0; while(c + n <= 512 && !qui[c + n]) n++;
-              t = `U${u}·${c} libre · ${pl(n, "adresse libre", "adresses libres")} à partir d'ici`; }
-      else if(q.g) t = `U${u}·${c} · gradateur ${q.g}`;
-      else t = `U${u}·${c} · ${esc(courtNom(q.x.app))} n° ${q.x.n} (${q.x.adr}–${q.x.fin})${q.k || q.ko ? " · chevauchement" : ""}`;
-      info.innerHTML = t;
-    };
-    cases.push(i);
-    g.append(i);
-  }
-  b.append(g);
-  const leg = el("div", "leg");
-  leg.innerHTML = `<span><b style="background:var(--sur);border:1px solid var(--line)"></b>libre (${libres})</span>
-    <span><b style="background:var(--proj)"></b>appareil</span><span><b style="background:var(--tel)"></b>gradateur</span>
-    <span><b style="background:var(--ko)"></b>chevauchement</span>`;
-  b.append(leg);
-  const info = el("div", "info");
-  b.append(info);
-  return b;
-}
-
-/* Choisir l'appareil d'une ligne neuve par une recherche dans le parc : la
-   ligne prenait d'office le premier projecteur, qu'il fallait ensuite changer
-   dans une liste de toute la salle. */
-function choixParc(liste){
-  const b = el("div", "choix");
-  /* L'univers de la ligne neuve se choisit avant l'appareil : par défaut celui
-     du dernier appareil du patch. La ligne s'y pose après ce qui s'y trouve. */
-  const uDef = () => CHOIXU || (liste.length ? liste[liste.length - 1].u : null);
-  const ou = foot => {
-    const u = uDef();
-    if(!u) return premiereLibre(foot, liste);
-    for(let v = u; v < u + 64; v++){
-      const a = libreDans(v, foot, liste);
-      if(a) return { u:v, adr:a };
-    }
-    return premiereLibre(foot, liste);
-  };
-  b.innerHTML = `<div class="q"><input data-focus="aj-q" placeholder="Chercher dans le parc : spiider, pc…"
-      autocomplete="off" enterkeyhint="search" aria-label="Chercher un projecteur du parc"
-      value="${esc(CHOIX)}"><button class="ann">Annuler</button></div>
-    <div class="ou"><span>Univers</span><input class="cu" data-focus="aj-u" inputmode="numeric"
-      value="${ou(1).u}" aria-label="Univers où poser l'appareil"><span class="dep"></span></div>
-    <div class="res"></div>`;
-  const dep = b.querySelector(".dep");
-  const montrer = () => { const o = ou(1); dep.innerHTML = `1re adresse libre : <b>U${o.u}·${o.adr}</b>`; };
-  montrer();
-  const cu = b.querySelector(".cu");
-  cu.onchange = () => {
-    const u = Math.max(1, Math.min(63999, +cu.value.replace(/\D/g, "") || 1));
-    CHOIXU = u; UVIS = null; cu.value = u; montrer();
-    const vieille = volet.querySelector(".cu-carte");
-    if(vieille) vieille.replaceWith(carteUnivers(liste, collisions(liste)));
-  };
-  const res = b.querySelector(".res");
-  const lister = () => {
-    const q = plat(CHOIX.trim());
-    const r = PROJECTEURS.filter(p => !q || plat(p.nom + " " + p.marque + " " + (p.fam || "")).includes(q))
-      .slice(0, 40);
-    res.replaceChildren();
-    if(!r.length) res.append(el("p", "rien", "Aucun projecteur du parc ne correspond."));
-    r.forEach(p => {
-      const modes = BIB[cleApp(p)] || [];
-      const o = el("button", null, `<b>${esc(p.nom)}</b><span>${esc(p.marque)}${
-        modes.length ? " · " + pl(modes.length, "mode") : ""}</span>`);
-      o.onclick = () => {
-        const foot = modes.length ? modes[0].ch : 1;
-        /* La ligne neuve se pose dans l'univers choisi, après le dernier
-           appareil qui s'y trouve — sans gêner ni un appareil déjà posé, ni un
-           gradateur de la feuille. */
-        const libre = ou(foot);
-        P.lignes.push({ id:idLigne(), app:cleApp(p),
-                        mode:modes.length ? modes[0].nom : "", ch:foot,
-                        nb:1, suite:false, u:libre.u, adr:libre.adr });
-        CHOIX = null;
-        peindre();
-      };
-      res.append(o);
-    });
-  };
-  const q = b.querySelector("input");
-  q.oninput = () => { CHOIX = q.value; lister(); };
-  b.querySelector(".ann").onclick = () => { CHOIX = null; majVoletAjouter(); };
-  lister();
-  return b;
+  if(PROJECTEURS.length) bas.append(add);
+  bas.append(fin);
+  d.append(bas);
+  return d;
 }
 
 /* --------------------------- volet : les patchs --------------------------- */
