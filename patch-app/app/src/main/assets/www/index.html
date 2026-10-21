@@ -807,7 +807,7 @@
   .pf{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px;
       background:var(--bg)}
   .pf .lg{display:grid;grid-template-columns:minmax(0,1fr) 84px 30px;gap:7px;
-      grid-template-areas:"app app x" "mode qte x" "ua ua x" "rep rep x" "et et et";
+      grid-template-areas:"app app x" "mode qte qte" "ua ua ua" "rep rep rep" "et et et";
       padding:9px 12px;border-top:1px solid var(--line)}
   .pf .lg:first-of-type{border-top:0}
   .pf select,.pf .lg input{background:var(--sur);border:1.5px solid var(--line);border-radius:9px;
@@ -2645,7 +2645,40 @@ let minuteriePatchs = null;
 function sauverPatchs(){
   clearTimeout(minuteriePatchs);
   /* L'écriture est reportée : elle ne suit pas la frappe touche à touche. */
-  minuteriePatchs = setTimeout(() => ecrireLocal(CLE_PATCHS, { i:iPatch, p:PATCHS }), 300);
+  minuteriePatchs = setTimeout(() => {
+    const avant = localStorage.getItem(CLE_PATCHS);
+    ecrireLocal(CLE_PATCHS, { i:iPatch, p:PATCHS });
+    garderVersion(avant);
+  }, 300);
+}
+
+/* Versions précédentes : le patch n'avait qu'une copie, réécrite à chaque
+   geste, et une ligne retirée par mégarde était perdue passé les 7 s du
+   bandeau « Annuler ». Avant chaque écriture, l'état enregistré part dans
+   l'historique s'il avait plus d'appareils ou de gradateurs que le nouveau, et
+   sinon au plus une fois toutes les 5 minutes. Restaurer ajoute une copie :
+   rien n'est écrasé. */
+const CLE_HIST = "patchs.hist.v1", HIST_MAX = 30, HIST_PAS = 5 * 60 * 1000;
+const compteP = p => adresser(p.lignes || []).length + Object.keys(p.grada || {}).length;
+function garderVersion(brut){
+  let avant = null;
+  try { avant = JSON.parse(brut); } catch(e){ }
+  if(!avant || !Array.isArray(avant.p)) return;
+  const h = lireLocal(CLE_HIST, []);
+  const der = h[h.length - 1];
+  const txt = JSON.stringify(avant.p);
+  if(der && JSON.stringify(der.p) === txt) return;
+  const perte = avant.p.some(a => {
+    const b = PATCHS.find(x => x.nom === a.nom);
+    return !b || compteP(b) < compteP(a);
+  });
+  if(!perte && der && Date.now() - der.t < HIST_PAS) return;
+  h.push({ t:Date.now(), p:avant.p });
+  /* Le patch s'écrit avant son historique : si la place manque, ce sont les
+     plus vieilles versions qui partent, jamais le patch en cours. */
+  for(let n = HIST_MAX; n > 0; n = Math.floor(n / 2)){
+    try { localStorage.setItem(CLE_HIST, JSON.stringify(h.slice(-n))); return; } catch(e){ }
+  }
 }
 
 /* ------------------------------- calculs --------------------------------- */
@@ -4965,7 +4998,11 @@ function majVoletAjouter(){
     /* Changer la quantité renumérote ce qui suit : les circuits suivent leurs
        appareils. */
     r.querySelector(".qn").onchange = e => {
-      garderCircuits(() => { l.nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0); });
+      /* Un champ vidé ou un 0 faisait disparaître la ligne sans bandeau :
+         la quantité reste alors ce qu'elle était. */
+      const nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0);
+      if(!nb){ peindre(); return; }
+      garderCircuits(() => { l.nb = nb; });
       peindre();
     };
     /* Écrire un univers ou une adresse impose le départ de la ligne : c'était
@@ -5206,6 +5243,31 @@ function majVoletPatchs(){
     };
     rang.append(neuf, dupl);
     d.append(rang);
+  }
+
+  const hist = lireLocal(CLE_HIST, []);
+  if(hist.length){
+    d.insertAdjacentHTML("beforeend", `<h5>Versions précédentes</h5>`);
+    const z2 = el("div", "liste2");
+    hist.slice().reverse().forEach(v => v.p.forEach(p => {
+      const quand = new Date(v.t).toLocaleString("fr-FR",
+        { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+      const r = el("div", "p");
+      r.innerHTML = `<span><b>${esc(p.nom || "Sans titre")}</b>
+        <span>${esc(quand)} · ${pl(adresser(p.lignes || []).length, "appareil")} · ${
+          pl(Object.keys(p.grada || {}).length, "gradateur")}</span></span>`;
+      const res = el("button", "ouv", "restaurer");
+      res.onclick = () => {
+        const copie = { ...patchVide(), ...JSON.parse(JSON.stringify(p)) };
+        copie.reg = { ...REG_DEFAUT, ...(copie.reg || {}) };
+        copie.nom = (p.nom || "Sans titre") + " (" + quand + ")";
+        PATCHS.push(copie);
+        chargerPatch(PATCHS.length - 1);
+      };
+      r.append(res);
+      z2.append(r);
+    }));
+    d.append(z2);
   }
 
   d.insertAdjacentHTML("beforeend", `<h5>Ce patch</h5>`);
