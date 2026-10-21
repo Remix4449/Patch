@@ -807,7 +807,7 @@
   .pf{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px;
       background:var(--bg)}
   .pf .lg{display:grid;grid-template-columns:minmax(0,1fr) 84px 30px;gap:7px;
-      grid-template-areas:"app app x" "mode qte x" "ua ua x" "et et et";
+      grid-template-areas:"app app x" "mode qte x" "ua ua x" "rep rep x" "et et et";
       padding:9px 12px;border-top:1px solid var(--line)}
   .pf .lg:first-of-type{border-top:0}
   .pf select,.pf .lg input{background:var(--sur);border:1.5px solid var(--line);border-radius:9px;
@@ -825,6 +825,16 @@
   /* L'univers et la première adresse s'écrivent : basculer « à la suite » ne
      laissait pas le choix de l'endroit. */
   .pf .lg .c-ua{grid-area:ua;display:grid;grid-template-columns:1fr 1fr;gap:7px;min-width:0}
+  .pf .lg .c-rep{grid-area:rep}
+  .pf .lg .crp input{text-align:left;font-family:var(--body)}
+  /* Repère en saisie libre : les suggestions suivent ce qu'on tape (« p1 » donne
+     p1, p10 à p19) et ne se montrent que pendant la saisie. */
+  .crp .sug{display:none;gap:6px;overflow-x:auto;padding:7px 1px 2px;scrollbar-width:none}
+  .crp:focus-within .sug,.crp.ouv .sug{display:flex}
+  .crp .sug:empty{display:none}
+  .crp .sug button{flex:none;min-height:36px;min-width:44px;padding:0 12px;border:1.5px solid var(--line);
+      border-radius:18px;background:var(--sur);font:600 13px/1 var(--body);color:var(--ink);cursor:pointer}
+  .crp.ouv .sug{flex-wrap:wrap;overflow:visible}
   .pf .lg .x{grid-area:x;align-self:center;border:0;background:none;color:var(--ink3);
       font-size:15px;padding:8px 2px;cursor:pointer}
   .pf .lg .rg{grid-area:et;display:flex;gap:7px;align-items:stretch}
@@ -2832,6 +2842,44 @@ const circuitApp = n => String(P.fiches[n] || "").trim();
 const REPERES = [...Array.from({ length:40 }, (_, i) => "p" + (i + 1)),
   "pont", "face", "loge cour", "loge jardin", "lat cour", "lat jardin", "sol"];
 const repApp = n => String((P.repA || {})[n] || "").trim();
+/* Les repères proposés : ceux déjà posés dans le patch d'abord, puis les
+   lieux (pont, face…), puis les perches. */
+function reperesConnus(){
+  const vus = [...new Set(Object.values(P.repA || {}).map(v => String(v).trim()).filter(Boolean))];
+  const base = REPERES.filter(v => !/^p\d+$/.test(v)).concat(REPERES.filter(v => /^p\d+$/.test(v)));
+  return vus.concat(base.filter(v => !vus.includes(v)));
+}
+/* Champ Repère : on tape ce qu'on veut, et les repères qui commencent par ce
+   qu'on a tapé s'offrent en pastilles. Une pastille ne prend pas le focus,
+   sinon le champ, en le perdant, validait d'abord le début tapé. */
+function champRepere(val, poser, label, ouvert){
+  const b = el("div", "crp" + (ouvert ? " ouv" : ""));
+  b.innerHTML = `<input value="${esc(val || "")}" placeholder="p12, pont, face…" autocomplete="off"
+      autocapitalize="none" spellcheck="false" enterkeyhint="done" aria-label="${esc(label)}">
+    <div class="sug"></div>`;
+  const i = b.querySelector("input"), s = b.querySelector(".sug");
+  const lister = () => {
+    const t = i.value.trim(), q = plat(t), tous = reperesConnus();
+    let r = !q ? tous : tous.filter(v => plat(v).startsWith(q))
+      .concat(tous.filter(v => !plat(v).startsWith(q) && plat(v).includes(q)));
+    r = r.filter(v => v !== t);
+    /* Un repère déjà complet n'a plus de suite : on propose alors tous les
+       autres, pour en changer d'un toucher. */
+    if(!r.length && t) r = tous.filter(v => v !== t);
+    s.replaceChildren(...r.slice(0, ouvert ? 60 : 14).map(v => {
+      const o = el("button", null, esc(v));
+      o.type = "button";
+      o.onmousedown = e => e.preventDefault();
+      o.onclick = () => { i.value = v; lister(); poser(v); };
+      return o;
+    }));
+  };
+  i.oninput = lister;
+  i.onchange = () => poser(i.value.trim());
+  i.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); i.blur(); } };
+  lister();
+  return b;
+}
 /* Les gradateurs qui comptent sont ceux de la liste : un circuit, ou gardés sans
    circuit. Le reste de la plage n'est qu'un chemin que les flèches ont tracé. */
 const listesG = () => gradas().filter(n => circuitGrada(n) || gardes().includes(n)).length;
@@ -3087,6 +3135,7 @@ let GBUF = "";
 /* Sélection pour supprimer : null = hors sélection, sinon l'ensemble des
    rangées cochées ("g12" pour un gradateur, "a3" pour un appareil). */
 let SELM = null;
+let REPNS = [];
 let PAVE = null;         // frappe du pavé numérique ; null = pavé fermé
 let ABC = false;         // le circuit se tape au clavier du téléphone (« 12b », « face »)
 let IA = 0;              // rang de l'appareil en cours d'attribution
@@ -3191,13 +3240,17 @@ function peindre(){
     const sup = el("button", "sup", SELM.size ? `Supprimer (${SELM.size})` : "Supprimer");
     sup.disabled = !SELM.size;
     sup.onclick = () => supprimerSelection();
-    $("#p-bas").replaceChildren(fin, sup);
+    const rpb = el("button", "att rpb", "Repère");
+    rpb.onclick = () => repererSelection();
+    $("#p-bas").replaceChildren(fin, rpb, sup);
+    majBarreSel();
   } else $("#p-bas").replaceChildren(bg, ba);
 
   if(VOLET === "relever") majVoletRelever();
   if(VOLET === "attr") majVoletAttribuer();
   if(VOLET === "dmx") majVoletDmx();
   if(VOLET === "ajouter") majVoletAjouter();
+  if(VOLET === "rep") majVoletRep();
   if(VOLET === "fiche") majVoletFiche();
   if(VOLET === "patchs") majVoletPatchs();
   sauverPatchs();
@@ -3363,6 +3416,41 @@ function majBarreSel(){
     b.textContent = SELM.size ? `Supprimer (${SELM.size})` : "Supprimer";
     b.disabled = !SELM.size;
   }
+  const r = $("#p-bas .rpb");
+  if(r){
+    const n = [...SELM].filter(k => k[0] === "a").length;
+    r.textContent = n ? `Repère (${n})` : "Repère";
+    r.disabled = !n;
+  }
+}
+/* Poser un même repère sur les appareils choisis : les gradateurs de la
+   sélection n'en ont pas, ils sont laissés de côté. */
+function repererSelection(){
+  const ns = [...SELM].filter(k => k[0] === "a").map(k => +k.slice(1));
+  if(ns.length) ouvrirVolet("rep", ns);
+}
+function majVoletRep(){
+  const ns = REPNS.filter(n => appareils().some(x => x.n === n));
+  volet.querySelector(".tete h3").textContent = "Repère";
+  volet.querySelector(".tete .cpt").textContent = pl(ns.length, "appareil");
+  const reps = [...new Set(ns.map(repApp))];
+  /* Le champ part vide pour que toutes les suggestions s'offrent ; le repère
+     actuel est rappelé dessous. */
+  const d = el("div");
+  const f = el("div", "f", "<label>Repère des appareils choisis</label>");
+  const ch = champRepere("", () => {}, "Repère des appareils choisis", true);
+  f.append(ch);
+  d.append(f);
+  d.append(el("p", "aide", "Repère actuel : " + esc(reps.map(r => r || "aucun").join(", "))));
+  const ok = el("button", "act", `Poser sur ${pl(ns.length, "appareil")}`);
+  ok.onclick = () => {
+    const val = ch.querySelector("input").value.trim();
+    if(!P.repA) P.repA = {};
+    ns.forEach(n => { if(val) P.repA[n] = val; else delete P.repA[n]; });
+    fermerVolet();
+  };
+  d.append(ok);
+  volet.querySelector(".corps").replaceChildren(d);
 }
 /* « Tout » dans l'en-tête d'une pile : coche les rangées qu'elle montre, ou les
    décoche si elles le sont déjà toutes. */
@@ -3673,11 +3761,12 @@ function ouvrirVolet(quoi, arg){
     if(!DSEL.length) DSEL = [cleAdr(TU, TC)];
   }
   if(quoi === "fiche") CIBLE = arg;
+  if(quoi === "rep") REPNS = arg;
   if(quoi === "ajouter") CHOIX = null;
   if(quoi === "patchs") NOUVEAU = null;
   fond = el("div", "p-fond");
   fond.onclick = () => fermerVolet();
-  const classe = { relever:"rel", attr:"rel att", dmx:"tcd", ajouter:"add", fiche:"fic", patchs:"pat" }[quoi];
+  const classe = { relever:"rel", attr:"rel att", dmx:"tcd", ajouter:"add", fiche:"fic", patchs:"pat", rep:"fic" }[quoi];
   volet = el("div", "p-volet " + classe);
   volet.setAttribute("role", "dialog");
   volet.innerHTML = `<div class="poignee"><span class="barre"></span></div>
@@ -4636,10 +4725,7 @@ function majVoletFiche(){
     const rp = repApp(x.n);
     d.innerHTML = `<div class="f"><label>Circuit</label>
         ${champCircuit(circuitApp(x.n), "Circuit de l'appareil " + x.n, true)}</div>
-      <div class="f"><label>Repère</label>
-        <select class="rp" aria-label="Repère de l'appareil ${x.n}">
-          <option value="">—</option>${(rp && !REPERES.includes(rp) ? [rp] : []).concat(REPERES).map(v =>
-            `<option value="${esc(v)}"${v === rp ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
+      <div class="f rpf"><label>Repère</label></div>
       <div class="f"><label>Type d'appareil</label>
         <select class="sa" aria-label="Type de l'appareil ${x.n}">${optionsTypes(x.app)}</select></div>
       <div class="f"><label>${modes.length ? "Mode" : "Empreinte en canaux"}</label>${modes.length
@@ -4657,11 +4743,11 @@ function majVoletFiche(){
       <div class="kv"><span>Empreinte</span><b>${x.ch} canaux · U${x.u}·${x.adr} → ${x.fin}</b></div>`;
     d.querySelector(".cir").oninput = e => {
       P.fiches[x.n] = e.target.value; majListe(); majCompteurs(); };
-    d.querySelector(".rp").onchange = e => {
+    d.querySelector(".rpf").append(champRepere(rp, v => {
       if(!P.repA) P.repA = {};
-      if(e.target.value) P.repA[x.n] = e.target.value; else delete P.repA[x.n];
+      if(v) P.repA[x.n] = v; else delete P.repA[x.n];
       majListe();
-    };
+    }, "Repère de l'appareil " + x.n));
 
     /* ◀ ▶ : l'appareil d'avant ou d'après, pour passer les circuits de proche
        en proche sans refermer la fiche. Le clavier reste ouvert, et la mise en
@@ -4855,6 +4941,7 @@ function majVoletAjouter(){
         <span class="cf"><i>1re adresse</i>
           <input class="qa" data-focus="${l.id}-adr" inputmode="numeric" value="${dep.adr}"
                  aria-label="Première adresse DMX de la ligne"></span></span>
+      <span class="cf c-rep"><i>repère</i></span>
       <button class="x" aria-label="Retirer la ligne">✕</button>
       <div class="rg"><button class="et${enKo ? " ko" : ""}" title="Basculer le départ">${
         l.suite ? "à la suite" : "départ imposé"}
@@ -4903,6 +4990,14 @@ function majVoletAjouter(){
     };
     r.querySelector(".qa").onchange = e =>
       imposer(dep.u, +e.target.value.replace(/\D/g, "") || 1);
+    /* Le repère de la ligne se pose sur tous ses appareils ; il s'affiche quand
+       ils partagent le même. */
+    const reps = [...new Set(mes.map(x => repApp(x.n)))];
+    r.querySelector(".c-rep").append(champRepere(reps.length === 1 ? reps[0] : "", v => {
+      if(!P.repA) P.repA = {};
+      mes.forEach(x => { if(v) P.repA[x.n] = v; else delete P.repA[x.n]; });
+      peindre();
+    }, "Repère des appareils de la ligne"));
     r.querySelector(".et").onclick = () => {
       if(l.suite){ const p = liste.find(x => x.ligne === l.id);
                    if(p){ l.u = p.u; l.adr = p.adr; } l.suite = false; }
