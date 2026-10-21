@@ -807,7 +807,7 @@
   .pf{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px;
       background:var(--bg)}
   .pf .lg{display:grid;grid-template-columns:minmax(0,1fr) 84px 30px;gap:7px;
-      grid-template-areas:"app app x" "mode qte x" "ua ua x" "rep rep x" "et et et";
+      grid-template-areas:"app app x" "mode qte qte" "ua ua ua" "rep rep rep" "et et et";
       padding:9px 12px;border-top:1px solid var(--line)}
   .pf .lg:first-of-type{border-top:0}
   .pf select,.pf .lg input{background:var(--sur);border:1.5px solid var(--line);border-radius:9px;
@@ -826,6 +826,25 @@
      laissait pas le choix de l'endroit. */
   .pf .lg .c-ua{grid-area:ua;display:grid;grid-template-columns:1fr 1fr;gap:7px;min-width:0}
   .pf .lg .c-rep{grid-area:rep}
+  /* Carte d'un univers, façon Eos : les 512 adresses, 20 par rang (25 ne se lisaient plus sur un téléphone), les prises
+     en couleur. Deux teintes alternent pour séparer deux appareils voisins. */
+  .cu-carte{border:1.5px solid var(--line);border-radius:14px;padding:10px;margin-bottom:12px;background:var(--bg)}
+  .cu-carte .us{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}
+  .cu-carte .us button{flex:none;min-height:36px;min-width:44px;padding:0 12px;border:1.5px solid var(--line);
+      border-radius:18px;background:var(--sur);font:600 13px/1 var(--body);color:var(--ink);cursor:pointer}
+  .cu-carte .us button[aria-pressed="true"]{background:var(--proj);border-color:var(--proj);color:var(--on)}
+  .cu-grille{display:grid;grid-template-columns:repeat(20,minmax(0,1fr));gap:1px;
+      font:600 8.5px/1 var(--mono);font-variant-numeric:tabular-nums;user-select:none}
+  .cu-grille i{font-style:normal;text-align:center;padding:4px 0;border-radius:2px;color:var(--ink2);
+      background:var(--sur);cursor:pointer;overflow:hidden;letter-spacing:-.04em}
+  .cu-grille i.a{background:var(--proj);color:var(--on)}
+  .cu-grille i.a.b{background:color-mix(in srgb,var(--proj) 62%,var(--bg))}
+  .cu-grille i.g{background:var(--tel);color:var(--on)}
+  .cu-grille i.k{background:var(--ko);color:var(--on)}
+  .cu-grille i.v{outline:2px solid var(--ink);outline-offset:-1px}
+  .cu-carte .leg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:12px;color:var(--ink2)}
+  .cu-carte .leg b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  .cu-carte .info{margin-top:6px;font-size:13px;color:var(--ink);min-height:18px}
   .pf .lg .crp input{text-align:left;font-family:var(--body)}
   /* Repère en saisie libre : les suggestions suivent ce qu'on tape (« p1 » donne
      p1, p10 à p19) et ne se montrent que pendant la saisie. */
@@ -2645,7 +2664,40 @@ let minuteriePatchs = null;
 function sauverPatchs(){
   clearTimeout(minuteriePatchs);
   /* L'écriture est reportée : elle ne suit pas la frappe touche à touche. */
-  minuteriePatchs = setTimeout(() => ecrireLocal(CLE_PATCHS, { i:iPatch, p:PATCHS }), 300);
+  minuteriePatchs = setTimeout(() => {
+    const avant = localStorage.getItem(CLE_PATCHS);
+    ecrireLocal(CLE_PATCHS, { i:iPatch, p:PATCHS });
+    garderVersion(avant);
+  }, 300);
+}
+
+/* Versions précédentes : le patch n'avait qu'une copie, réécrite à chaque
+   geste, et une ligne retirée par mégarde était perdue passé les 7 s du
+   bandeau « Annuler ». Avant chaque écriture, l'état enregistré part dans
+   l'historique s'il avait plus d'appareils ou de gradateurs que le nouveau, et
+   sinon au plus une fois toutes les 5 minutes. Restaurer ajoute une copie :
+   rien n'est écrasé. */
+const CLE_HIST = "patchs.hist.v1", HIST_MAX = 30, HIST_PAS = 5 * 60 * 1000;
+const compteP = p => adresser(p.lignes || []).length + Object.keys(p.grada || {}).length;
+function garderVersion(brut){
+  let avant = null;
+  try { avant = JSON.parse(brut); } catch(e){ }
+  if(!avant || !Array.isArray(avant.p)) return;
+  const h = lireLocal(CLE_HIST, []);
+  const der = h[h.length - 1];
+  const txt = JSON.stringify(avant.p);
+  if(der && JSON.stringify(der.p) === txt) return;
+  const perte = avant.p.some(a => {
+    const b = PATCHS.find(x => x.nom === a.nom);
+    return !b || compteP(b) < compteP(a);
+  });
+  if(!perte && der && Date.now() - der.t < HIST_PAS) return;
+  h.push({ t:Date.now(), p:avant.p });
+  /* Le patch s'écrit avant son historique : si la place manque, ce sont les
+     plus vieilles versions qui partent, jamais le patch en cours. */
+  for(let n = HIST_MAX; n > 0; n = Math.floor(n / 2)){
+    try { localStorage.setItem(CLE_HIST, JSON.stringify(h.slice(-n))); return; } catch(e){ }
+  }
 }
 
 /* ------------------------------- calculs --------------------------------- */
@@ -3141,6 +3193,7 @@ let ABC = false;         // le circuit se tape au clavier du téléphone (« 12b
 let IA = 0;              // rang de l'appareil en cours d'attribution
 let CHOIX = null;        // recherche dans le parc du volet Ajouter ; null = fermée
 let CHOIXU = null;       // univers où poser la ligne neuve ; null = celui du dernier appareil
+let UVIS = null;         // univers montré par la carte du volet Ajouter ; null = celui du choix
 let NOUVEAU = null;      // le formulaire d'un nouveau patch, quand il est ouvert
 let TU = 0;              // univers de l'adresse courante ; 0 = Pupitre jamais ouvert
 let TC = 1;              // canal de l'adresse courante
@@ -3762,7 +3815,7 @@ function ouvrirVolet(quoi, arg){
   }
   if(quoi === "fiche") CIBLE = arg;
   if(quoi === "rep") REPNS = arg;
-  if(quoi === "ajouter") CHOIX = null;
+  if(quoi === "ajouter"){ CHOIX = null; UVIS = null; }
   if(quoi === "patchs") NOUVEAU = null;
   fond = el("div", "p-fond");
   fond.onclick = () => fermerVolet();
@@ -4782,8 +4835,12 @@ function majVoletFiche(){
       if(a == null){ peindre(); return; }
       placer(u, a);
     };
-    d.querySelector(".aa").onchange = e =>
-      placer(x.u, +e.target.value.replace(/\D/g, "") || 1);
+    d.querySelector(".aa").onchange = e => {
+      const adr = +e.target.value.replace(/\D/g, "") || 1;
+      const a = adresseEnUnivers(x.u, adr, x.ch, appareils().filter(y => y.n !== x.n));
+      if(a == null){ peindre(); return; }
+      placer(x.u, a);
+    };
 
     /* Le type et le mode se changent ici, appareil par appareil : la ligne se
        scinde toute seule pour que les autres exemplaires restent ce qu'ils
@@ -4913,6 +4970,8 @@ function majVoletAjouter(){
     d.append(choixParc(liste));
   }
 
+  d.append(carteUnivers(liste, ko));
+
   const pf = el("div", "pf");
   P.lignes.forEach(l => {
     const modes = BIB[l.app] || [];
@@ -4965,7 +5024,18 @@ function majVoletAjouter(){
     /* Changer la quantité renumérote ce qui suit : les circuits suivent leurs
        appareils. */
     r.querySelector(".qn").onchange = e => {
-      garderCircuits(() => { l.nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0); });
+      /* Un champ vidé ou un 0 faisait disparaître la ligne sans bandeau :
+         la quantité reste alors ce qu'elle était. */
+      const nb = Math.min(500, +e.target.value.replace(/\D/g, "") || 0);
+      if(!nb){ peindre(); return; }
+      /* Plus d'appareils ne doit pas recouvrir ceux qui suivent : la ligne
+         reprend sa quantité si elle déborde sur un appareil déjà patché. */
+      const avant = l.nb, koAvant = collisions(appareils()).size;
+      garderCircuits(() => { l.nb = nb; });
+      if(nb > avant && collisions(appareils()).size > koAvant){
+        garderCircuits(() => { l.nb = avant; });
+        alert(`${nb} appareils ne tiennent pas ici sans recouvrir des appareils déjà patchés : la ligne reste à ${avant}.`);
+      }
       peindre();
     };
     /* Écrire un univers ou une adresse impose le départ de la ligne : c'était
@@ -4988,8 +5058,15 @@ function majVoletAjouter(){
       if(a == null){ peindre(); return; }
       imposer(u, a);
     };
-    r.querySelector(".qa").onchange = e =>
-      imposer(dep.u, +e.target.value.replace(/\D/g, "") || 1);
+    /* Une adresse tapée sur des appareils déjà patchés ne les recouvre plus :
+       comme pour l'univers, l'app propose la première adresse libre. */
+    r.querySelector(".qa").onchange = e => {
+      const adr = +e.target.value.replace(/\D/g, "") || 1;
+      const span = Math.min(512, Math.max(1, l.ch || 1) * Math.max(1, l.nb || 1));
+      const a = adresseEnUnivers(dep.u, adr, span, liste.filter(x => x.ligne !== l.id));
+      if(a == null){ peindre(); return; }
+      imposer(dep.u, a);
+    };
     /* Le repère de la ligne se pose sur tous ses appareils ; il s'affiche quand
        ils partagent le même. */
     const reps = [...new Set(mes.map(x => repApp(x.n)))];
@@ -5058,6 +5135,65 @@ function majVoletAjouter(){
   c.replaceChildren(d);
 }
 
+/* Ce qui est libre dans un univers, d'un coup d'œil : les 512 adresses,
+   appareils et gradateurs en couleur, un chevauchement en rouge. Toucher une
+   adresse dit ce qui s'y trouve, ou combien d'adresses libres la suivent. */
+function carteUnivers(liste, ko){
+  const b = el("div", "cu-carte");
+  const us = [...new Set(liste.map(x => x.u).concat(gradas().map(n => (adrGrada(n) || {}).u)))]
+    .filter(Boolean).sort((a, c) => a - c);
+  const u = UVIS || CHOIXU || (liste.length ? liste[liste.length - 1].u : us[0] || 1);
+  if(!us.includes(u)) us.push(u);
+  const prochain = Math.max(...us) + 1;
+  const ch = el("div", "us");
+  us.concat(prochain).forEach(v => {
+    const o = el("button", null, "U" + v);
+    o.type = "button";
+    o.setAttribute("aria-pressed", v === u ? "true" : "false");
+    o.onclick = () => { UVIS = v; majVoletAjouter(); };
+    ch.append(o);
+  });
+  b.append(ch);
+  const qui = new Array(513).fill(null);
+  let alt = 0;
+  liste.filter(x => x.u === u).forEach(x => {
+    alt ^= 1;
+    for(let c = x.adr; c <= x.fin; c++) qui[c] = qui[c] ? { k:1, x:qui[c].x } : { x, alt, ko:ko.has(x.n) };
+  });
+  gradas().forEach(n => { const a = adrGrada(n);
+    if(a && a.u === u) qui[a.canal] = qui[a.canal] ? { k:1, x:qui[a.canal].x } : { g:n }; });
+  const g = el("div", "cu-grille");
+  g.setAttribute("aria-label", "Adresses de l'univers " + u);
+  let libres = 0;
+  const cases = [];
+  for(let c = 1; c <= 512; c++){
+    const q = qui[c];
+    if(!q) libres++;
+    const i = el("i", !q ? null : q.k || q.ko ? "k" : q.g ? "g" : "a" + (q.alt ? "" : " b"), String(c));
+    i.onclick = () => {
+      cases.forEach(y => y.classList.remove("v"));
+      i.classList.add("v");
+      let t;
+      if(!q){ let n = 0; while(c + n <= 512 && !qui[c + n]) n++;
+              t = `U${u}·${c} libre · ${pl(n, "adresse libre", "adresses libres")} à partir d'ici`; }
+      else if(q.g) t = `U${u}·${c} · gradateur ${q.g}`;
+      else t = `U${u}·${c} · ${esc(courtNom(q.x.app))} n° ${q.x.n} (${q.x.adr}–${q.x.fin})${q.k || q.ko ? " · chevauchement" : ""}`;
+      info.innerHTML = t;
+    };
+    cases.push(i);
+    g.append(i);
+  }
+  b.append(g);
+  const leg = el("div", "leg");
+  leg.innerHTML = `<span><b style="background:var(--sur);border:1px solid var(--line)"></b>libre (${libres})</span>
+    <span><b style="background:var(--proj)"></b>appareil</span><span><b style="background:var(--tel)"></b>gradateur</span>
+    <span><b style="background:var(--ko)"></b>chevauchement</span>`;
+  b.append(leg);
+  const info = el("div", "info");
+  b.append(info);
+  return b;
+}
+
 /* Choisir l'appareil d'une ligne neuve par une recherche dans le parc : la
    ligne prenait d'office le premier projecteur, qu'il fallait ensuite changer
    dans une liste de toute la salle. */
@@ -5087,7 +5223,9 @@ function choixParc(liste){
   const cu = b.querySelector(".cu");
   cu.onchange = () => {
     const u = Math.max(1, Math.min(63999, +cu.value.replace(/\D/g, "") || 1));
-    CHOIXU = u; cu.value = u; montrer();
+    CHOIXU = u; UVIS = null; cu.value = u; montrer();
+    const vieille = volet.querySelector(".cu-carte");
+    if(vieille) vieille.replaceWith(carteUnivers(liste, collisions(liste)));
   };
   const res = b.querySelector(".res");
   const lister = () => {
@@ -5206,6 +5344,31 @@ function majVoletPatchs(){
     };
     rang.append(neuf, dupl);
     d.append(rang);
+  }
+
+  const hist = lireLocal(CLE_HIST, []);
+  if(hist.length){
+    d.insertAdjacentHTML("beforeend", `<h5>Versions précédentes</h5>`);
+    const z2 = el("div", "liste2");
+    hist.slice().reverse().forEach(v => v.p.forEach(p => {
+      const quand = new Date(v.t).toLocaleString("fr-FR",
+        { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+      const r = el("div", "p");
+      r.innerHTML = `<span><b>${esc(p.nom || "Sans titre")}</b>
+        <span>${esc(quand)} · ${pl(adresser(p.lignes || []).length, "appareil")} · ${
+          pl(Object.keys(p.grada || {}).length, "gradateur")}</span></span>`;
+      const res = el("button", "ouv", "restaurer");
+      res.onclick = () => {
+        const copie = { ...patchVide(), ...JSON.parse(JSON.stringify(p)) };
+        copie.reg = { ...REG_DEFAUT, ...(copie.reg || {}) };
+        copie.nom = (p.nom || "Sans titre") + " (" + quand + ")";
+        PATCHS.push(copie);
+        chargerPatch(PATCHS.length - 1);
+      };
+      r.append(res);
+      z2.append(r);
+    }));
+    d.append(z2);
   }
 
   d.insertAdjacentHTML("beforeend", `<h5>Ce patch</h5>`);
