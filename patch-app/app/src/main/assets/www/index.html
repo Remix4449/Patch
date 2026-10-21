@@ -826,6 +826,25 @@
      laissait pas le choix de l'endroit. */
   .pf .lg .c-ua{grid-area:ua;display:grid;grid-template-columns:1fr 1fr;gap:7px;min-width:0}
   .pf .lg .c-rep{grid-area:rep}
+  /* Carte d'un univers, façon Eos : les 512 adresses, 20 par rang (25 ne se lisaient plus sur un téléphone), les prises
+     en couleur. Deux teintes alternent pour séparer deux appareils voisins. */
+  .cu-carte{border:1.5px solid var(--line);border-radius:14px;padding:10px;margin-bottom:12px;background:var(--bg)}
+  .cu-carte .us{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}
+  .cu-carte .us button{flex:none;min-height:36px;min-width:44px;padding:0 12px;border:1.5px solid var(--line);
+      border-radius:18px;background:var(--sur);font:600 13px/1 var(--body);color:var(--ink);cursor:pointer}
+  .cu-carte .us button[aria-pressed="true"]{background:var(--proj);border-color:var(--proj);color:var(--on)}
+  .cu-grille{display:grid;grid-template-columns:repeat(20,minmax(0,1fr));gap:1px;
+      font:600 8.5px/1 var(--mono);font-variant-numeric:tabular-nums;user-select:none}
+  .cu-grille i{font-style:normal;text-align:center;padding:4px 0;border-radius:2px;color:var(--ink2);
+      background:var(--sur);cursor:pointer;overflow:hidden;letter-spacing:-.04em}
+  .cu-grille i.a{background:var(--proj);color:var(--on)}
+  .cu-grille i.a.b{background:color-mix(in srgb,var(--proj) 62%,var(--bg))}
+  .cu-grille i.g{background:var(--tel);color:var(--on)}
+  .cu-grille i.k{background:var(--ko);color:var(--on)}
+  .cu-grille i.v{outline:2px solid var(--ink);outline-offset:-1px}
+  .cu-carte .leg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:12px;color:var(--ink2)}
+  .cu-carte .leg b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  .cu-carte .info{margin-top:6px;font-size:13px;color:var(--ink);min-height:18px}
   .pf .lg .crp input{text-align:left;font-family:var(--body)}
   /* Repère en saisie libre : les suggestions suivent ce qu'on tape (« p1 » donne
      p1, p10 à p19) et ne se montrent que pendant la saisie. */
@@ -3174,6 +3193,7 @@ let ABC = false;         // le circuit se tape au clavier du téléphone (« 12b
 let IA = 0;              // rang de l'appareil en cours d'attribution
 let CHOIX = null;        // recherche dans le parc du volet Ajouter ; null = fermée
 let CHOIXU = null;       // univers où poser la ligne neuve ; null = celui du dernier appareil
+let UVIS = null;         // univers montré par la carte du volet Ajouter ; null = celui du choix
 let NOUVEAU = null;      // le formulaire d'un nouveau patch, quand il est ouvert
 let TU = 0;              // univers de l'adresse courante ; 0 = Pupitre jamais ouvert
 let TC = 1;              // canal de l'adresse courante
@@ -3795,7 +3815,7 @@ function ouvrirVolet(quoi, arg){
   }
   if(quoi === "fiche") CIBLE = arg;
   if(quoi === "rep") REPNS = arg;
-  if(quoi === "ajouter") CHOIX = null;
+  if(quoi === "ajouter"){ CHOIX = null; UVIS = null; }
   if(quoi === "patchs") NOUVEAU = null;
   fond = el("div", "p-fond");
   fond.onclick = () => fermerVolet();
@@ -4950,6 +4970,8 @@ function majVoletAjouter(){
     d.append(choixParc(liste));
   }
 
+  d.append(carteUnivers(liste, ko));
+
   const pf = el("div", "pf");
   P.lignes.forEach(l => {
     const modes = BIB[l.app] || [];
@@ -5113,6 +5135,65 @@ function majVoletAjouter(){
   c.replaceChildren(d);
 }
 
+/* Ce qui est libre dans un univers, d'un coup d'œil : les 512 adresses,
+   appareils et gradateurs en couleur, un chevauchement en rouge. Toucher une
+   adresse dit ce qui s'y trouve, ou combien d'adresses libres la suivent. */
+function carteUnivers(liste, ko){
+  const b = el("div", "cu-carte");
+  const us = [...new Set(liste.map(x => x.u).concat(gradas().map(n => (adrGrada(n) || {}).u)))]
+    .filter(Boolean).sort((a, c) => a - c);
+  const u = UVIS || CHOIXU || (liste.length ? liste[liste.length - 1].u : us[0] || 1);
+  if(!us.includes(u)) us.push(u);
+  const prochain = Math.max(...us) + 1;
+  const ch = el("div", "us");
+  us.concat(prochain).forEach(v => {
+    const o = el("button", null, "U" + v);
+    o.type = "button";
+    o.setAttribute("aria-pressed", v === u ? "true" : "false");
+    o.onclick = () => { UVIS = v; majVoletAjouter(); };
+    ch.append(o);
+  });
+  b.append(ch);
+  const qui = new Array(513).fill(null);
+  let alt = 0;
+  liste.filter(x => x.u === u).forEach(x => {
+    alt ^= 1;
+    for(let c = x.adr; c <= x.fin; c++) qui[c] = qui[c] ? { k:1, x:qui[c].x } : { x, alt, ko:ko.has(x.n) };
+  });
+  gradas().forEach(n => { const a = adrGrada(n);
+    if(a && a.u === u) qui[a.canal] = qui[a.canal] ? { k:1, x:qui[a.canal].x } : { g:n }; });
+  const g = el("div", "cu-grille");
+  g.setAttribute("aria-label", "Adresses de l'univers " + u);
+  let libres = 0;
+  const cases = [];
+  for(let c = 1; c <= 512; c++){
+    const q = qui[c];
+    if(!q) libres++;
+    const i = el("i", !q ? null : q.k || q.ko ? "k" : q.g ? "g" : "a" + (q.alt ? "" : " b"), String(c));
+    i.onclick = () => {
+      cases.forEach(y => y.classList.remove("v"));
+      i.classList.add("v");
+      let t;
+      if(!q){ let n = 0; while(c + n <= 512 && !qui[c + n]) n++;
+              t = `U${u}·${c} libre · ${pl(n, "adresse libre", "adresses libres")} à partir d'ici`; }
+      else if(q.g) t = `U${u}·${c} · gradateur ${q.g}`;
+      else t = `U${u}·${c} · ${esc(courtNom(q.x.app))} n° ${q.x.n} (${q.x.adr}–${q.x.fin})${q.k || q.ko ? " · chevauchement" : ""}`;
+      info.innerHTML = t;
+    };
+    cases.push(i);
+    g.append(i);
+  }
+  b.append(g);
+  const leg = el("div", "leg");
+  leg.innerHTML = `<span><b style="background:var(--sur);border:1px solid var(--line)"></b>libre (${libres})</span>
+    <span><b style="background:var(--proj)"></b>appareil</span><span><b style="background:var(--tel)"></b>gradateur</span>
+    <span><b style="background:var(--ko)"></b>chevauchement</span>`;
+  b.append(leg);
+  const info = el("div", "info");
+  b.append(info);
+  return b;
+}
+
 /* Choisir l'appareil d'une ligne neuve par une recherche dans le parc : la
    ligne prenait d'office le premier projecteur, qu'il fallait ensuite changer
    dans une liste de toute la salle. */
@@ -5142,7 +5223,9 @@ function choixParc(liste){
   const cu = b.querySelector(".cu");
   cu.onchange = () => {
     const u = Math.max(1, Math.min(63999, +cu.value.replace(/\D/g, "") || 1));
-    CHOIXU = u; cu.value = u; montrer();
+    CHOIXU = u; UVIS = null; cu.value = u; montrer();
+    const vieille = volet.querySelector(".cu-carte");
+    if(vieille) vieille.replaceWith(carteUnivers(liste, collisions(liste)));
   };
   const res = b.querySelector(".res");
   const lister = () => {
