@@ -861,6 +861,16 @@
   .aj-us .v{flex:1;text-align:center}
   .aj-us .v b{display:block;font:700 22px/1.1 var(--mono)}
   .aj-us .v small{font:500 11.5px/1 var(--body);color:var(--ink3)}
+  .fa-type{display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px solid var(--line);
+      border-radius:14px;padding:6px 6px 6px 13px}
+  .fa-type .m{flex:1;min-width:0}
+  .fa-type b{display:block;font:700 15px/1.2 var(--body)}
+  .fa-type small{display:block;font:500 12px/1.3 var(--mono);color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fa-type .chg{flex:none;min-height:44px;border:0;background:none;padding:0 10px;font:700 13px/1 var(--body);color:var(--tel);cursor:pointer}
+  .fa-tuiles .aj-tuiles{margin-top:8px}
+  .fa-mod{margin-top:0}
+  .fa-carte .cu-grille{margin-top:10px}
+  .fa-carte .info{margin-top:7px;font-size:12.5px;color:var(--ink2)}
   .aj-ch{width:90px;min-height:44px;border:1.5px solid var(--line);border-radius:11px;background:var(--bg);
       text-align:center;font:600 15px/1 var(--mono);color:var(--ink);outline:none}
   .aj-ou{background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:10px}
@@ -4783,21 +4793,18 @@ function majVoletFiche(){
     d.innerHTML = `<div class="f"><label>Circuit</label>
         ${champCircuit(circuitApp(x.n), "Circuit de l'appareil " + x.n, true)}</div>
       <div class="f rpf"><label>Repère</label></div>
-      <div class="f"><label>Type d'appareil</label>
-        <select class="sa" aria-label="Type de l'appareil ${x.n}">${optionsTypes(x.app)}</select></div>
+      <div class="f"><label>Appareil</label><div class="fa-type"><span class="m"><b>${esc(courtNom(x.app))}</b><small>${
+        esc(x.app)}</small></span><button type="button" class="chg">${CIBLE.type ? "Fermer" : "Changer ›"}</button></div>
+        <div class="fa-tuiles"></div></div>
       <div class="f"><label>${modes.length ? "Mode" : "Empreinte en canaux"}</label>${modes.length
-        ? `<select class="sm" aria-label="Mode de l'appareil ${x.n}">${modes.map(m =>
-            `<option value="${esc(m.nom)}"${m.nom === x.mode ? " selected" : ""}>${
-              esc(m.nom)} · ${m.ch} ch</option>`).join("")}</select>`
+        ? `<div class="aj-pas fa-modes"></div>`
         : `<input class="sm" inputmode="numeric" value="${x.ch}"
                   aria-label="Empreinte en canaux de l'appareil ${x.n}">`}</div>
-      <div class="ff"><div class="f"><label>Univers</label>
-          <input class="au" inputmode="numeric" value="${x.u}"
-                 aria-label="Univers de l'appareil ${x.n}"></div>
-        <div class="f"><label>Adresse DMX</label>
-          <input class="aa" inputmode="numeric" value="${x.adr}"
-                 aria-label="Adresse DMX de l'appareil ${x.n}"></div></div>
-      <div class="kv"><span>Empreinte</span><b>${x.ch} canaux · U${x.u}·${x.adr} → ${x.fin}</b></div>`;
+      <div class="f"><label>Univers</label><div class="aj-us"></div></div>
+      <div class="f"><label>Adresse DMX</label><div class="aj-ou">
+        <div class="l"><b>U${x.u}·${x.adr} → ${x.fin}</b><span class="et">${pl(x.ch, "canal", "canaux")}</span></div>
+        <button type="button" class="act sec fa-mod">${CIBLE.adr ? "Fermer la carte" : "Modifier l'adresse DMX"}</button>
+        <div class="fa-carte"></div></div></div>`;
     d.querySelector(".cir").oninput = e => {
       P.fiches[x.n] = e.target.value; majListe(); majCompteurs(); };
     d.querySelector(".rpf").append(champRepere(rp, v => {
@@ -4832,35 +4839,96 @@ function majVoletFiche(){
     /* L'adresse se choisit ici, appareil par appareil : la ligne se scinde comme
        pour un changement de mode, et les autres exemplaires gardent la leur. */
     const placer = (u, adr) => { placerAppareil(x, u, adr); peindre(); };
-    d.querySelector(".au").onchange = e => {
-      const u = +e.target.value.replace(/\D/g, "") || 1;
-      if(u === x.u){ placer(u, x.adr); return; }
-      const a = adresseEnUnivers(u, x.adr, x.ch, appareils().filter(y => y.n !== x.n));
-      if(a == null){ peindre(); return; }
+    const autres = () => appareils().filter(y => y.n !== x.n);
+    const tient = (u, adr) => {
+      if(adr < 1 || adr + x.ch - 1 > 512) return false;
+      const p = prisDans(u, autres());
+      for(let c = adr; c <= adr + x.ch - 1; c++) if(p.has(c)) return false;
+      return true;
+    };
+
+    /* L'univers aux flèches, comme dans Ajouter. L'appareil garde son adresse
+       si elle est libre dans l'autre univers, sinon il se pose après le
+       dernier ; sans place, il ne bouge pas. */
+    const zu = d.querySelector(".aj-us");
+    const nbU = appareils().filter(y => y.u === x.u).length;
+    zu.innerHTML = `<button type="button" class="fl" aria-label="Univers précédent"${x.u <= 1 ? " disabled" : ""}>◀</button>
+      <span class="v"><b>U${x.u}</b><small>${pl(nbU, "appareil")}</small></span>
+      <button type="button" class="fl" aria-label="Univers suivant">▶</button>`;
+    const [ug, ud] = zu.querySelectorAll(".fl");
+    const allerU = u => {
+      const a = tient(u, x.adr) ? x.adr : libreDans(u, x.ch, autres());
+      if(a == null){ alert(`Plus de place en U${u} pour cet appareil : il reste où il est.`); return; }
       placer(u, a);
     };
-    d.querySelector(".aa").onchange = e => {
-      const adr = +e.target.value.replace(/\D/g, "") || 1;
-      const a = adresseEnUnivers(x.u, adr, x.ch, appareils().filter(y => y.n !== x.n));
-      if(a == null){ peindre(); return; }
-      placer(x.u, a);
-    };
+    ug.onclick = () => allerU(Math.max(1, x.u - 1));
+    ud.onclick = () => allerU(Math.min(63999, x.u + 1));
+
+    /* « Modifier l'adresse DMX » ouvre la carte de l'univers : toucher une case
+       y pose l'appareil. S'il devait recouvrir un autre appareil ou un
+       gradateur, une alerte le dit et rien ne bouge — l'autre reste patché. */
+    d.querySelector(".fa-mod").onclick = () => { CIBLE.adr = !CIBLE.adr; majVoletFiche(); };
+    if(CIBLE.adr){
+      const g = el("div", "cu-grille");
+      g.setAttribute("aria-label", "Adresses de l'univers " + x.u);
+      const p = prisDans(x.u, autres());
+      let alt = 0, der = null;
+      for(let c = 1; c <= 512; c++){
+        const q = p.get(c), moi = c >= x.adr && c <= x.fin;
+        if(q && q.x && q.x !== der){ der = q.x; alt ^= 1; }
+        const i = el("i", moi ? (q ? "k" : "n") : !q ? null : q.g ? "g" : "a" + (alt ? "" : " b"), String(c));
+        i.onclick = () => {
+          if(c === x.adr) return;
+          if(!tient(x.u, c)){
+            const fin = Math.min(512, c + x.ch - 1);
+            const qui = [...new Set([...p.entries()].filter(([k]) => k >= c && k <= fin)
+              .map(([, v]) => v.g ? "le gradateur " + v.g : courtNom(v.x.app) + " n° " + v.x.n))];
+            alert(c + x.ch - 1 > 512
+              ? `À partir de U${x.u}·${c}, les ${x.ch} canaux dépassent 512 : l'appareil reste en U${x.u}·${x.adr}.`
+              : `U${x.u}·${c} → ${fin} chevauche ${qui.join(", ")} : l'appareil reste en U${x.u}·${x.adr}.`);
+            return;
+          }
+          placer(x.u, c);
+        };
+        g.append(i);
+      }
+      d.querySelector(".fa-carte").append(g,
+        el("div", "info", "Toucher une case pour y poser le début de l'appareil."));
+    }
 
     /* Le type et le mode se changent ici, appareil par appareil : la ligne se
        scinde toute seule pour que les autres exemplaires restent ce qu'ils
-       sont. */
-    d.querySelector(".sa").onchange = e => {
-      const app = e.target.value, m = BIB[app] || [];
-      changerAppareil(x, { app, mode:m.length ? m[0].nom : "", ch:m.length ? m[0].ch : x.ch });
-      peindre();
-    };
+       sont. Le type se choisit dans les tuiles du parc, comme dans Ajouter. */
+    d.querySelector(".chg").onclick = () => { CIBLE.type = !CIBLE.type; majVoletFiche(); };
+    if(CIBLE.type){
+      const tu = el("div", "aj-tuiles");
+      PROJECTEURS.forEach(p => {
+        const k = cleApp(p), m = BIB[k] || [];
+        const o = el("button", null, `<b>${esc(p.nom)}</b><small>${esc(p.marque)}${
+          m.length ? " · " + pl(m.length, "mode") : ""}</small>`);
+        o.type = "button";
+        if(k === x.app) o.style.borderColor = "var(--tel)";
+        o.onclick = () => {
+          changerAppareil(x, { app:k, mode:m.length ? m[0].nom : "", ch:m.length ? m[0].ch : x.ch });
+          peindre();
+        };
+        tu.append(o);
+      });
+      d.querySelector(".fa-tuiles").append(tu);
+    }
+    if(modes.length) modes.forEach(m => {
+      const o = el("button", null, `${esc(m.nom)}<em>${m.ch}</em>`);
+      o.type = "button";
+      o.setAttribute("aria-pressed", m.nom === x.mode ? "true" : "false");
+      o.onclick = () => {
+        if(m.nom === x.mode) return;
+        changerAppareil(x, { app:x.app, mode:m.nom, ch:m.ch });
+        peindre();
+      };
+      d.querySelector(".fa-modes").append(o);
+    });
     const sm = d.querySelector(".sm");
-    if(modes.length) sm.onchange = e => {
-      const m = modes.find(y => y.nom === e.target.value);
-      changerAppareil(x, { app:x.app, mode:e.target.value, ch:m ? m.ch : x.ch });
-      peindre();
-    };
-    else sm.onchange = e => {
+    if(sm) sm.onchange = e => {
       changerAppareil(x, { app:x.app, mode:x.mode,
                            ch:+e.target.value.replace(/\D/g, "") || 1 });
       peindre();
