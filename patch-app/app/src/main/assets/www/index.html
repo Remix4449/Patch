@@ -942,6 +942,9 @@
        border-radius:14px;cursor:pointer;color:var(--ink2);display:grid;place-items:center}
   .rowed .ed:active{transform:scale(.97)}
   .rowed .ed .ic{width:18px;height:18px}
+  .rowed .ici{font-size:19px;filter:grayscale(1);opacity:.35}
+  .rowed .ici.on{filter:none;opacity:1;border-color:var(--proj)}
+  .appli.txt{font-weight:800;font-size:12px;letter-spacing:.04em}
   .ajout{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
        border:1.5px dashed var(--line);background:none;border-radius:14px;padding:13px;
        margin-top:12px;color:var(--ink2);font:700 13.5px/1 var(--body);cursor:pointer}
@@ -1712,7 +1715,11 @@ function vParc(){
   bs.setAttribute("aria-expanded", String(ouvert));
   bs.title = "Ma salle";
   bs.onclick = () => { toucher(); S.salle = !ouvert; SALLE_MSG = ""; render(); };
-  b.append(bs);
+  const pdf = el("button", "appli txt", "PDF");
+  pdf.setAttribute("aria-label", "Imprimer hauteurs, projecteurs de la salle et machinerie");
+  pdf.title = "Hauteurs, projecteurs 🏠 et machinerie";
+  pdf.onclick = () => { toucher(); exporterSalle(); };
+  b.append(pdf, bs);
   d.append(b);
   if(ouvert) d.append(carteSalle());
   d.append(grille(CATS, false, "var(--proj)"));
@@ -1875,11 +1882,32 @@ function vProj(){
   const liste = filtrer("proj", x => !S.marque || x.marque === S.marque);
   if(liste.length){
     const l = el("div", "rowlist");
-    liste.forEach(({ x, i }) => l.append(avecCrayon(rowProj(x), "proj", i)));
+    liste.forEach(({ x, i }) => {
+      const r = avecCrayon(rowProj(x), "proj", i);
+      r.insertBefore(boutonIci(x), r.lastChild);
+      l.append(r);
+    });
     d.append(l);
   } else d.append(el("p", "vide", "Aucun projecteur ne correspond."));
   d.append(boutonAjout("proj", "Ajouter un projecteur"));
   return d;
+}
+
+/* 🏠 : le projecteur est à demeure dans la salle (celle de « Ma salle »),
+   pas du matériel de passage. L'export PDF du Parc ne liste que ceux-là. */
+const nomSalle = () => SALLE.nom || "la salle";
+function boutonIci(p){
+  const b = el("button", "ed ici" + (p.ici ? " on" : ""), "🏠");
+  const dire = () => (p.ici ? "Retirer de " : "Marquer à ") + nomSalle();
+  b.setAttribute("aria-label", dire());
+  b.setAttribute("aria-pressed", String(!!p.ici));
+  b.title = dire();
+  b.onclick = () => {
+    toucher();
+    if(p.ici) delete p.ici; else p.ici = true;
+    sauverInv(); render();
+  };
+  return b;
 }
 
 function vFiche(p){
@@ -5679,7 +5707,75 @@ liste.` : ""}${univers.length > 1 ? " Un circuit présent sur plusieurs univers 
     + " poids renseigné à l'inventaire." : ""}</footer>
 </body></html>`;
 
-  if(NET.imprimer(html, "feuille")) return;
+  imprimerHtml(html, "feuille");
+}
+/* Feuille de la salle : les hauteurs, les projecteurs marqués 🏠 et la
+   machinerie, ce qu'on envoie à une compagnie qui prépare son accueil. */
+function exporterSalle(){
+  const maint = new Date();
+  const date = maint.toLocaleDateString("fr-FR",
+    { day:"2-digit", month:"long", year:"numeric" }) + " à "
+    + maint.toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" });
+  const titre = SALLE.nom || "Ma salle";
+  const t = (cols, tete, rangs) => rangs.length ? `<table><colgroup>${cols.map(w =>
+    `<col style="width:${w}">`).join("")}</colgroup><thead><tr>${tete.map(x =>
+    `<th${x.startsWith("#") ? ' class="n"' : ""}>${esc(x.replace(/^#/, ""))}</th>`).join("")}</tr></thead>
+    <tbody>${rangs.join("")}</tbody></table>` : "";
+  const td = (v, n) => `<td${n ? ' class="n"' : ""}>${v == null || v === "" ? "—" : esc(v)}</td>`;
+
+  const haut = [...HAUTEURS].sort((a, b) => Number(b.h) - Number(a.h));
+  const proj = PROJECTEURS.filter(p => p.ici)
+    .sort((a, b) => (a.fam + a.marque + a.nom).localeCompare(b.fam + b.marque + b.nom, "fr"));
+  const nbProj = proj.reduce((s, p) => s + (Number(p.nb) || 0), 0);
+  const types = [...new Set(MACHINERIE.map(m => m.type))];
+
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<title>${esc(titre)}</title><style>
+  @page { size:A4; margin:14mm 12mm; }
+  *{box-sizing:border-box}
+  body{font:10pt/1.35 -apple-system,"Helvetica Neue",Arial,sans-serif;color:#111;margin:0}
+  header{display:flex;justify-content:space-between;align-items:flex-end;
+         border-bottom:2px solid #111;padding-bottom:6pt;margin-bottom:6pt}
+  h1{font-size:18pt;margin:0;letter-spacing:-.3pt}
+  .meta{font-size:9pt;color:#555;text-align:right;line-height:1.5}
+  h2{font-size:12pt;margin:14pt 0 4pt;display:flex;gap:8pt;align-items:baseline;break-after:avoid}
+  h2 span{font-size:8.5pt;font-weight:400;color:#666}
+  h3{font-size:9pt;text-transform:uppercase;letter-spacing:.06em;color:#444;margin:8pt 0 2pt;break-after:avoid}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  th{font-size:7pt;letter-spacing:.08em;text-transform:uppercase;color:#666;text-align:left;
+     border-bottom:1pt solid #111;padding:2pt 6pt}
+  td{padding:2.6pt 6pt;border-bottom:.5pt solid #ddd;vertical-align:top}
+  tr{break-inside:avoid}
+  .n{text-align:right;font-variant-numeric:tabular-nums}
+  td:first-child{font-weight:600}
+  .vide{color:#777;font-size:9pt}
+</style></head><body>
+<header><h1>${esc(titre)}</h1>
+  <div class="meta">Exporté le ${date}<br>Patch — inventaire régie</div></header>
+
+<h2>Hauteurs <span>${pl(haut.length, "niveau", "niveaux")}, depuis le plancher de scène</span></h2>
+${t(["30%", "20%", "16%", "12%", "10%", "12%"], ["Niveau", "Type", "Position", "#Hauteur", "#Charge", "Note"],
+  haut.map(x => `<tr>${td(x.nom)}${td(x.type)}${td(x.pos)}${td(metres(x.h) + " m", 1)}${
+    td(x.charge ? x.charge + " kg" : "", 1)}${td(x.note)}</tr>`))
+  || '<p class="vide">Aucune hauteur saisie.</p>'}
+
+<h2>Projecteurs <span>${proj.length ? pl(proj.length, "référence") + (nbProj ? " · " + pl(nbProj, "appareil") : "")
+  : ""}</span></h2>
+${t(["30%", "20%", "22%", "10%", "10%", "8%"], ["Projecteur", "Marque", "Famille", "#Puissance", "#Poids", "#Nb"],
+  proj.map(p => `<tr>${td(p.nom)}${td(p.marque)}${td(p.fam)}${td(p.w, 1)}${td(p.kg, 1)}${td(p.nb, 1)}</tr>`))
+  || `<p class="vide">Aucun projecteur marqué 🏠 dans le Parc.</p>`}
+
+<h2>Machinerie <span>${pl(MACHINERIE.length, "référence")}</span></h2>
+${types.map(ty => `<h3>${esc(ty)}</h3>${t(["32%", "8%", "12%", "12%", "12%", "12%", "12%"],
+  ["Matériel", "#Nb", "#Longueur", "#Hauteur", "#Charge", "Vitesse", "Treillis"],
+  MACHINERIE.filter(m => m.type === ty).map(m => `<tr>${td(m.nom)}${td(m.nb, 1)}${td(m.l, 1)}${td(m.h, 1)}${
+    td(m.charge, 1)}${td(m.vit)}${td(m.trust)}</tr>`))}`).join("")
+  || '<p class="vide">Aucune machinerie saisie.</p>'}
+</body></html>`;
+  imprimerHtml(html, "salle");
+}
+function imprimerHtml(html, nom){
+  if(NET.imprimer(html, nom)) return;
   /* Repli navigateur : impression par cadre masqué. */
   const cadre = document.createElement("iframe");
   cadre.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
