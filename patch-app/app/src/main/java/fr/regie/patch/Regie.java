@@ -374,7 +374,10 @@ public class Regie {
 
     /** Cherche un broker RDMnet ; à défaut, le téléphone en sert un. */
     @JavascriptInterface
-    public void rdmnetDemarrer() { rdmnet.demarrerAuto(reseau.ip); }
+    public void rdmnetDemarrer() {
+        rdmnet.reseauLocal(reseau.ip, reseau.prefixe);
+        rdmnet.demarrerAuto(reseau.ip);
+    }
 
     /** Broker donné à la main : « 192.168.1.20 » ou « 192.168.1.20:8888 ». */
     @JavascriptInterface
@@ -387,6 +390,7 @@ public class Regie {
             try { port = Integer.parseInt(a.substring(d + 1)); } catch (NumberFormatException ignore) { }
             a = a.substring(0, d);
         }
+        rdmnet.reseauLocal(reseau.ip, reseau.prefixe);
         rdmnet.connecter(a, port, "manuel");
     }
 
