@@ -40,6 +40,7 @@ public class Gdtf {
     private static final class Canal {
         int[] decal;                    // octet fort d'abord
         String coupure, geo, attr, defCanal, hl, fnInit, defInit, defNom, defPremier;
+        String ouvert;                  // « Open » d'un shutter, quand le fichier le nomme
     }
 
     private static final class Mode {
@@ -80,6 +81,7 @@ public class Gdtf {
         Mode mode = null;
         Canal canal = null;
         String logique = null;          // attribut du canal logique en cours
+        String fnAttr = "";             // attribut de la fonction en cours
         int nFn = 0;
 
         int ev = p.getEventType();
@@ -133,16 +135,22 @@ public class Gdtf {
                     nFn = 0;
                 } else if ("ChannelFunction".equals(t) && canal != null) {
                     nFn++;
+                    fnAttr = val(attr(p, "Attribute"), "");
                     String d = val(attr(p, "Default"), val(attr(p, "DMXFrom"), "0/1"));
                     // Sans nom, une fonction s'appelle « attribut numéro » (« Dimmer 1 »).
                     String n = val(attr(p, "Name"), val(attr(p, "Attribute"), "") + " " + nFn);
                     if (canal.defPremier == null) canal.defPremier = d;
+                    if (canal.ouvert == null && ouvre(fnAttr, n)) canal.ouvert = val(attr(p, "DMXFrom"), "0/1");
                     // InitialFunction vise « canal.canal logique.fonction ».
                     String ini = canal.fnInit;
                     if (ini != null) {
                         if (canal.defInit == null && ini.endsWith("." + logique + "." + n)) canal.defInit = d;
                         if (canal.defNom == null && ini.substring(ini.lastIndexOf('.') + 1).equals(n)) canal.defNom = d;
                     }
+                } else if ("ChannelSet".equals(t) && canal != null) {
+                    // Shutter « Closed » 0, « Open » 32 : le nom dit où il s'ouvre.
+                    if (canal.ouvert == null && ouvre(fnAttr, attr(p, "Name")) && attr(p, "DMXFrom") != null)
+                        canal.ouvert = attr(p, "DMXFrom");
                 }
             } else if (ev == XmlPullParser.END_TAG) {
                 String t = p.getName();
@@ -184,7 +192,10 @@ public class Gdtf {
                 if (hl != null) v = hl;
                 else if (intensite || couleur) v = max;
                 else {
-                    Long d = valeur(c.defCanal != null ? c.defCanal : c.defInit != null ? c.defInit
+                    // Un shutter se met ouvert : certains fichiers le laissent fermé au repos.
+                    boolean shutter = c.attr != null && c.attr.matches("Shutter\\d*");
+                    Long d = valeur(shutter && c.ouvert != null ? c.ouvert
+                            : c.defCanal != null ? c.defCanal : c.defInit != null ? c.defInit
                             : c.defNom != null ? c.defNom : c.defPremier, n);
                     v = d != null ? d : 0;
                 }
@@ -291,6 +302,13 @@ public class Gdtf {
 
     private static String attr(XmlPullParser p, String nom) {
         return p.getAttributeValue(null, nom);
+    }
+
+    /** Une fonction ou un réglage « Open » d'un attribut Shutter1, Shutter2… */
+    private static boolean ouvre(String attribut, String nom) {
+        if (attribut == null || !attribut.matches("Shutter\\d*") || nom == null) return false;
+        String n = nom.trim().toLowerCase(java.util.Locale.ROOT);
+        return n.equals("open") || n.startsWith("open ") || n.equals("shutter open");
     }
 
     private static String val(String a, String b) {
