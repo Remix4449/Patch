@@ -39,7 +39,7 @@ public class Mdns {
     private final Map<String, List<String>> ptr = new ConcurrentHashMap<String, List<String>>();
     private final Map<String, Object[]> srv = new ConcurrentHashMap<String, Object[]>();   // { port, cible }
     private final Map<String, Map<String, String>> txt = new ConcurrentHashMap<String, Map<String, String>>();
-    private final Map<String, String> adresses = new ConcurrentHashMap<String, String>();
+    private final Map<String, List<String>> adresses = new ConcurrentHashMap<String, List<String>>();
     private final Map<String, String> sources = new ConcurrentHashMap<String, String>();   // instance → IP d'où vient l'annonce
 
     private MulticastSocket sock;
@@ -99,8 +99,12 @@ public class Mdns {
 
     /* ------------------------------ recherche ---------------------------- */
 
-    /** Pose la question trois fois et rend les brokers de la portée « default », sauf nous. */
-    public List<Trouve> chercher(long dureeMs) throws Exception {
+    /**
+     * Pose la question trois fois et rend les brokers de la portée « default »,
+     * sauf nous. Un broker sur une machine à deux cartes réseau annonce deux
+     * adresses : on prend celle du sous-réseau du téléphone.
+     */
+    public List<Trouve> chercher(long dureeMs, String ipLocale, int prefixe) throws Exception {
         byte[] q = question(SOUS_TYPE, PTR);
         long pas = Math.max(300, dureeMs / 3);
         for (int i = 0; i < 3; i++) {
@@ -119,8 +123,11 @@ public class Mdns {
             Trouve t = new Trouve();
             t.instance = n.replace("." + SERVICE, "");
             t.port = (Integer) s[0];
-            String a = adresses.get(((String) s[1]).toLowerCase());
-            t.ip = a != null ? a : sources.getOrDefault(n.toLowerCase(), "");
+            List<String> a = adresses.get(((String) s[1]).toLowerCase());
+            t.ip = "";
+            if (a != null) for (String x : a)
+                if (t.ip.isEmpty() || Rdmnet.memeReseau(x, ipLocale, prefixe)) t.ip = x;
+            if (t.ip.isEmpty()) t.ip = sources.getOrDefault(n.toLowerCase(), "");
             Map<String, String> m = txt.get(n.toLowerCase());
             if (m != null) {
                 if (m.containsKey("E133Scope")) t.portee = m.get("E133Scope");
@@ -176,7 +183,10 @@ public class Mdns {
                 }
                 txt.put(cle, m);
             } else if (type == A && lg == 4) {
-                adresses.put(cle, (b[d] & 255) + "." + (b[d + 1] & 255) + "." + (b[d + 2] & 255) + "." + (b[d + 3] & 255));
+                String ip = (b[d] & 255) + "." + (b[d + 1] & 255) + "." + (b[d + 2] & 255) + "." + (b[d + 3] & 255);
+                List<String> l = adresses.get(cle);
+                if (l == null) { l = new java.util.concurrent.CopyOnWriteArrayList<String>(); adresses.put(cle, l); }
+                if (!l.contains(ip)) l.add(ip);
             }
         }
     }

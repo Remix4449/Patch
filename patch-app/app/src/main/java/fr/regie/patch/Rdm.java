@@ -130,9 +130,24 @@ public class Rdm {
      * lui demande d'abord de refaire la découverte sur ses lignes (ArtTodControl,
      * AtcFlush) : plus long, mais nécessaire après avoir rebranché des projecteurs.
      */
-    public void decouvrir(boolean relancer) {
+    public void decouvrir(final boolean relancer) {
         decouverte = System.currentTimeMillis();
         art.interroger();                               // rafraîchit la liste des nœuds
+        if (art.noeuds.isEmpty()) {
+            // Les nœuds répondent à l'ArtPoll dans la seconde. Sans leur fiche on
+            // ne demandait que l'univers 0 : un projecteur en U2 n'apparaissait
+            // qu'au deuxième appui sur « Chercher ».
+            message = "Recherche des nœuds Art-Net…";
+            new Thread(new Runnable() {
+                public void run() {
+                    try { Thread.sleep(1500); } catch (InterruptedException e) { return; }
+                    demanderListes(relancer);
+                }
+            }, "rdm-decouverte").start();
+        } else demanderListes(relancer);
+    }
+
+    private void demanderListes(boolean relancer) {
         Map<Integer, List<Integer>> parNet = new TreeMap<Integer, List<Integer>>();
         Map<String, List<Integer>> parNoeud = new TreeMap<String, List<Integer>>();
         for (ArtNet.Noeud n : art.noeuds.values()) {
@@ -509,19 +524,27 @@ public class Rdm {
         return r;
     }
 
+    /** Motifs de refus (NACK) : E1.20 table A-17, puis E1.37-2, E1.37-7 et E1.33. */
     static String nack(int raison, int pid) {
         switch (raison) {
-            case 0x0000: return "refusé par l'appareil";
-            case 0x0001: return "paramètre non pris en charge";
-            case 0x0002: return "message mal formé";
-            case 0x0003: return "données mal formées";
-            case 0x0004: return "file de l'appareil pleine";
-            case 0x0005: return "données trop longues";
+            case 0x0000: return "paramètre non pris en charge";
+            case 0x0001: return "demande mal formée";
+            case 0x0002: return "panne de l'appareil";
+            case 0x0003: return "refusé par le relais RDM";
+            case 0x0004: return "écriture protégée";
+            case 0x0005: return "réglage non permis (lecture seule)";
             case 0x0006: return "valeur hors limites";
-            case 0x0007: return "appareil occupé";
-            case 0x0008: return "écriture protégée";
+            case 0x0007: return "appareil occupé, file pleine";
+            case 0x0008: return "message trop long pour l'appareil";
             case 0x0009: return "sous-appareil hors limites";
-            default: return "refusé (" + String.format("%04X", pid) + ")";
+            case 0x000A: return "relais RDM occupé, file pleine";
+            case 0x000B: return "action non prise en charge";
+            case 0x000C: return "port inconnu de la passerelle";
+            case 0x000D: return "port dans un mode qui ne le permet pas";
+            case 0x000E: return "UID inconnu";
+            case 0x000F: return "portée RDMnet inconnue";
+            default: return "refusé, motif " + String.format("%04X", raison)
+                    + " (paramètre " + String.format("%04X", pid) + ")";
         }
     }
 

@@ -1998,7 +1998,7 @@ function carteModes(p){
         if(!r.modes || !r.modes.length){ imp.textContent = "Aucun mode trouvé dans ce fichier"; return; }
         /* Les modes saisis à la main restent, sauf ceux que le fichier redonne
            sous le même nom ; les modes de démonstration partent. */
-        const neufs = r.modes.map(m => ({ nom:m.nom, ch:m.ch, ...(m.dim ? { dim:m.dim, def:m.def || {}, plein:m.plein || [] } : {}) }));
+        const neufs = r.modes.map(m => ({ nom:m.nom, ch:m.ch, ...(m.dim || m.plein ? { dim:m.dim || [], def:m.def || {}, plein:m.plein || [] } : {}) }));
         const gardes = (BIB[k] || []).filter(m => !m.demo && !neufs.some(n => n.nom === m.nom));
         BIB[k] = [...neufs, ...gardes];
         sauverBib(); render();
@@ -3078,11 +3078,15 @@ let HL = null;       // appareil en évidence : { n, u, adr, fin, ch, nom, prof 
 /* Un mode saisi à la main (« Mode 2 ») avant l'import ne porte pas le nom du
    mode GDTF (« Mode 2 - Basic ») : on cherche alors un mode GDTF de même
    empreinte, et, s'il y en a plusieurs, celui dont le nom commence pareil. */
+/* Un PAR LED en RGB n'a pas de Dimmer : ses couleurs (plein) l'allument, et
+   « Circ » les prend pour son intensité. */
+const aProfil = y => !!(y && ((y.dim && y.dim.length) || (y.plein && y.plein.length)));
+const intensite = pr => (pr.dim && pr.dim.length ? pr.dim : pr.plein || []);
 const profilApp = x => {
   const l = BIB[x.app] || [];
   const m = l.find(y => y.nom === x.mode);
-  if(m && m.dim && m.dim.length) return m;
-  const ok = l.filter(y => y.dim && y.dim.length && y.ch === x.ch);
+  if(aProfil(m)) return m;
+  const ok = l.filter(y => aProfil(y) && y.ch === x.ch);
   if(ok.length === 1) return ok[0];
   const nom = String(x.mode || "").trim().toLowerCase();
   return (nom && ok.find(y => y.nom.trim().toLowerCase().startsWith(nom))) || null;
@@ -3145,8 +3149,8 @@ function trames(){
     const trame = poser512(HL.u);
     if(HL.prof && !P.reg.hlTout){
       const pr = HL.prof, def = pr.def || {};
+      [...(pr.dim || []), ...(pr.plein || [])].forEach(o => { const c = HL.adr + o - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = 255; });
       Object.keys(def).forEach(o => { const c = HL.adr + (+o) - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = def[o] | 0; });
-      [...pr.dim, ...(pr.plein || [])].forEach(o => { const c = HL.adr + o - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = 255; });
     } else {
       const fin = P.reg.hlTout ? HL.fin : HL.adr;
       for(let c = HL.adr; c <= fin && c <= 512; c++) trame[c - 1] = 255;
@@ -3161,6 +3165,24 @@ function trames(){
     const trame = poser512(u);
     const v = DMX[k] | 0;
     if(canal >= 1 && canal <= 512 && v > trame[canal - 1]) trame[canal - 1] = v;
+  });
+  /* Un appareil GDTF dont le Pupitre monte l'intensité sort aussi ses valeurs
+     de repos, comme sur un pupitre : shutter ouvert, couleurs à fond, pan au
+     centre. « Circ 12 At Full » laissait un Spiider noir : Dimmer à fond,
+     shutter fermé, RGBW à zéro. Une adresse que le Pupitre tient elle-même
+     garde sa valeur. */
+  if(P && !P.reg.hlTout && Object.keys(DMX).some(k => DMX[k] > 0)) appareils().forEach(x => {
+    const pr = profilApp(x);
+    if(!pr) return;
+    const ici = o => { const c = x.adr + (+o) - 1; return c <= x.fin && c <= 512 ? c : 0; };
+    if(!intensite(pr).some(o => ici(o) && DMX[cleAdr(x.u, ici(o))] > 0)) return;
+    const trame = poser512(x.u);
+    const repos = (o, v) => {
+      const c = ici(o);
+      if(c && !(cleAdr(x.u, c) in DMX) && v > trame[c - 1]) trame[c - 1] = v;
+    };
+    if(pr.dim && pr.dim.length) (pr.plein || []).forEach(o => repos(o, 255));
+    Object.keys(pr.def || {}).forEach(o => repos(o, pr.def[o] | 0));
   });
   /* L'univers du gradateur appelé part même à zéro : il faut bien qu'il
      retombe quand on l'éteint. */
@@ -4249,7 +4271,7 @@ function majVoletAttribuer(){
   ecr.append(afficheCircuit(v, "att-cir", ecrire, () => fermerVolet()));
   ecr.insertAdjacentHTML("beforeend",
     `<span class="ad">U${x.u} · ${x.adr} → ${x.fin} · ${esc(x.mode || x.ch + " ch")} · ${
-      profilApp(x) ? "intensité ch " + profilApp(x).dim.join(", ") : "sans GDTF : canal 1"}</span>`);
+      profilApp(x) ? "intensité ch " + intensite(profilApp(x)).join(", ") : "sans GDTF : canal 1"}</span>`);
   d.append(ecr);
   d.append(padCircuit({
     valeur:v, ecrire, ok:() => fermerVolet(),
@@ -4307,7 +4329,7 @@ function adressesCircuit(de, a){
   appareils().forEach(x => {
     if(!dans(circuitApp(x.n))) return;
     const pr = P.reg.hlTout ? null : profilApp(x);
-    if(pr) pr.dim.forEach(o => { const c = x.adr + o - 1; if(c <= x.fin && c <= 512) poser(x.u, c); });
+    if(pr) intensite(pr).forEach(o => { const c = x.adr + o - 1; if(c <= x.fin && c <= 512) poser(x.u, c); });
     else {
       const fin = P.reg.hlTout ? x.fin : x.adr;
       for(let c = x.adr; c <= fin && c <= 512; c++) poser(x.u, c);

@@ -181,6 +181,10 @@ feuille. `Circ 12 At Full` allume les gradateurs relevés sur le circuit 12
 *et* les appareils qui y sont branchés — pour ceux-là, leur canal
 d'intensité, le premier, ou toute leur empreinte si leur fiche demande « tous
 les canaux » ; c'est la règle de la mise en évidence, appliquée à l'appel.
+Un appareil importé d'un GDTF prend son Dimmer (ou ses couleurs s'il n'en a
+pas), et tant que son intensité est montée, ses autres canaux sortent leur
+valeur de repos : shutter ouvert, couleurs à fond, pan au centre. Une adresse
+que la télécommande tient elle-même garde sa valeur.
 `Circ 1 Thru 12` prend une tranche de circuits. Une ligne dit ce qu'elle a
 trouvé — « 2 gradateurs · 1 appareil », ou « rien de relevé sur ce circuit »,
 qui vaut mieux qu'un écran qui ne bouge pas. Un circuit écrit autrement qu'en
@@ -283,7 +287,14 @@ remplir :
 - **par import GDTF** : le bouton ouvre le sélecteur de fichiers, l'application
   décompresse l'archive, lit `description.xml` et récupère tous les modes avec
   leur empreinte exacte — l'empreinte d'un mode étant le plus grand décalage
-  déclaré par ses canaux, comme le veut le format.
+  déclaré par ses canaux, comme le veut le format. Les pixels décrits une
+  seule fois sur une géométrie modèle (`GeometryReference`) sont dépliés, un
+  par référence, décalés de leur `Break` ; seule la première liaison DMX
+  (`DMXBreak` 1) compte. Pour la mise en évidence, l'import garde aussi, par
+  mode, les canaux `Dimmer`, les couleurs additives (`ColorAdd_*`,
+  `ColorRGB_*`) et la valeur de repos des autres canaux ; la valeur
+  `Highlight` du fichier passe avant quand il en donne une. Les valeurs
+  suivent la règle GDTF : `255/1` sur 16 bits vaut 65535, `255/1s` 65280.
 
 Les fichiers GDTF se téléchargent sur gdtf-share.com (compte gratuit, connexion
 requise). Une fois importés, ils restent dans l'application : le plateau n'a

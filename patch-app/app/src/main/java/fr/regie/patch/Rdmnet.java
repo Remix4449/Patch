@@ -70,6 +70,8 @@ public class Rdmnet implements Rdm.Transport {
     private OutputStream sortie;
     private volatile String hote = "";
     private volatile int port;
+    private volatile String ipLocale = "";
+    private volatile int prefixe = 24;
     private Thread boucle;
 
     public Rdmnet(Rdm r) {
@@ -80,6 +82,9 @@ public class Rdmnet implements Rdm.Transport {
     }
 
     /* ------------------------------ pilote ------------------------------ */
+
+    /** L'adresse du téléphone : pour choisir l'adresse du broker et expliquer un échec. */
+    public void reseauLocal(String ip, int p) { ipLocale = ip == null ? "" : ip; prefixe = p; }
 
     public Broker interne;
     private Mdns mdns;
@@ -103,7 +108,7 @@ public class Rdmnet implements Rdm.Transport {
                     List<Mdns.Trouve> l = new ArrayList<Mdns.Trouve>();
                     try {
                         if (mdns == null) { mdns = new Mdns(); mdns.demarrer(ipLocale); }
-                        l = mdns.chercher(3000);
+                        l = mdns.chercher(3000, ipLocale, prefixe);
                     } catch (Exception e) { message = "mDNS indisponible"; }
                     if (!l.isEmpty()) connecter(l.get(0).ip, l.get(0).port, "externe");
                     else servir(ipLocale);
@@ -200,18 +205,58 @@ public class Rdmnet implements Rdm.Transport {
 
     private String pourquoi(Exception e, boolean ouvert) {
         if (!ouvert) {
+            // Android range sous ConnectException aussi bien un refus qu'un VPN
+            // qui bloque ou un réseau sans route : on lit le code d'erreur.
+            String m = e.getMessage() == null ? "" : e.getMessage();
+            String bas = m.toLowerCase();
+            String ici = autreReseau();
             if (e instanceof java.net.SocketTimeoutException)
-                return "Broker muet (" + broker + ") : pas de réponse en 4 s, pare-feu ou autre sous-réseau ?";
+                return "Broker muet (" + broker + ") : pas de réponse en 4 s, pare-feu du broker ?" + ici;
+            if (m.contains("EPERM") || m.contains("EACCES") || bas.contains("not permitted"))
+                return "Broker injoignable (" + broker + ") : le téléphone bloque l'accès, VPN actif ?";
+            if (e instanceof java.net.NoRouteToHostException || bas.contains("unreachable"))
+                return "Broker injoignable (" + broker + ") : aucune route vers lui" + ici;
             if (e instanceof java.net.ConnectException)
-                return "Broker injoignable (" + broker + ") : connexion refusée";
+                return "Broker injoignable (" + broker + ") : connexion refusée, rien n'écoute sur ce port" + ici;
             return "Broker injoignable (" + broker + ") : " + e.getClass().getSimpleName()
-                    + (e.getMessage() == null ? "" : " " + e.getMessage());
+                    + (m.isEmpty() ? "" : " " + m) + ici;
         }
         if (e instanceof java.io.EOFException)
             return connecte ? "Le broker a coupé la connexion (" + broker + ")"
                             : "Le broker a fermé la connexion sans répondre (" + broker + ")";
         return "Échange interrompu avec " + broker + " : "
                 + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+    }
+
+    /** « — le téléphone est en 192.168.1.23/24 » quand le broker n'est pas dans son sous-réseau. */
+    private String autreReseau() {
+        if (ipLocale.isEmpty()) return " — le téléphone n'a pas d'adresse Wi-Fi";
+        if (hote.equals("127.0.0.1") || !hote.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")
+                || memeReseau(hote, ipLocale, prefixe)) return "";
+        return " — le téléphone est en " + ipLocale + "/" + prefixe + ", hors du sous-réseau du broker";
+    }
+
+    /** Deux adresses IPv4 dans le même sous-réseau, pour ce préfixe. */
+    static boolean memeReseau(String a, String b, int prefixe) {
+        long x = ipv4(a), y = ipv4(b);
+        if (x < 0 || y < 0) return false;
+        long masque = prefixe <= 0 ? 0 : (0xFFFFFFFFL << (32 - Math.min(32, prefixe))) & 0xFFFFFFFFL;
+        return (x & masque) == (y & masque);
+    }
+
+    private static long ipv4(String s) {
+        if (s == null) return -1;
+        String[] t = s.trim().split("\\.");
+        if (t.length != 4) return -1;
+        long v = 0;
+        try {
+            for (String x : t) {
+                int o = Integer.parseInt(x);
+                if (o < 0 || o > 255) return -1;
+                v = (v << 8) | o;
+            }
+        } catch (NumberFormatException e) { return -1; }
+        return v;
     }
 
     /** Un message au moins toutes les quinze secondes, sinon le broker nous lâche. */

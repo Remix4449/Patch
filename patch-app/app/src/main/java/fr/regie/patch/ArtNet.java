@@ -76,7 +76,7 @@ public class ArtNet {
             sock.setSoTimeout(1000);
         } catch (Exception e) { actif = false; return; }
 
-        byte[] tampon = new byte[1200];
+        byte[] tampon = new byte[1536];                // un ArtTodData plein fait 1228 octets
         while (actif) {
             try {
                 DatagramPacket p = new DatagramPacket(tampon, tampon.length);
