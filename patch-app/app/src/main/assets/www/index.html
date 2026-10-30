@@ -331,6 +331,8 @@
   .mode{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);
         border-radius:10px;padding:9px 12px}
   .mode b{flex:1;font:700 13.5px/1.2 var(--body)}
+  .mode b small{display:block;margin-top:4px;font:500 12px/1.3 var(--body);color:var(--ink3)}
+  .mode b small.non{color:var(--ko)}
   .mode span{font:500 13px/1 var(--mono);color:var(--dmx)}
   .mode button{border:0;background:none;color:var(--ink3);cursor:pointer;font-size:15px;padding:0 2px}
   .ff{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -1955,7 +1957,12 @@ function carteModes(p){
   if(modes.length){
     modes.forEach((m, i) => {
       const r = el("div", "mode");
-      r.innerHTML = `<b>${esc(m.nom)}</b><span>${m.ch} ch</span>
+      /* Ce que la mise en évidence allumera : une GDTF importée avant le
+         14 octobre 2026 n'a pas gardé ses canaux d'intensité. */
+      const pr = aProfil(m) ? `<small>Mise en évidence : ${m.dim && m.dim.length ? "Dimmer" : "couleurs"} ch ${
+          intensite(m).join(", ")}</small>`
+        : `<small class="non">Sans profil GDTF : seul le canal 1 monte. Importer ou réimporter la GDTF.</small>`;
+      r.innerHTML = `<b>${esc(m.nom)}${m.demo ? "" : pr}</b><span>${m.ch} ch</span>
         ${m.demo ? '<span class="chipdemo">démo</span>' : ""}
         <button aria-label="Retirer le mode ${esc(m.nom)}">✕</button>`;
       r.querySelector("button").onclick = () => {
