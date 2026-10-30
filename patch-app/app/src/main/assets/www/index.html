@@ -331,6 +331,8 @@
   .mode{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);
         border-radius:10px;padding:9px 12px}
   .mode b{flex:1;font:700 13.5px/1.2 var(--body)}
+  .mode b small{display:block;margin-top:4px;font:500 12px/1.3 var(--body);color:var(--ink3)}
+  .mode b small.non{color:var(--ko)}
   .mode span{font:500 13px/1 var(--mono);color:var(--dmx)}
   .mode button{border:0;background:none;color:var(--ink3);cursor:pointer;font-size:15px;padding:0 2px}
   .ff{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -1955,7 +1957,12 @@ function carteModes(p){
   if(modes.length){
     modes.forEach((m, i) => {
       const r = el("div", "mode");
-      r.innerHTML = `<b>${esc(m.nom)}</b><span>${m.ch} ch</span>
+      /* Ce que la mise en évidence allumera : une GDTF importée avant le
+         14 octobre 2026 n'a pas gardé ses canaux d'intensité. */
+      const pr = aProfil(m) ? `<small>Mise en évidence : ${m.dim && m.dim.length ? "Dimmer" : "couleurs"} ch ${
+          intensite(m).join(", ")}</small>`
+        : `<small class="non">Sans profil GDTF : seul le canal 1 monte. Importer ou réimporter la GDTF.</small>`;
+      r.innerHTML = `<b>${esc(m.nom)}${m.demo ? "" : pr}</b><span>${m.ch} ch</span>
         ${m.demo ? '<span class="chipdemo">démo</span>' : ""}
         <button aria-label="Retirer le mode ${esc(m.nom)}">✕</button>`;
       r.querySelector("button").onclick = () => {
@@ -2993,10 +3000,12 @@ const pl = (n, un, plusieurs) => n + " " + (n > 1 ? plusieurs || un + "s" : un);
    après. Sans ça, le circuit 14 du troisième Titan passait au quatrième. */
 function garderCircuits(modifier){
   const avant = new Map(), repAvant = new Map();
+  let kHL = null, nHL = 0;
   appareils().forEach(x => {
     const c = P.fiches[x.n], r = repApp(x.n), k = x.ligne + ":" + x.i;
     if(c != null && c !== "") avant.set(k, c);
     if(r) repAvant.set(k, r);
+    if(HL && HL.n === x.n) kHL = k;
   });
   modifier();
   const suite = {}, reps = {};
@@ -3004,10 +3013,16 @@ function garderCircuits(modifier){
     const k = x.ligne + ":" + x.i, c = avant.get(k), r = repAvant.get(k);
     if(c != null) suite[x.n] = c;
     if(r) reps[x.n] = r;
+    if(k === kHL) nHL = x.n;
   });
   P.fiches = suite;
   P.repA = reps;
-  HL = null;
+  /* La mise en évidence suit son appareil comme son circuit, et peindre()
+     refait sa trame. Remise à vide sans rien émettre, elle restait allumée. */
+  if(HL){
+    if(nHL) HL = { ...HL, n:nHL };
+    else { HL = null; envoyer(); }
+  }
 }
 
 /* Adresse DMX d'un gradateur : celle du premier, décalée d'un rang par
@@ -3092,6 +3107,17 @@ const profilApp = x => {
   return (nom && ok.find(y => y.nom.trim().toLowerCase().startsWith(nom))) || null;
 };
 const hlDe = x => ({ n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x.app), prof:profilApp(x) });
+/* La mise en évidence suit son appareil. Changer son univers, son adresse, son
+   type ou son mode dans sa fiche laissait la trame sur l'ancienne adresse :
+   l'appareil, à sa nouvelle place, restait noir. */
+function suivreHL(liste){
+  if(!HL) return;
+  const x = liste.find(y => y.n === HL.n);
+  const h = x ? hlDe(x) : null;
+  const pareil = h && h.u === HL.u && h.adr === HL.adr && h.fin === HL.fin && h.prof === HL.prof;
+  HL = h;
+  if(!pareil) envoyer();
+}
 /* La télécommande DMX tient des canaux, pas des gradateurs : « univers:canal »
    → niveau de 0 à 255. Un canal relâché reste dans la table à zéro, sinon son
    univers sortirait de la trame et le récepteur garderait la dernière valeur
@@ -3142,10 +3168,11 @@ function trames(){
     if(a) poser512(a.u)[a.canal - 1] = Math.round(pct * 255 / 100);
   });
   if(HL){
-    /* Mettre un appareil en évidence : son premier canal à fond, ce qui suffit
-       à la plupart des projecteurs dont le canal 1 est l'intensité. « Tous les
-       canaux » existe dans sa fiche pour les autres — c'est plus brutal, une
-       lyre y répondra en ouvrant tout ce qu'elle a. */
+    /* Mettre un appareil en évidence : avec la GDTF de son mode, son intensité
+       et ses couleurs à fond, le reste à sa valeur de mise en évidence ou de
+       repos (shutter ouvert). Sans GDTF, son premier canal seul : l'intensité
+       d'un PAR, mais le pan d'une lyre, qui reste noire. « Tous les canaux »
+       (menu du patch) est plus brutal : une lyre ouvre tout ce qu'elle a. */
     const trame = poser512(HL.u);
     if(HL.prof && !P.reg.hlTout){
       const pr = HL.prof, def = pr.def || {};
@@ -3290,6 +3317,7 @@ function vPatch(){
 
 function peindre(){
   const liste = appareils();
+  suivreHL(liste);
   const nG = listesG();
 
   /* En-tête : le nom du spectacle et ce qui vaut pour tout le patch — le
@@ -3456,7 +3484,8 @@ function barreTele(){
   if(HL){
     /* L'appareil en évidence se range dans la même barre que le gradateur
        appelé : c'est le même plateau qui s'allume. */
-    const c = el("button", "hl", `${ic("ampoule")}${esc(HL.nom)} n° ${HL.n} · U${HL.u}·${HL.adr}`);
+    const c = el("button", "hl", `${ic("ampoule")}${esc(HL.nom)} n° ${HL.n} · U${HL.u}·${HL.adr}${
+      HL.prof || P.reg.hlTout ? "" : " · sans GDTF"}`);
     c.setAttribute("aria-label", "Éteindre l'appareil en évidence");
     c.onclick = () => { HL = null; envoyer(); peindre(); };
     d.append(c);
@@ -3850,8 +3879,9 @@ function annulable(message, faire){
   const a = el("button", null, "Annuler");
   a.onclick = () => {
     PATCHS[i] = JSON.parse(copie);
-    if(iPatch === i){ P = PATCHS[i]; NIV = etat.NIV; SEL = etat.SEL; HL = etat.HL;
-      if(Object.keys(NIV).length || HL) envoyer(); }
+    /* Toujours réémettre : une mise en évidence allumée entre-temps restait en
+       sortie quand il n'y avait rien à rallumer. */
+    if(iPatch === i){ P = PATCHS[i]; NIV = etat.NIV; SEL = etat.SEL; HL = etat.HL; envoyer(); }
     b.remove();
     peindre();
   };
@@ -5005,12 +5035,17 @@ function majVoletFiche(){
     fin.onclick = () => fermerVolet();
     r.append(all, fin);
     d.append(r);
+    if(!P.reg.hlTout && !profilApp(x)) d.append(el("p", "muted",
+      "Sans GDTF pour ce mode, la mise en évidence ne monte que le canal 1 : l'intensité "
+      + "d'un PAR, mais le pan d'une lyre. La GDTF s'importe dans Parc › Projecteurs › "
+      + "l'appareil › Modes DMX, puis choisir ici le mode qu'elle donne."));
 
     const sup = el("button", "act sup", "Supprimer cet appareil");
     sup.onclick = () => supprimerAppareil(x);
     d.append(sup);
-    d.append(aideRepliee("Par défaut, la mise en évidence envoie le premier canal "
-      + "à fond : l'intensité, sur la plupart des appareils. Le menu du patch peut "
+    d.append(aideRepliee("Avec la GDTF de son mode, la mise en évidence allume l'appareil : "
+      + "intensité et couleurs à fond, shutter ouvert. Sans GDTF, elle n'envoie que le premier "
+      + "canal à fond. Le menu du patch peut "
       + "l'étendre à tous les canaux. Changer le type ou le mode "
       + "ne touche que cet appareil : les autres exemplaires de sa ligne gardent leur adresse, "
       + "quitte à ce que la nouvelle empreinte les chevauche. Retirer un appareil enlève un "
@@ -5042,6 +5077,9 @@ function supprimerGrada(n){
 function supprimerAppareil(x){
   if(HL && HL.n === x.n){ HL = null; envoyer(); }
   annulable(`${courtNom(x.app)} n° ${x.n} retiré`, () => retirerAppareil(x));
+  /* Les suivants perdent un numéro sans changer d'adresse : la mise en
+     évidence aussi, sinon elle passait à l'appareil d'après. */
+  if(HL && HL.n > x.n) HL = { ...HL, n:HL.n - 1 };
   fermerVolet();
 }
 /* L'appareil retiré laisse un trou : ceux qui le suivent gardent leur adresse

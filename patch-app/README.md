@@ -241,9 +241,12 @@ décaler celui-ci à la première adresse libre.
 L'émission est tenue, pas envoyée une fois : un récepteur sACN relâche un
 univers après quelques secondes sans trame, et un nœud Art-Net fait de même.
 `Emetteur.java` répète donc les univers posés à 30 Hz tant que l'écran est
-ouvert. Quitter l'écran relâche proprement — trois trames à zéro, marquées fin
-de flux en sACN — plutôt que de laisser le plateau allumé sur la dernière
-valeur reçue.
+ouvert. Un univers qui sort de la trame (mise en évidence éteinte, écran
+quitté) est relâché proprement : trois trames ordinaires à zéro, puis en sACN
+trois trames marquées fin de flux. Les zéros partent d'abord, parce qu'un
+récepteur ignore les niveaux d'une trame de fin (E1.31, 6.2.6) et garde souvent
+la dernière image reçue : le projecteur restait allumé. La mise en évidence
+suit son appareil quand sa fiche change son univers, son adresse ou son mode.
 
 ## Un patch par spectacle
 
@@ -293,8 +296,11 @@ remplir :
   (`DMXBreak` 1) compte. Pour la mise en évidence, l'import garde aussi, par
   mode, les canaux `Dimmer`, les couleurs additives (`ColorAdd_*`,
   `ColorRGB_*`) et la valeur de repos des autres canaux ; la valeur
-  `Highlight` du fichier passe avant quand il en donne une. Les valeurs
-  suivent la règle GDTF : `255/1` sur 16 bits vaut 65535, `255/1s` 65280.
+  `Highlight` du fichier passe avant quand il en donne une. Un shutter
+  (`Shutter1`, `Shutter2`…) prend sa valeur « Open » quand le fichier la nomme,
+  certains le laissant fermé au repos. Les valeurs suivent la règle GDTF :
+  `255/1` sur 16 bits vaut 65535, `255/1s` 65280. Sans GDTF, la mise en
+  évidence ne monte que le canal 1, que la fiche et la puce signalent.
 
 Les fichiers GDTF se téléchargent sur gdtf-share.com (compte gratuit, connexion
 requise). Une fois importés, ils restent dans l'application : le plateau n'a
@@ -315,8 +321,8 @@ l'univers de découverte 64214, que les sources annoncent toutes les dix seconde
 Priorité et nom de source sont lus dans la couche de trame. À l'émission,
 l'application compose la trame de données complète — 638 octets, couche racine,
 couche de trame et couche DMP — avec un CID tiré au sort au lancement, une
-numérotation de séquence par univers, et le bit de fin de flux quand elle
-relâche un univers. Le retour de boucle multicast est coupé : nos propres
+numérotation de séquence par univers, et, quand elle relâche un univers, des
+trames à zéro puis le bit de fin de flux. Le retour de boucle multicast est coupé : nos propres
 trames ne viennent pas se recenser comme une source de plus.
 
 **NDI**. La découverte mDNS suffit à lister les sources et n'a besoin d'aucune

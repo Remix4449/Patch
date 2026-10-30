@@ -1,6 +1,8 @@
 package fr.regie.patch;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,7 +48,7 @@ public class Emetteur {
         prio = Math.max(0, Math.min(200, priorite <= 0 ? 100 : priorite));
         cible = c;
         if (actif && (!p.equals(avantProto) || !c.equals(avantCible)))
-            for (Integer u : trames.keySet()) relacher(u, avantProto, avantCible);
+            relacher(new ArrayList<Integer>(trames.keySet()), avantProto, avantCible);
     }
 
     public synchronized void demarrer() {
@@ -68,8 +70,10 @@ public class Emetteur {
     public synchronized void poser(Map<Integer, byte[]> nouvelles) {
         // Retirer l'univers avant de le relâcher : le fil d'émission ne doit plus
         // intercaler l'ancienne trame entre les trames à zéro.
+        List<Integer> partis = new ArrayList<Integer>();
         for (Integer u : new HashMap<Integer, byte[]>(trames).keySet())
-            if (!nouvelles.containsKey(u)) { trames.remove(u); relacher(u, proto, cible); }
+            if (!nouvelles.containsKey(u)) { trames.remove(u); partis.add(u); }
+        relacher(partis, proto, cible);
         for (Map.Entry<Integer, byte[]> e : nouvelles.entrySet())
             trames.put(e.getKey(), e.getValue());
         if (!nouvelles.isEmpty()) demarrer();
@@ -80,17 +84,26 @@ public class Emetteur {
         actif = false;
         Thread b = boucle;
         if (b != null) b.interrupt();
-        java.util.Set<Integer> us = new java.util.HashSet<Integer>(trames.keySet());
+        List<Integer> us = new ArrayList<Integer>(trames.keySet());
         trames.clear();
-        for (Integer u : us) relacher(u, proto, cible);
+        relacher(us, proto, cible);
     }
 
-    /** Trois trames à zéro, marquées fin de flux en sACN : le plateau s'éteint. */
-    private void relacher(int u, String proto, String cible) {
+    /**
+     * Trois trames à zéro, puis en sACN trois trames de fin de flux. Les zéros
+     * partent d'abord en trames ordinaires : un récepteur ignore les niveaux
+     * d'une trame de fin (E1.31, 6.2.6) et garde souvent la dernière image
+     * reçue, si bien que l'appareil mis en évidence restait allumé.
+     */
+    private void relacher(List<Integer> us, String proto, String cible) {
+        if (us.isEmpty()) return;
         byte[] zero = new byte[512];
-        for (int i = 0; i < 3; i++) {
-            if ("Art-Net".equals(proto)) art.emettre(u - 1, zero, cible);
-            else sacn.emettre(u, zero, prio, cible, true);
+        boolean an = "Art-Net".equals(proto);
+        for (int i = 0; i < (an ? 3 : 6); i++) {
+            for (int u : us) {
+                if (an) art.emettre(u - 1, zero, cible);
+                else sacn.emettre(u, zero, prio, cible, i >= 3);
+            }
             try { Thread.sleep(8); } catch (InterruptedException e) { return; }
         }
     }
@@ -98,13 +111,17 @@ public class Emetteur {
     private void tourner() {
         while (actif && boucle == Thread.currentThread()) {
             long t = System.currentTimeMillis();
-            for (Map.Entry<Integer, byte[]> e : trames.entrySet()) {
-                boolean ok = "Art-Net".equals(proto)
-                        ? art.emettre(e.getKey() - 1, e.getValue(), cible)
-                        : sacn.emettre(e.getKey(), e.getValue(), prio, cible, false);
-                // Compter les départs réussis, pas les tentatives : un compteur qui
-                // monte pendant que rien ne part ne dit rien à personne.
-                if (ok) envois++; else echecs++;
+            // Sous le verrou de poser() : une trame lue juste avant la relâche de
+            // son univers partait parfois après les zéros, et le nœud la gardait.
+            synchronized (this) {
+                for (Map.Entry<Integer, byte[]> e : trames.entrySet()) {
+                    boolean ok = "Art-Net".equals(proto)
+                            ? art.emettre(e.getKey() - 1, e.getValue(), cible)
+                            : sacn.emettre(e.getKey(), e.getValue(), prio, cible, false);
+                    // Compter les départs réussis, pas les tentatives : un compteur qui
+                    // monte pendant que rien ne part ne dit rien à personne.
+                    if (ok) envois++; else echecs++;
+                }
             }
             long reste = PERIODE - (System.currentTimeMillis() - t);
             try { Thread.sleep(Math.max(5, reste)); } catch (InterruptedException x) { return; }
