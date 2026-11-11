@@ -2323,7 +2323,20 @@ function importerParc(texte){
   remplacerParc(src);
   sauverInv();
   if(o.modes && typeof o.modes === "object")
-    Object.keys(o.modes).forEach(c => { if(!BIB[c] && Array.isArray(o.modes[c])) BIB[c] = o.modes[c]; });
+    Object.keys(o.modes).forEach(c => {
+      if(!Array.isArray(o.modes[c])) return;
+      if(!BIB[c]){ BIB[c] = o.modes[c]; return; }
+      /* Les modes déjà là restent, mais un mode du fichier qui porte son profil
+         GDTF remplace celui du même nom qui n'en a pas (import d'avant le
+         14 octobre 2026) : sans cela, recevoir le parc d'un collègue ne
+         rallumait pas les appareils restés « Sans profil GDTF ». */
+      o.modes[c].forEach(m => {
+        if(!m || !m.nom || !aProfil(m)) return;
+        const i = BIB[c].findIndex(y => y.nom === m.nom);
+        if(i < 0) BIB[c].push(m);
+        else if(!aProfil(BIB[c][i])) BIB[c][i] = m;
+      });
+    });
   sauverBib();
   if(typeof o.salle === "string" && o.salle.trim()){
     SALLE.nom = o.salle.trim(); ecrireLocal(CLE_SALLE, SALLE);
@@ -3106,7 +3119,13 @@ const profilApp = x => {
   const nom = String(x.mode || "").trim().toLowerCase();
   return (nom && ok.find(y => y.nom.trim().toLowerCase().startsWith(nom))) || null;
 };
-const hlDe = x => ({ n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x.app), prof:profilApp(x) });
+/* Le patch et la GDTF ne comptent pas toujours pareil : une ligne créée avec
+   un mode à 66 canaux garde 66 quand la GDTF en donne 110 (pixels dépliés le
+   30 octobre 2026). Les canaux d'intensité au-delà de la fin de l'appareil ne
+   sortent pas, sans rien dire : on le signale. */
+const ecartCh = x => { const pr = profilApp(x); return pr && pr.ch && pr.ch !== x.ch ? pr.ch : 0; };
+const texteEcart = x => { const g = ecartCh(x); return g ? ` · ⚠ GDTF ${g} ch, patch ${x.ch} ch` : ""; };
+const hlDe = x => ({ n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x.app), prof:profilApp(x), ecart:texteEcart(x) });
 /* La mise en évidence suit son appareil. Changer son univers, son adresse, son
    type ou son mode dans sa fiche laissait la trame sur l'ancienne adresse :
    l'appareil, à sa nouvelle place, restait noir. */
@@ -3485,7 +3504,7 @@ function barreTele(){
     /* L'appareil en évidence se range dans la même barre que le gradateur
        appelé : c'est le même plateau qui s'allume. */
     const c = el("button", "hl", `${ic("ampoule")}${esc(HL.nom)} n° ${HL.n} · U${HL.u}·${HL.adr}${
-      HL.prof || P.reg.hlTout ? "" : " · sans GDTF"}`);
+      HL.prof || P.reg.hlTout ? HL.ecart || "" : " · sans GDTF"}`);
     c.setAttribute("aria-label", "Éteindre l'appareil en évidence");
     c.onclick = () => { HL = null; envoyer(); peindre(); };
     d.append(c);
@@ -4301,7 +4320,7 @@ function majVoletAttribuer(){
   ecr.append(afficheCircuit(v, "att-cir", ecrire, () => fermerVolet()));
   ecr.insertAdjacentHTML("beforeend",
     `<span class="ad">U${x.u} · ${x.adr} → ${x.fin} · ${esc(x.mode || x.ch + " ch")} · ${
-      profilApp(x) ? "intensité ch " + intensite(profilApp(x)).join(", ") : "sans GDTF : canal 1"}</span>`);
+      profilApp(x) ? "intensité ch " + intensite(profilApp(x)).join(", ") : "sans GDTF : canal 1"}${esc(texteEcart(x))}</span>`);
   d.append(ecr);
   d.append(padCircuit({
     valeur:v, ecrire, ok:() => fermerVolet(),
