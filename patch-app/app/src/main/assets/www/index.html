@@ -816,6 +816,24 @@
   .cu-grille i.g{background:var(--tel);color:var(--on)}
   .cu-grille i.k{background:var(--ko);color:var(--on)}
   .cu-grille i.n{background:var(--dmx);color:var(--on)}
+  /* Places des univers sur l'écran du patch : une ligne par univers (barre des 512
+     adresses, libres en clair), la toucher déplie sa carte, en lecture seule. */
+  .pile .cu-us{padding:8px 10px;border-top:1px solid var(--line)}
+  .pile .cu-us>p{margin:2px 4px 8px;font:700 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+  .cu-u{display:block;width:100%;min-height:44px;border:1.5px solid var(--line);background:var(--bg);border-radius:12px;
+      padding:7px 10px;margin-top:6px;text-align:left;color:var(--ink);cursor:pointer;font:inherit}
+  .cu-u[aria-expanded="true"]{border-color:var(--tel)}
+  .cu-u .t{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .cu-u .t b{font:700 15px/1.2 var(--mono)}
+  .cu-u .t span{font:600 12px/1.2 var(--body);color:var(--ink2)}
+  .cu-u .bar{display:block;height:8px;border-radius:4px;margin-top:6px}
+  .cu-plan{margin-top:6px}
+  .cu-plan .info{margin-top:6px;font-size:12.5px;color:var(--ink2);min-height:18px}
+  .cu-plan .cu-grille i{cursor:default}
+  .aj-dep{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .aj-dep label{flex:1;font:600 13px/1.25 var(--body);color:var(--ink2)}
+  .aj-dep input{width:96px;min-height:44px;border:1.5px solid var(--line);border-radius:12px;background:var(--sur);
+      color:var(--ink);text-align:center;font:700 18px/1 var(--mono)}
   /* Repère en saisie libre : les suggestions suivent ce qu'on tape (« p1 » donne
      p1, p10 à p19) et ne se montrent que pendant la saisie. */
   .crp .sug{display:none;gap:6px;overflow-x:auto;padding:7px 1px 2px;scrollbar-width:none}
@@ -3772,8 +3790,64 @@ function pileApps(){
   if(liste.length) plus.push(...totauxApps(vis));
   if(new Set(liste.map(x => x.app)).size > 1) plus.push(choixType(liste, types));
   if(liste.length > 1) plus.push(choixVue());
+  if(liste.length) plus.push(placesUnivers(liste));
   h.after(...plus);
   return p;
+}
+
+/* Les places de chaque univers du patch, d'un coup d'œil : une ligne par
+   univers (appareils et gradateurs), avec le nombre d'adresses libres et le
+   plus grand trou. La toucher déplie la carte des 512 adresses, comme dans le
+   volet Ajouter, mais sans rien poser. */
+let UOUV = null;
+function placesUnivers(liste){
+  const us = new Set(liste.map(x => x.u));
+  gradas().forEach(n => { const a = adrGrada(n); if(a) us.add(a.u); });
+  const d = el("div", "cu-us");
+  d.append(el("p", null, "Places des univers"));
+  [...us].sort((a, b) => a - b).forEach(u => {
+    const pris = prisDans(u, liste);
+    let libres = 0, trou = 0, tDe = 0, cur = 0;
+    const stops = [];
+    let prec = null;
+    for(let c = 1; c <= 513; c++){
+      const occ = c <= 512 && pris.has(c);
+      if(c <= 512 && !occ){ libres++; cur++; if(cur > trou){ trou = cur; tDe = c - cur + 1; } } else cur = 0;
+      if(c <= 512 && occ !== prec){
+        const pc = ((c - 1) / 512 * 100).toFixed(2);
+        if(prec !== null) stops.push(`${prec ? "var(--proj)" : "var(--sur2)"} ${pc}%`);
+        stops.push(`${occ ? "var(--proj)" : "var(--sur2)"} ${pc}%`);
+        prec = occ;
+      }
+    }
+    stops.push(`${prec ? "var(--proj)" : "var(--sur2)"} 100%`);
+    const ouvert = UOUV === u;
+    const b = el("button", "cu-u", `<span class="t"><b>U${u}</b><span>${libres} libres${
+      trou ? ` · trou ${trou} (${tDe}–${tDe + trou - 1})` : " · plein"}</span></span>
+      <span class="bar" style="background:linear-gradient(90deg,${stops.join(",")})"></span>`);
+    b.type = "button";
+    b.setAttribute("aria-expanded", ouvert ? "true" : "false");
+    b.onclick = () => { UOUV = ouvert ? null : u; majListe(); };
+    d.append(b);
+    if(!ouvert) return;
+    const plan = el("div", "cu-plan"), g = el("div", "cu-grille"), info = el("div", "info", "Toucher une case pour voir qui l'occupe.");
+    g.setAttribute("aria-label", "Adresses de l'univers " + u);
+    let alt = 0, der = null;
+    for(let c = 1; c <= 512; c++){
+      const q = pris.get(c);
+      if(q && q.x && q.x !== der){ der = q.x; alt ^= 1; }
+      const i = el("i", !q ? null : q.g ? "g" : "a" + (alt ? "" : " b"), String(c));
+      i.onclick = () => {
+        info.textContent = !q ? `U${u}·${c} · libre`
+          : q.g ? `U${u}·${c} · gradateur ${q.g}`
+          : `U${u}·${c} · ${courtNom(q.x.app)} n° ${q.x.n} (${q.x.adr}–${q.x.fin})`;
+      };
+      g.append(i);
+    }
+    plan.append(g, info);
+    d.append(plan);
+  });
+  return d;
 }
 
 /* Lire la liste par univers ou par repère : un intertitre par groupe, et dans
@@ -5267,7 +5341,10 @@ function ajRegle(liste){
     <p class="aj-k">Adresse</p>
     <div class="aj-ou"><div class="l"><b>${adr == null ? "plus de place"
         : `U${AJ.u}·${adr} → U${fin.u}·${fin.fin}`}</b><span class="et${ko || adr == null ? " ko" : ""}"></span></div>
-      <div class="cu-grille"></div><div class="info">Toucher une case libre pour poser le départ ailleurs.</div></div>
+      <div class="aj-dep"><label for="aj-dep">Commencer le premier circuit à l'adresse</label>
+        <input id="aj-dep" data-focus="aj-dep" inputmode="numeric" enterkeyhint="done" autocomplete="off"
+          placeholder="1–512" value="${adr == null ? "" : adr}" aria-label="Adresse DMX du premier appareil"></div>
+      <div class="cu-grille"></div><div class="info">Taper l'adresse, ou toucher une case libre pour poser le départ ailleurs.</div></div>
     <p class="aj-k">Repère <em>facultatif</em></p><div class="aj-rep"></div>
     <div class="aj-bas"><button type="button" class="act sec">Annuler</button>
       <button type="button" class="act ok"${ko || adr == null ? " disabled" : ""}>${
@@ -5332,21 +5409,34 @@ function ajRegle(liste){
   const p = pris(AJ.u), neuf = new Set();
   bloc.forEach(b => { if(b.u === AJ.u) for(let c = b.adr; c <= b.fin; c++) neuf.add(c); });
   let alt = 0, der = null;
+  /* Poser le départ en c : refusé si la case est prise ou si le groupe
+     recouvrirait un appareil. Sert à la case touchée et à l'adresse tapée. */
+  const poser = c => {
+    const q = p.get(c);
+    if(q){ info.textContent = q.g ? `U${AJ.u}·${c} · gradateur ${q.g}`
+             : `U${AJ.u}·${c} · ${courtNom(q.x.app)} n° ${q.x.n} (${q.x.adr}–${q.x.fin}) : adresse prise`; return false; }
+    const ok = blocDe(AJ.u, c, ch, nb).every(b => {
+      const pb = pris(b.u);
+      for(let a = b.adr; a <= b.fin; a++) if(pb.has(a)) return false; return true; });
+    if(!ok){ info.textContent = `${nb} × ${ch} canaux ne tiennent pas à partir de U${AJ.u}·${c} sans recouvrir un appareil.`; return false; }
+    AJ.adr = c; majVoletAjouter(); return true;
+  };
   for(let c = 1; c <= 512; c++){
     const q = p.get(c);
     if(q && q.x && q.x !== der){ der = q.x; alt ^= 1; }
     const i = el("i", neuf.has(c) ? (q ? "k" : "n") : !q ? null : q.g ? "g" : "a" + (alt ? "" : " b"), String(c));
-    i.onclick = () => {
-      if(q){ info.textContent = q.g ? `U${AJ.u}·${c} · gradateur ${q.g}`
-               : `U${AJ.u}·${c} · ${courtNom(q.x.app)} n° ${q.x.n} (${q.x.adr}–${q.x.fin}) : adresse prise`; return; }
-      const ok = blocDe(AJ.u, c, ch, nb).every(b => {
-        const pb = pris(b.u);
-        for(let a = b.adr; a <= b.fin; a++) if(pb.has(a)) return false; return true; });
-      if(!ok){ info.textContent = `${nb} × ${ch} canaux ne tiennent pas à partir de U${AJ.u}·${c} sans recouvrir un appareil.`; return; }
-      AJ.adr = c; majVoletAjouter();
-    };
+    i.onclick = () => poser(c);
     g.append(i);
   }
+  const dep = d.querySelector("#aj-dep");
+  dep.onchange = () => {
+    const v = +dep.value.replace(/\D/g, "");
+    if(!dep.value.trim()){ AJ.adr = null; majVoletAjouter(); return; }
+    if(!(v >= 1 && v <= 512)){ info.textContent = "L'adresse va de 1 à 512."; dep.value = adr == null ? "" : adr; return; }
+    if(v === adr) return;
+    if(!poser(v)) dep.value = adr == null ? "" : adr;
+  };
+  dep.onkeydown = e => { if(e.key === "Enter") dep.blur(); };
 
   d.querySelector(".aj-rep").append(champRepere(AJ.rep, v => { AJ.rep = v; }, "Repère des appareils"));
 
