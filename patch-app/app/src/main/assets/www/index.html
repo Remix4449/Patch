@@ -3143,7 +3143,13 @@ const profilApp = x => {
    sortent pas, sans rien dire : on le signale. */
 const ecartCh = x => { const pr = profilApp(x); return pr && pr.ch && pr.ch !== x.ch ? pr.ch : 0; };
 const texteEcart = x => { const g = ecartCh(x); return g ? ` · ⚠ GDTF ${g} ch, patch ${x.ch} ch` : ""; };
-const hlDe = x => ({ n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x.app), prof:profilApp(x), ecart:texteEcart(x) });
+const hlDe = x => ({ n:x.n, u:x.u, adr:x.adr, fin:x.fin, ch:x.ch, nom:courtNom(x.app), prof:profilApp(x), ecart:texteEcart(x), t0:performance.now() });
+/* Allumer en évidence sans éblouir : la machine part d'abord sur ses valeurs de
+   repos GDTF (tête en place, shutter ouvert) avec l'intensité à zéro, le temps
+   qu'elle bouge (HL_ATTENTE), puis l'intensité monte en fondu (HL_FONDU_MS). */
+const HL_ATTENTE = 1000, HL_FONDU_MS = 1500;
+let HL_T = null;
+const niveauHL = () => !HL ? 0 : Math.max(0, Math.min(1, (performance.now() - (HL.t0 || 0) - HL_ATTENTE) / HL_FONDU_MS));
 /* La mise en évidence suit son appareil. Changer son univers, son adresse, son
    type ou son mode dans sa fiche laissait la trame sur l'ancienne adresse :
    l'appareil, à sa nouvelle place, restait noir. */
@@ -3151,6 +3157,7 @@ function suivreHL(liste){
   if(!HL) return;
   const x = liste.find(y => y.n === HL.n);
   const h = x ? hlDe(x) : null;
+  if(h) h.t0 = HL.t0;
   const pareil = h && h.u === HL.u && h.adr === HL.adr && h.fin === HL.fin && h.prof === HL.prof;
   HL = h;
   if(!pareil) envoyer();
@@ -3211,13 +3218,15 @@ function trames(){
        d'un PAR, mais le pan d'une lyre, qui reste noire. « Tous les canaux »
        (menu du patch) est plus brutal : une lyre ouvre tout ce qu'elle a. */
     const trame = poser512(HL.u);
+    const f = niveauHL(), haut = Math.round(255 * f);
+    if(f < 1 && !HL_T) HL_T = setTimeout(() => { HL_T = null; if(HL) envoyer(); }, 40);
     if(HL.prof && !P.reg.hlTout){
       const pr = HL.prof, def = pr.def || {};
-      [...(pr.dim || []), ...(pr.plein || [])].forEach(o => { const c = HL.adr + o - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = 255; });
+      [...(pr.dim || []), ...(pr.plein || [])].forEach(o => { const c = HL.adr + o - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = haut; });
       Object.keys(def).forEach(o => { const c = HL.adr + (+o) - 1; if(c <= HL.fin && c <= 512) trame[c - 1] = def[o] | 0; });
     } else {
       const fin = P.reg.hlTout ? HL.fin : HL.adr;
-      for(let c = HL.adr; c <= fin && c <= 512; c++) trame[c - 1] = 255;
+      for(let c = HL.adr; c <= fin && c <= 512; c++) trame[c - 1] = haut;
     }
   }
   /* La télécommande DMX écrit dans l'univers en clair. Là où elle croise un
@@ -5815,7 +5824,7 @@ function exporterFeuille(){
   }).join("");
 
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
-<title>${esc(P.nom || "Patch")}</title><style>
+<title>${esc(nomPdf(P.nom || "Patch", maint))}</title><style>
   @page { size:A4; margin:14mm 12mm; }
   *{box-sizing:border-box}
   body{font:10.5pt/1.35 -apple-system,"Helvetica Neue",Arial,sans-serif;color:#111;margin:0}
@@ -5876,7 +5885,7 @@ liste.` : ""}${univers.length > 1 ? " Un circuit présent sur plusieurs univers 
     + " poids renseigné à l'inventaire." : ""}</footer>
 </body></html>`;
 
-  imprimerHtml(html, "feuille");
+  imprimerHtml(html, nomPdf(P.nom || "Patch", maint));
 }
 /* Feuille de la salle : les hauteurs, les projecteurs marqués 🏠 et la
    machinerie, ce qu'on envoie à une compagnie qui prépare son accueil. */
@@ -5942,6 +5951,13 @@ ${types.map(ty => `<h3>${esc(ty)}</h3>${t(["32%", "8%", "12%", "12%", "12%", "12
   || '<p class="vide">Aucune machinerie saisie.</p>'}
 </body></html>`;
   imprimerHtml(html, "salle");
+}
+/* Nom du fichier PDF : spectacle, date et heure de l'export,
+   « Hamlet 2026-11-13 14h58 ». Sans / ni : , refusés par Android. */
+function nomPdf(titre, d){
+  const z = n => String(n).padStart(2, "0");
+  const t = String(titre).replace(/[\\/:*?"<>|]+/g, "-").trim() || "Patch";
+  return `${t} ${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}h${z(d.getMinutes())}`;
 }
 function imprimerHtml(html, nom){
   if(NET.imprimer(html, nom)) return;
